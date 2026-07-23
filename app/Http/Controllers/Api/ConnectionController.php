@@ -1,0 +1,68 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\ConnectionRequest;
+use App\Models\Connection;
+use App\Models\Profile;
+use App\Notifications\ConnectionApprovedNotification;
+use App\Notifications\ConnectionRequestNotification;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class ConnectionController extends Controller
+{
+    public function index(): JsonResponse
+    {
+        $connections = Connection::where('member_id', auth()->id())
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+
+        return response()->json(['connections' => $connections]);
+    }
+
+    public function store(ConnectionRequest $request): JsonResponse
+    {
+        $profile = Profile::where('slug', $request->slug)->firstOrFail();
+        $member = $profile->user;
+
+        $connection = Connection::create([
+            'member_id' => $member->id,
+            'guest_name' => $request->guest_name,
+            'guest_email' => $request->guest_email,
+            'guest_phone' => $request->guest_phone,
+            'guest_org' => $request->guest_org,
+            'status' => 'pending',
+        ]);
+
+        $member->notify(new ConnectionRequestNotification($connection));
+
+        return response()->json([
+            'connection' => $connection,
+            'message' => 'Connection request sent',
+        ], 201);
+    }
+
+    public function update(string $id, Request $request): JsonResponse
+    {
+        $connection = Connection::where('member_id', auth()->id())
+            ->findOrFail($id);
+
+        $action = $request->input('action', '');
+
+        if ($action === 'approve') {
+            $connection->approve();
+            $connection->member->notify(new ConnectionApprovedNotification($connection));
+        } elseif ($action === 'decline') {
+            $connection->decline();
+        } else {
+            return response()->json(['message' => 'Invalid action'], 422);
+        }
+
+        return response()->json([
+            'connection' => $connection,
+            'message' => "Connection {$action}d successfully",
+        ]);
+    }
+}
