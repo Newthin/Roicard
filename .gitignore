@@ -17,5 +17,6 @@ npm-debug.log
 yarn-error.log
 /.idea
 /.vscode
+/bootstrap/cache/*.php
 .DS_Store
 Thumbs.db
