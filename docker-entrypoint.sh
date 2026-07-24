@@ -10,7 +10,12 @@ fi
 php artisan config:cache 2>/dev/null || true
 php artisan route:cache 2>/dev/null || true
 
-# Run migrations and seed initial data
-php artisan migrate --force --seed
+# Fresh migrate on first deploy to ensure clean schema; subsequent deploys use normal migrate
+if [ ! -f /var/www/html/storage/framework/cache/migrated.flag ]; then
+    php artisan migrate:fresh --force --seed
+    touch /var/www/html/storage/framework/cache/migrated.flag
+else
+    php artisan migrate --force --seed
+fi
 
 exec apache2-foreground
