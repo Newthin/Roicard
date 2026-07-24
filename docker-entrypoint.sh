@@ -10,7 +10,7 @@ fi
 php artisan config:cache 2>/dev/null || true
 php artisan route:cache 2>/dev/null || true
 
-# Run migrations
+# Run migrations and seed initial data
 php artisan migrate --force --seed
 
 exec apache2-foreground
