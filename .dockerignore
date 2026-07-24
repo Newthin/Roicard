@@ -1,0 +1,8 @@
+.git
+.gitignore
+.dockerignore
+.env
+node_modules
+start_backend.bat
+tests/
+test_*.php
