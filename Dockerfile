@@ -42,8 +42,9 @@ RUN mkdir -p bootstrap/cache && \
 # Install dependencies
 RUN composer install --no-interaction --optimize-autoloader --no-dev
 
-# Remove temp .env and set permissions
+# Remove temp .env, create storage structure, and set permissions
 RUN rm -f .env && \
+    mkdir -p storage/app/public storage/framework/cache storage/framework/sessions storage/framework/views storage/logs && \
     chmod -R 777 storage bootstrap/cache
 
 EXPOSE 80
