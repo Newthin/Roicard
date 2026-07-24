@@ -33,8 +33,14 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 # Copy application
 COPY . .
 
+# Create temporary .env for package discovery
+RUN echo "APP_KEY=" > .env && php artisan key:generate --force 2>/dev/null; echo "APP_NAME=Roicard" >> .env
+
 # Install dependencies
 RUN composer install --no-interaction --optimize-autoloader --no-dev
+
+# Remove temp .env (real env vars set at runtime)
+RUN rm -f .env
 
 # Set permissions
 RUN chmod -R 777 storage bootstrap/cache
