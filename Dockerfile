@@ -7,7 +7,7 @@ WORKDIR /var/www/html
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     git unzip libzip-dev libpng-dev libjpeg-dev libfreetype6-dev \
-    libonig-dev libxml2-dev curl \
+    libonig-dev libxml2-dev libpq-dev curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
