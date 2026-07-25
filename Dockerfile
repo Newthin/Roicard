@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
 # Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
-    pdo_mysql mbstring zip gd bcmath xml exif
+    pdo_mysql pdo_pgsql pgsql mbstring zip gd bcmath xml exif
 
 # Enable Apache modules
 RUN a2enmod rewrite headers
