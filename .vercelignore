@@ -1,9 +1,0 @@
-.git
-.gitignore
-.env
-Dockerfile
-docker-entrypoint.sh
-start_backend.bat
-tests/
-.dockerignore
-*.md
