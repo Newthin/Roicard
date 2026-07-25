@@ -23,15 +23,9 @@ RUN sed -i 's|/var/www/html|/var/www/html/public|g' \
     /etc/apache2/sites-available/000-default.conf \
     /etc/apache2/apache2.conf
 
-# Allow .htaccess and add CORS headers
+# Allow .htaccess
 RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' \
-    /etc/apache2/apache2.conf && \
-    sed -i '/<\/VirtualHost>/i \
-    Header always set Access-Control-Allow-Origin "*" \
-    Header always set Access-Control-Allow-Methods "GET,POST,PUT,PATCH,DELETE,OPTIONS" \
-    Header always set Access-Control-Allow-Headers "Content-Type,Authorization,X-Requested-With,Accept" \
-    Header always set Access-Control-Max-Age "86400"' \
-    /etc/apache2/sites-available/000-default.conf
+    /etc/apache2/apache2.conf
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
