@@ -11,10 +11,23 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    ->withProviders([
+        \App\Providers\AppServiceProvider::class,
+    ])
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->prepend(\Illuminate\Http\Middleware\HandleCors::class);
-        $middleware->statefulApi();
+        $middleware->append(\App\Http\Middleware\BustPageCache::class);
+
+        $middleware->redirectGuestsTo(fn () => null);
+
+        $middleware->alias([
+            'is_admin' => \App\Http\Middleware\IsAdmin::class,
+            'idempotency' => \App\Http\Middleware\IdempotencyMiddleware::class,
+            'cache.get' => \App\Http\Middleware\PageCacheMiddleware::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->shouldRenderJsonWhen(function () {
+            return true;
+        });
     })->create();

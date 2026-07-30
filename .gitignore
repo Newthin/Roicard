@@ -11,6 +11,7 @@
 .env.backup
 .phpunit.result.cache
 docker-compose.yml
+credentials.local.txt
 homestead.json
 homestead.yaml
 npm-debug.log

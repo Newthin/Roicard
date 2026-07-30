@@ -1,0 +1,205 @@
+@import "tailwindcss";
+
+/**
+ * ROICARD design tokens — theme-aware CSS variables.
+ * Dark mode is default; light mode via [data-theme="light"] on <html>.
+ */
+
+:root,
+[data-theme="dark"] {
+  --rc-bg: #111111;
+  --rc-bg-elevated: #1a1a1a;
+  --rc-bg-muted: #222222;
+  --rc-border: #2a2a2a;
+  --rc-text: #ffffff;
+  --rc-text-muted: #a3a3a3;
+  --rc-accent: #ff8c42;
+  --rc-primary: #e63946;
+  --rc-primary-hover: #d62839;
+  --rc-on-primary: #ffffff;
+  --rc-glass-bg: rgba(26, 26, 26, 0.55);
+  --rc-glass-border: rgba(255, 255, 255, 0.08);
+  --rc-shadow: rgba(0, 0, 0, 0.25);
+  --rc-overlay: rgba(0, 0, 0, 0.6);
+  --rc-landing-glow: rgba(230, 57, 70, 0.18);
+  --rc-profile-glow: rgba(230, 57, 70, 0.08);
+  --rc-chart-grid: #2a2a2a;
+  --rc-selection-bg: rgba(230, 57, 70, 0.3);
+  --rc-header-bg: rgba(17, 17, 17, 0.95);
+}
+
+[data-theme="light"] {
+  --rc-bg: #f7f8fa;
+  --rc-bg-elevated: #ffffff;
+  --rc-bg-muted: #eef0f4;
+  --rc-border: #e2e5eb;
+  --rc-text: #111111;
+  --rc-text-muted: #5c6370;
+  --rc-accent: #ff8c42;
+  --rc-primary: #e63946;
+  --rc-primary-hover: #d62839;
+  --rc-on-primary: #ffffff;
+  --rc-glass-bg: rgba(255, 255, 255, 0.88);
+  --rc-glass-border: rgba(0, 0, 0, 0.06);
+  --rc-shadow: rgba(0, 0, 0, 0.08);
+  --rc-overlay: rgba(0, 0, 0, 0.4);
+  --rc-landing-glow: rgba(230, 57, 70, 0.12);
+  --rc-profile-glow: rgba(230, 57, 70, 0.06);
+  --rc-chart-grid: #e2e5eb;
+  --rc-selection-bg: rgba(230, 57, 70, 0.2);
+  --rc-header-bg: rgba(247, 248, 250, 0.95);
+}
+
+@theme {
+  --color-roicard-bg: var(--rc-bg);
+  --color-roicard-bg-elevated: var(--rc-bg-elevated);
+  --color-roicard-bg-muted: var(--rc-bg-muted);
+  --color-roicard-border: var(--rc-border);
+  --color-roicard-accent: var(--rc-accent);
+  --color-roicard-primary: var(--rc-primary);
+  --color-roicard-primary-hover: var(--rc-primary-hover);
+  --color-roicard-text: var(--rc-text);
+  --color-roicard-text-muted: var(--rc-text-muted);
+  --color-roicard-on-primary: var(--rc-on-primary);
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    @apply antialiased scroll-smooth;
+    color-scheme: dark;
+  }
+
+  html[data-theme="light"] {
+    color-scheme: light;
+  }
+
+  html,
+  body {
+    transition:
+      background-color 0.35s ease,
+      color 0.35s ease;
+  }
+
+  body {
+    @apply bg-roicard-bg text-roicard-text font-sans min-h-screen;
+  }
+
+  ::selection {
+    background: var(--rc-selection-bg);
+    color: var(--rc-text);
+  }
+}
+
+@layer utilities {
+  .roicard-gradient {
+    background: linear-gradient(135deg, #e63946 0%, #ef6b35 50%, #ff8c42 100%);
+  }
+
+  .roicard-gradient-text {
+    background: linear-gradient(135deg, #e63946 0%, #ef6b35 50%, #ff8c42 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .onboarding-step-enter {
+    animation: onboarding-fade-in 0.3s ease-out;
+  }
+
+  .glass-card {
+    background: var(--rc-glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--rc-glass-border);
+    transition:
+      background-color 0.35s ease,
+      border-color 0.35s ease;
+  }
+
+  .landing-glow {
+    background: radial-gradient(
+      ellipse 80% 50% at 50% -20%,
+      var(--rc-landing-glow),
+      transparent
+    );
+  }
+
+  .profile-ambient-glow {
+    background: radial-gradient(
+      ellipse at top,
+      var(--rc-profile-glow),
+      transparent 50%
+    );
+  }
+
+  .header-surface {
+    background: var(--rc-header-bg);
+  }
+
+  /* Faint chevron watermark — echoes the ROICARD "A" mark behind the hero. */
+  .roicard-chevron-pattern {
+    background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='48'%20height='48'%20viewBox='0%200%2048%2048'%3E%3Cpath%20d='M14%2029L24%2019L34%2029'%20fill='none'%20stroke='%23ff8c42'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-size: 48px 48px;
+    background-position: center top;
+    /* Radial fade — strongest behind the header/hero, soft at the edges */
+    mask-image: radial-gradient(
+      ellipse 90% 75% at 50% 12%,
+      rgb(0 0 0 / 0.85) 0%,
+      rgb(0 0 0 / 0.35) 45%,
+      transparent 72%
+    );
+    -webkit-mask-image: radial-gradient(
+      ellipse 90% 75% at 50% 12%,
+      rgb(0 0 0 / 0.85) 0%,
+      rgb(0 0 0 / 0.35) 45%,
+      transparent 72%
+    );
+  }
+
+  /* Brand logo theme switching — show the variant that fits the background. */
+  .brand-logo--light {
+    display: none;
+  }
+
+  [data-theme="light"] .brand-logo--dark {
+    display: none;
+  }
+
+  [data-theme="light"] .brand-logo--light {
+    display: inline-block;
+  }
+
+  .theme-transition {
+    transition:
+      background-color 0.35s ease,
+      border-color 0.35s ease,
+      color 0.25s ease,
+      box-shadow 0.35s ease;
+  }
+
+  .landing-float {
+    animation: landing-float 6s ease-in-out infinite;
+  }
+}
+
+@keyframes onboarding-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes landing-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}

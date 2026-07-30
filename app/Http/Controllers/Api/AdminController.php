@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AdminActionLog;
 use App\Models\AnalyticsEvent;
+use App\Models\Connection;
 use App\Models\Payment;
 use App\Models\SmartCard;
 use App\Models\User;
 use App\Notifications\SmartCardDeliveredNotification;
 use App\Notifications\SmartCardShippedNotification;
 use App\Traits\LogsAdminActions;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Spatie\QueryBuilder\QueryBuilder;
@@ -97,6 +99,34 @@ class AdminController extends Controller
         ]);
     }
 
+    public function assignCard(string $id, Request $request): JsonResponse
+    {
+        $request->validate(['user_id' => ['required', 'integer', 'exists:users,id']]);
+
+        $smartCard = SmartCard::findOrFail($id);
+        $smartCard->update(['user_id' => $request->user_id]);
+
+        $this->logAdminAction('assign_card', $request->user_id);
+
+        return response()->json([
+            'smart_card' => $smartCard->fresh()->load('user:id,first_name,last_name,email'),
+            'message' => 'Card assigned to user',
+        ]);
+    }
+
+    public function unassignCard(string $id): JsonResponse
+    {
+        $smartCard = SmartCard::findOrFail($id);
+        $smartCard->update(['user_id' => null]);
+
+        $this->logAdminAction('unassign_card');
+
+        return response()->json([
+            'smart_card' => $smartCard->fresh(),
+            'message' => 'Card unassigned',
+        ]);
+    }
+
     public function deliverCard(string $id): JsonResponse
     {
         $smartCard = SmartCard::findOrFail($id);
@@ -116,6 +146,74 @@ class AdminController extends Controller
         return response()->json([
             'smart_card' => $smartCard->fresh(),
             'message' => 'Card marked as delivered',
+        ]);
+    }
+
+    public function smartCards(Request $request): JsonResponse
+    {
+        $cards = SmartCard::with('user:id,first_name,last_name,email')
+            ->orderBy('created_at', 'desc')
+            ->paginate($request->input('per_page', 20));
+
+        return response()->json($cards);
+    }
+
+    public function connections(Request $request): JsonResponse
+    {
+        $connections = Connection::with('member:id,first_name,last_name,email')
+            ->orderBy('created_at', 'desc')
+            ->paginate($request->input('per_page', 20));
+
+        return response()->json($connections);
+    }
+
+    public function activityLog(Request $request): JsonResponse
+    {
+        $logs = AdminActionLog::with('admin:id,first_name,last_name', 'targetUser:id,first_name,last_name')
+            ->orderBy('created_at', 'desc')
+            ->take(20)
+            ->get();
+
+        return response()->json($logs);
+    }
+
+    public function trends(): JsonResponse
+    {
+        $days = 30;
+        $start = now()->subDays($days);
+
+        $users = User::where('created_at', '>=', $start)
+            ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
+            ->groupBy('date')
+            ->pluck('count', 'date');
+
+        $connections = Connection::where('created_at', '>=', $start)
+            ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
+            ->groupBy('date')
+            ->pluck('count', 'date');
+
+        $analytics = AnalyticsEvent::where('created_at', '>=', $start)
+            ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
+            ->groupBy('date')
+            ->pluck('count', 'date');
+
+        $dates = collect(range(0, $days - 1))->map(fn ($i) => now()->subDays($i)->format('Y-m-d'))->reverse()->values();
+
+        $chart = fn ($data) => $dates->map(fn ($date) => [
+            'label' => Carbon::parse($date)->format('M d'),
+            'value' => (int) ($data[$date] ?? 0),
+        ])->toArray();
+
+        $nfcUsage = [
+            ['label' => 'Assigned', 'value' => SmartCard::whereNotNull('user_id')->count()],
+            ['label' => 'Unassigned', 'value' => SmartCard::whereNull('user_id')->count()],
+        ];
+
+        return response()->json([
+            'usersGrowth' => $chart($users->toArray()),
+            'connectionsGrowth' => $chart($connections->toArray()),
+            'nfcUsage' => $nfcUsage,
+            'profileViewTrends' => $chart($analytics->toArray()),
         ]);
     }
 }

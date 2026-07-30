@@ -6,3 +6,7 @@ node_modules
 start_backend.bat
 tests/
 test_*.php
+client/node_modules
+client/.next
+client/dist
+backend-nestjs-archive

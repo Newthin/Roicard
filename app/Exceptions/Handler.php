@@ -3,11 +3,11 @@
 namespace App\Exceptions;
 
 use Illuminate\Auth\AuthenticationException;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Validation\ValidationException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Throwable;
 
 class Handler extends ExceptionHandler
 {
@@ -16,21 +16,20 @@ class Handler extends ExceptionHandler
         return response()->json(['message' => 'Unauthenticated'], 401);
     }
 
-    public function register(): void
+    public function render($request, Throwable $e): JsonResponse
     {
-        $this->renderable(function (ModelNotFoundException $e) {
-            return response()->json(['message' => 'Resource not found'], 404);
-        });
+        if ($e instanceof HttpException) {
+            return response()->json(['message' => $e->getMessage()], $e->getStatusCode());
+        }
 
-        $this->renderable(function (NotFoundHttpException $e) {
-            return response()->json(['message' => 'Route not found'], 404);
-        });
+        if ($e instanceof AuthenticationException) {
+            return $this->unauthenticated($request, $e);
+        }
 
-        $this->renderable(function (ValidationException $e) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $e->errors(),
-            ], 422);
-        });
+        $message = app()->isProduction()
+            ? 'Internal server error'
+            : $e->getMessage();
+
+        return response()->json(['message' => $message], 500);
     }
 }
