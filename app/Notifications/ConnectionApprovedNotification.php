@@ -11,7 +11,7 @@ class ConnectionApprovedNotification extends Notification
     use Queueable;
 
     public function __construct(
-        public Connection $connection
+        public Connection $connectionData
     ) {}
 
     public function via(object $notifiable): array
@@ -23,10 +23,10 @@ class ConnectionApprovedNotification extends Notification
     {
         return [
             'type' => 'connection_approved',
-            'connection_id' => $this->connection->id,
-            'guest_name' => $this->connection->guest_name,
+            'connection_id' => $this->connectionData->id,
+            'guest_name' => $this->connectionData->guest_name,
             'title' => 'Connection Approved',
-            'body' => "You are now connected with {$this->connection->guest_name}.",
+            'body' => "You are now connected with {$this->connectionData->guest_name}.",
         ];
     }
 }

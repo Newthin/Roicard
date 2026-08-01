@@ -10,7 +10,7 @@ import type { UserProfile } from "@/lib/profile/types";
 /** Seed profiles omit the newer onboarding fields; defaults are applied on read. */
 type SeedProfile = Omit<
   UserProfile,
-  "membershipStatus" | "interests" | "seeking" | "offering"
+  "membershipStatus" | "dateOfBirth" | "gender" | "interests" | "seeking" | "offering"
 >;
 
 const MOCK_PROFILES: Record<string, SeedProfile> = {
@@ -120,6 +120,8 @@ export function getMockProfileByUsername(username: string): UserProfile | null {
   return {
     ...seed,
     membershipStatus: "active",
+    dateOfBirth: "",
+    gender: "",
     interests: [],
     seeking: "",
     offering: "",

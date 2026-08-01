@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-
 class ProfileRequest extends FormRequest
 {
     public function authorize(): bool
@@ -20,6 +19,9 @@ class ProfileRequest extends FormRequest
             'title' => ['nullable', 'string', 'max:255'],
             'organisation' => ['nullable', 'string', 'max:255'],
             'whatsapp_phone' => ['nullable', 'string', 'max:20'],
+            'date_of_birth' => ['nullable', 'date', 'before:today'],
+            'gender' => ['nullable', 'string', 'in:male,female,prefer_not_to_say'],
+            'interests' => ['nullable', 'string'],
             'location' => ['nullable', 'string', 'max:255'],
             'bio' => ['nullable', 'string', 'max:1000'],
             'is_live' => ['nullable', 'boolean'],

@@ -22,13 +22,13 @@ class PublicProfileController extends Controller
 
         $data = Cache::remember($cacheKey, 3600, function () use ($slug) {
             $profile = Profile::where('slug', $slug)
-                ->where('is_live', true)
                 ->with([
                     'user:id,first_name,last_name,email',
                     'socialLinks',
                     'education',
                     'experience',
                     'achievements',
+                    'interestOptions:id,name',
                 ])
                 ->first();
 
@@ -45,6 +45,9 @@ class PublicProfileController extends Controller
                 'title' => $profile->title,
                 'organisation' => $profile->organisation,
                 'whatsapp_phone' => $profile->whatsapp_phone,
+                'date_of_birth' => $profile->date_of_birth?->toDateString(),
+                'gender' => $profile->gender,
+                'interests' => $profile->interestOptions->pluck('name')->all(),
                 'location' => $profile->location,
                 'bio' => $profile->bio,
                 'avatar' => $avatar,
@@ -70,9 +73,14 @@ class PublicProfileController extends Controller
         }
 
         $source = $request->input('src', 'profile_view');
-        RecordAnalyticsJob::dispatch($data['id'], $source);
+        RecordAnalyticsJob::dispatch($data['user_id'] ?? $this->userIdForSlug($slug), $source);
 
         return response()->json($data);
+    }
+
+    protected function userIdForSlug(string $slug): int
+    {
+        return (int) Profile::where('slug', $slug)->value('user_id');
     }
 
     public function trackEvent(string $slug, Request $request): JsonResponse

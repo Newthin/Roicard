@@ -145,6 +145,12 @@ function validateStep(step: JourneyStepId, data: JourneyData): JourneyFieldError
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
       errors.email = "Please enter a valid email address";
     }
+    if (data.dateOfBirth) {
+      const dob = new Date(`${data.dateOfBirth}T00:00:00`);
+      if (isNaN(dob.getTime()) || dob >= new Date()) {
+        errors.dateOfBirth = "Please enter a valid date in the past";
+      }
+    }
   }
 
   if (step === "identity") {
@@ -281,19 +287,21 @@ export function OnboardingJourneyProvider({ children }: ProviderProps) {
       email: data.email,
       phone: data.phone,
       whatsapp: data.whatsapp,
+      dateOfBirth: data.dateOfBirth,
+      gender: data.gender,
       location: data.location,
       social: data.social,
       interests: data.interests,
       seeking: data.seeking,
       offering: data.offering,
-      username: "",
+      username,
       createdAt: new Date().toISOString(),
       membershipStatus,
     };
     createAndSaveProfile(profile);
     setOnboardingComplete();
     return profile.username;
-  }, [data, membershipStatus]);
+  }, [data, membershipStatus, username]);
 
   // Payment + processing sit off the linear path; anchor their progress to the
   // membership step so the bar/counter never jumps backwards.

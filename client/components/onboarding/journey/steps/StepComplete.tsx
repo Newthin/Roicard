@@ -4,7 +4,9 @@ import { useJourney } from "@/components/onboarding/journey/JourneyContext";
 import { StepHeading } from "@/components/onboarding/journey/StepHeading";
 import { Button } from "@/components/ui/Button";
 import { updateProfile } from "@/lib/api/profiles";
-import { useAuth } from "@/contexts/AuthContext"; // ← add this
+import { uploadAvatar } from "@/lib/api/profile";
+import { updateStoredProfilePhoto } from "@/lib/profile/storage";
+import { useAuth } from "@/contexts/AuthContext";
 import { CheckCircle2, Compass, Share2, TrendingUp, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -18,7 +20,7 @@ const CAPABILITIES = [
 
 export function StepComplete() {
   const { complete, data } = useJourney();
-  const { setSession } = useAuth(); // ← add this
+  const { setSession } = useAuth();
   const router = useRouter();
   const [username, setUsername] = useState<string>("");
   const [saving, setSaving] = useState(false);
@@ -37,23 +39,34 @@ export function StepComplete() {
         const response = await updateProfile({
           firstName: data.firstName,
           lastName: data.lastName,
-          email: data.email, // ← ADD THIS
+          email: data.email,
           phone: data.phone,
           bio: data.bio,
           city: data.location,
           professionalTitle: data.professionalTitle,
           organization: data.organization,
           whatsapp: data.whatsapp,
-          avatar: data.profilePhotoUrl,
+          dateOfBirth: data.dateOfBirth,
+          gender: data.gender,
           socialLinks: JSON.stringify(data.social),
           interests: JSON.stringify(data.interests),
           seeking: data.seeking,
           offering: data.offering,
         });
 
-        // If the API returns a token/user, set the auth session
-        if (response.token && response.user) {
-          setSession(response.token, response.user);
+        // If the API returns user data, update the stored session with existing token
+        if (response.user) {
+          const existingToken = localStorage.getItem("roicard_token") ?? "";
+          setSession(existingToken, response.user);
+        }
+
+        // Upload avatar if changed (profile must exist first)
+        if (data.profilePhotoUrl?.startsWith("data:image")) {
+          const res = await fetch(data.profilePhotoUrl);
+          const blob = await res.blob();
+          const file = new File([blob], "avatar.jpg", { type: blob.type });
+          const url = await uploadAvatar(file);
+          updateStoredProfilePhoto(url);
         }
 
         const timer = setTimeout(() => {
@@ -64,6 +77,11 @@ export function StepComplete() {
         return () => clearTimeout(timer);
       } catch (err) {
         console.error("Failed to save profile:", err);
+        if (err && typeof err === "object" && "response" in err) {
+          const axiosErr = err as { response?: { data?: unknown; status?: number } };
+          console.error("Response data:", JSON.stringify(axiosErr.response?.data));
+          console.error("Status:", axiosErr.response?.status);
+        }
         // Still navigate after a delay even if save fails
         const timer = setTimeout(() => {
           router.push("/dashboard");

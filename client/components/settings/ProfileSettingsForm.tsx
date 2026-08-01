@@ -15,13 +15,14 @@ import { getPersonInitials } from "@/lib/connections/helpers";
 import type { ConnectionPerson } from "@/lib/connections/types";
 import {
   EMPTY_ONBOARDING_DATA,
-  INTEREST_OPTIONS,
   type OnboardingFormData,
   type SocialLinks,
 } from "@/lib/profile/types";
-import { updateCurrentUserProfile } from "@/lib/profile/storage";
+import { uploadAvatar } from "@/lib/api/profile";
+import { updateCurrentUserProfile, updateStoredProfilePhoto } from "@/lib/profile/storage";
+import { useInterestOptions } from "@/hooks/useInterestOptions";
 import { cn } from "@/lib/cn";
-import { Camera, Check, Upload } from "lucide-react";
+import { Camera, Check, Plus, Upload } from "lucide-react";
 import { ChangeEvent, useEffect, useState } from "react";
 
 type ProfileSettingsFormProps = {
@@ -37,6 +38,8 @@ export function ProfileSettingsForm({
   const [form, setForm] = useState<OnboardingFormData>(initialData);
   const [isSaving, setIsSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const [customInterest, setCustomInterest] = useState("");
+  const interestOptions = useInterestOptions();
 
   useEffect(() => {
     setForm(initialData);
@@ -80,6 +83,18 @@ export function ProfileSettingsForm({
     reader.readAsDataURL(file);
   };
 
+  const handleAddCustomInterest = () => {
+    const value = customInterest.trim();
+    if (!value) return;
+    if (form.interests.some((i) => i.toLowerCase() === value.toLowerCase())) {
+      setCustomInterest("");
+      return;
+    }
+    setForm((prev) => ({ ...prev, interests: [...prev.interests, value] }));
+    setCustomInterest("");
+    setSavedMessage(null);
+  };
+
   const handleReset = async () => {
     const confirmed = await confirm({
       title: "Discard changes?",
@@ -106,6 +121,17 @@ export function ProfileSettingsForm({
     setIsSaving(true);
     try {
       await updateCurrentUserProfile(form);
+
+      // Upload avatar if changed (base64 data URL = new local selection)
+      if (form.profilePhotoUrl?.startsWith("data:image")) {
+        const res = await fetch(form.profilePhotoUrl);
+        const blob = await res.blob();
+        const file = new File([blob], "avatar.jpg", { type: blob.type });
+        const url = await uploadAvatar(file);
+        updateField("profilePhotoUrl", url);
+        updateStoredProfilePhoto(url);
+      }
+
       setSavedMessage("Profile saved successfully.");
       onSaved?.();
     } catch {
@@ -189,6 +215,30 @@ export function ProfileSettingsForm({
           value={form.organization}
           onChange={(e) => updateField("organization", e.target.value)}
         />
+        <FormField
+          label="Date of Birth"
+          type="date"
+          value={form.dateOfBirth}
+          onChange={(e) => updateField("dateOfBirth", e.target.value)}
+        />
+        <div>
+          <label htmlFor="settings-gender" className="mb-2 block text-sm font-medium text-roicard-text">
+            Gender
+          </label>
+          <select
+            id="settings-gender"
+            value={form.gender}
+            onChange={(e) =>
+              updateField("gender", e.target.value as "" | "male" | "female" | "prefer_not_to_say")
+            }
+            className="h-12 w-full rounded-xl border border-roicard-border bg-roicard-bg-muted/80 px-4 text-sm text-roicard-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-roicard-accent/40 focus-visible:border-roicard-accent/50"
+          >
+            <option value="">Select...</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="prefer_not_to_say">Prefer not to mention</option>
+          </select>
+        </div>
         <div className="sm:col-span-2">
           <FormField
             variant="textarea"
@@ -289,7 +339,7 @@ export function ProfileSettingsForm({
         <div className="space-y-2">
           <p className="text-sm font-medium text-roicard-text">Interests</p>
           <div className="flex flex-wrap gap-2">
-            {INTEREST_OPTIONS.map((interest) => {
+            {interestOptions.map((interest) => {
               const selected = form.interests.includes(interest);
               return (
                 <button
@@ -309,7 +359,56 @@ export function ProfileSettingsForm({
                 </button>
               );
             })}
+
+            {/* Custom interests added by the user */}
+            {form.interests
+              .filter((i) => !interestOptions.includes(i))
+              .map((interest) => {
+                const selected = form.interests.includes(interest);
+                return (
+                  <button
+                    key={interest}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => toggleInterest(interest)}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium transition-all",
+                      selected
+                        ? "border-transparent roicard-gradient text-roicard-on-primary"
+                        : "border-roicard-accent/50 bg-roicard-accent/5 text-roicard-text hover:border-roicard-accent"
+                    )}
+                  >
+                    {selected && <Check className="h-3.5 w-3.5" />}
+                    {interest}
+                  </button>
+                );
+              })}
           </div>
+        </div>
+
+        <div className="mt-3 flex items-center gap-3">
+          <input
+            type="text"
+            value={customInterest}
+            onChange={(e) => setCustomInterest(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleAddCustomInterest();
+              }
+            }}
+            placeholder="Type a custom interest..."
+            className="h-12 w-full rounded-xl border border-roicard-border bg-roicard-bg-muted/80 px-4 text-sm text-roicard-text placeholder:text-roicard-text-muted/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-roicard-accent/40 focus-visible:border-roicard-accent/50"
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={handleAddCustomInterest}
+            className="shrink-0 rounded-xl"
+          >
+            <Plus className="h-4 w-4" />
+            Add
+          </Button>
         </div>
 
         <div className="mt-5 grid gap-5">

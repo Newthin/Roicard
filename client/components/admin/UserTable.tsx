@@ -209,6 +209,134 @@ function EditUserModal({
   );
 }
 
+function AddUserModal({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  const { registerUser } = useAdmin();
+  const [form, setForm] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    password: "",
+    password_confirmation: "",
+    status: "draft" as const,
+    role: "member" as const,
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleChange = (field: string, value: string) =>
+    setForm((f) => ({ ...f, [field]: value }));
+
+  const handleSubmit = async () => {
+    setSaving(true);
+    setError("");
+    const result = await registerUser(form);
+    setSaving(false);
+    if (!result.ok) {
+      setError(result.error);
+    } else {
+      setForm({
+        first_name: "",
+        last_name: "",
+        email: "",
+        password: "",
+        password_confirmation: "",
+        status: "draft",
+        role: "member",
+      });
+      onClose();
+    }
+  };
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Add User"
+      description="Create a new user account"
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} isLoading={saving}>
+            Create User
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {error && (
+          <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">
+            {error}
+          </p>
+        )}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input
+            label="First Name"
+            value={form.first_name}
+            onChange={(e) => handleChange("first_name", e.target.value)}
+          />
+          <Input
+            label="Last Name"
+            value={form.last_name}
+            onChange={(e) => handleChange("last_name", e.target.value)}
+          />
+        </div>
+        <Input
+          label="Email"
+          type="email"
+          value={form.email}
+          onChange={(e) => handleChange("email", e.target.value)}
+        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input
+            label="Password"
+            type="password"
+            value={form.password}
+            onChange={(e) => handleChange("password", e.target.value)}
+          />
+          <Input
+            label="Confirm Password"
+            type="password"
+            value={form.password_confirmation}
+            onChange={(e) => handleChange("password_confirmation", e.target.value)}
+          />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-roicard-text">Status</label>
+            <select
+              value={form.status}
+              onChange={(e) => handleChange("status", e.target.value)}
+              className="h-11 w-full rounded-lg border border-roicard-border bg-roicard-bg-muted px-4 text-sm text-roicard-text"
+            >
+              <option value="draft">Draft</option>
+              <option value="active">Active</option>
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-roicard-text">Role</label>
+            <select
+              value={form.role}
+              onChange={(e) => handleChange("role", e.target.value)}
+              className="h-11 w-full rounded-lg border border-roicard-border bg-roicard-bg-muted px-4 text-sm text-roicard-text"
+            >
+              <option value="member">Member</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 export function UserTable() {
   const { users, isLoading, updateUserStatus, updateUser } = useAdmin();
   const { confirm } = useConfirm();
@@ -218,6 +346,7 @@ export function UserTable() {
   const [page, setPage] = useState(1);
   const [viewUser, setViewUser] = useState<AdminUser | null>(null);
   const [editUser, setEditUser] = useState<AdminUser | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   /** Suspend user after admin confirmation. */
   const handleSuspend = async (user: AdminUser) => {
@@ -286,20 +415,25 @@ export function UserTable() {
           }}
           className="sm:max-w-xs"
         />
-        <select
-          value={statusFilter}
-          onChange={(e) => {
-            setStatusFilter(e.target.value as "all" | UserStatus);
-            setPage(1);
-          }}
-          className="h-11 rounded-lg border border-roicard-border bg-roicard-bg-muted px-4 text-sm text-roicard-text"
-          aria-label="Filter by status"
-        >
-          <option value="all">All statuses</option>
-          <option value="active">Active</option>
-          <option value="draft">Draft</option>
-          <option value="suspended">Suspended</option>
-        </select>
+        <div className="flex items-center gap-3">
+          <select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value as "all" | UserStatus);
+              setPage(1);
+            }}
+            className="h-11 rounded-lg border border-roicard-border bg-roicard-bg-muted px-4 text-sm text-roicard-text"
+            aria-label="Filter by status"
+          >
+            <option value="all">All statuses</option>
+            <option value="active">Active</option>
+            <option value="draft">Draft</option>
+            <option value="suspended">Suspended</option>
+          </select>
+          <Button onClick={() => setShowAddModal(true)} className="shrink-0">
+            + Add User
+          </Button>
+        </div>
       </div>
 
       {/* Desktop table */}
@@ -469,6 +603,10 @@ export function UserTable() {
         user={editUser}
         onClose={() => setEditUser(null)}
         onSave={updateUser}
+      />
+      <AddUserModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
       />
     </div>
   );

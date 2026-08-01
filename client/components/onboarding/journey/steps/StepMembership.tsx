@@ -10,11 +10,45 @@
 import { useJourney } from "@/components/onboarding/journey/JourneyContext";
 import { StepHeading } from "@/components/onboarding/journey/StepHeading";
 import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/contexts/AuthContext";
 import { MEMBERSHIP_BENEFITS, MEMBERSHIP_FEE_GHS } from "@/lib/profile/types";
 import { Check } from "lucide-react";
 
 export function StepMembership() {
-  const { activateMembership, skipMembership } = useJourney();
+  const { user } = useAuth();
+  const { activateMembership, skipMembership, next } = useJourney();
+
+  if (user?.status === "active") {
+    return (
+      <div className="space-y-7">
+        <StepHeading
+          eyebrow="Membership"
+          title="Your Roicard membership"
+          description="Your membership is already active — there's nothing more to do here. Continue to complete your profile."
+        />
+
+        <div className="rounded-2xl border border-roicard-border bg-roicard-bg-elevated/70 p-6 theme-transition">
+          <p className="text-sm font-semibold text-roicard-text">
+            Membership includes
+          </p>
+          <ul className="mt-4 space-y-3">
+            {MEMBERSHIP_BENEFITS.map((benefit) => (
+              <li key={benefit} className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-roicard-primary/15 text-roicard-accent">
+                  <Check className="h-3.5 w-3.5" />
+                </span>
+                <span className="text-sm text-roicard-text">{benefit}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <Button onClick={next} className="w-full rounded-xl">
+          Already Paid — Continue
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-7">

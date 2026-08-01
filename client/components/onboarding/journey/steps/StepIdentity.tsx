@@ -62,7 +62,7 @@ export function StepIdentity() {
             className={cn(
               "inline-flex cursor-pointer items-center gap-2 rounded-xl border border-roicard-border",
               "bg-roicard-bg-muted px-4 py-2.5 text-sm font-medium text-roicard-text",
-              "transition-colors hover:border-roicard-accent/50 hover:bg-roicard-bg-elevated"
+              "transition-colors hover:border-roicard-accent/50 hover:bg-roicard-bg-elevated",
             )}
           >
             <Upload className="h-4 w-4 text-roicard-accent" />
@@ -88,7 +88,7 @@ export function StepIdentity() {
 
       <FormField
         variant="textarea"
-        label="Short Bio"
+        label="Professional Profile"
         name="bio"
         placeholder="Tell the community a little about who you are and what you care about."
         value={data.bio}
@@ -97,7 +97,7 @@ export function StepIdentity() {
       />
 
       <FormField
-        label="University / Company"
+        label="Oragnisation / Institution"
         name="organization"
         placeholder="University of Ghana / Acme Inc."
         hint="Optional"

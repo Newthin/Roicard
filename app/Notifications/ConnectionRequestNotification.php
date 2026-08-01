@@ -11,7 +11,7 @@ class ConnectionRequestNotification extends Notification
     use Queueable;
 
     public function __construct(
-        public Connection $connection
+        public Connection $connectionData
     ) {}
 
     public function via(object $notifiable): array
@@ -23,12 +23,12 @@ class ConnectionRequestNotification extends Notification
     {
         return [
             'type' => 'connection_request',
-            'connection_id' => $this->connection->id,
-            'guest_name' => $this->connection->guest_name,
-            'guest_email' => $this->connection->guest_email,
-            'guest_org' => $this->connection->guest_org,
+            'connection_id' => $this->connectionData->id,
+            'guest_name' => $this->connectionData->guest_name,
+            'guest_email' => $this->connectionData->guest_email,
+            'guest_org' => $this->connectionData->guest_org,
             'title' => 'New Connection Request',
-            'body' => "{$this->connection->guest_name} wants to connect with you.",
+            'body' => "{$this->connectionData->guest_name} wants to connect with you.",
         ];
     }
 }

@@ -8,16 +8,19 @@
 "use client";
 
 import { useJourney } from "@/components/onboarding/journey/JourneyContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
 
 export function StepProcessing() {
+  const { user } = useAuth();
   const { finishProcessing } = useJourney();
 
   useEffect(() => {
-    const timer = setTimeout(finishProcessing, 2400);
+    const delay = user?.status === "active" ? 0 : 2400;
+    const timer = setTimeout(finishProcessing, delay);
     return () => clearTimeout(timer);
-  }, [finishProcessing]);
+  }, [finishProcessing, user]);
 
   return (
     <div className="flex flex-col items-center gap-5 py-12 text-center">

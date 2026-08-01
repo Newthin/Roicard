@@ -15,6 +15,7 @@ import type {
 } from "@/lib/admin/types";
 import {
   assignSmartCard,
+  createAdminUser,
   getAdminSmartCards,
   getAdminStats,
   getAdminUsers,
@@ -40,6 +41,15 @@ type AdminContextValue = {
   refresh: () => void;
   updateUserStatus: (userId: string, status: UserStatus) => void;
   updateUser: (userId: string, updates: Partial<AdminUser>) => void;
+  registerUser: (data: {
+    first_name: string;
+    last_name: string;
+    email: string;
+    password: string;
+    password_confirmation: string;
+    status: "draft" | "active";
+    role: "member" | "admin";
+  }) => Promise<{ ok: true } | { ok: false; error: string }>;
   assignNfc: (nfcId: string, userId: string) => void;
   unassignNfc: (nfcId: string) => void;
   registerNfcCard: (
@@ -155,6 +165,31 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     [refresh]
   );
 
+  const registerUser = useCallback(
+    async (data: {
+      first_name: string;
+      last_name: string;
+      email: string;
+      password: string;
+      password_confirmation: string;
+      status: "draft" | "active";
+      role: "member" | "admin";
+    }): Promise<{ ok: true } | { ok: false; error: string }> => {
+      try {
+        await createAdminUser(data);
+        await refresh();
+        return { ok: true };
+      } catch (e) {
+        const msg =
+          e && typeof e === "object" && "response" in e
+            ? String((e as { response?: { data?: { message?: string } } }).response?.data?.message ?? "Failed to create user")
+            : "Failed to create user";
+        return { ok: false, error: msg };
+      }
+    },
+    [refresh]
+  );
+
   const assignNfc = useCallback(
     async (nfcId: string, userId: string) => {
       try {
@@ -195,6 +230,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       refresh,
       updateUserStatus,
       updateUser,
+      registerUser,
       assignNfc,
       unassignNfc,
       registerNfcCard,
@@ -207,6 +243,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       refresh,
       updateUserStatus,
       updateUser,
+      registerUser,
       assignNfc,
       unassignNfc,
       registerNfcCard,

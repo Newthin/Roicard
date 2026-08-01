@@ -17,7 +17,19 @@ export function AdminGuard({ children }: { children: ReactNode }) {
     }
   }, [isAuthenticated, isLoading, user, router]);
 
-  if (isLoading || !isAuthenticated || user?.role !== "admin") {
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-roicard-bg">
+        <div
+          className="h-8 w-8 animate-spin rounded-full border-2 border-roicard-border border-t-roicard-primary"
+          role="status"
+          aria-label="Loading"
+        />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || user?.role !== "admin") {
     return null;
   }
 

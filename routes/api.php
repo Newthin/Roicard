@@ -5,6 +5,8 @@ use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ConnectionController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\GoogleAuthController;
+use App\Http\Controllers\Api\InterestOptionController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProfileController;
@@ -24,9 +26,14 @@ Route::middleware('throttle:api')->group(function () {
 */
 Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:register');
 Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
+Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect']);
+Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback']);
 Route::post('/auth/verify-email', [AuthController::class, 'verifyEmail'])->middleware('auth:sanctum');
 Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:forgot-password');
 Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+
+// Interest options (public)
+Route::get('/interests', [InterestOptionController::class, 'index'])->middleware('cache.get');
 
 // Public profile
 Route::get('/public/{slug}', [PublicProfileController::class, 'show'])->middleware('cache.get');
@@ -51,6 +58,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/profile', [ProfileController::class, 'store']);
     Route::put('/profile', [ProfileController::class, 'update']);
     Route::get('/profile', [ProfileController::class, 'show'])->middleware('cache.get');
+    Route::post('/profile/avatar', [ProfileController::class, 'uploadAvatar']);
 
     // Profile Enrichment (Screens 12-14)
     Route::post('/profile/cv', [ProfileEnrichmentController::class, 'uploadCv']);
@@ -97,6 +105,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/stats', [AdminController::class, 'stats'])->middleware('cache.get');
         Route::get('/stats/trends', [AdminController::class, 'trends'])->middleware('cache.get');
         Route::get('/users', [AdminController::class, 'users'])->middleware('cache.get');
+        Route::post('/users', [AdminController::class, 'storeUser']);
         Route::patch('/users/{id}', [AdminController::class, 'updateUser']);
         Route::get('/smart-cards', [AdminController::class, 'smartCards'])->middleware('cache.get');
         Route::patch('/smart-cards/{id}/assign', [AdminController::class, 'assignCard']);

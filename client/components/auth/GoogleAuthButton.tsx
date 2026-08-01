@@ -4,9 +4,7 @@ import { Button } from "@/components/ui/Button";
 
 type GoogleAuthButtonProps = {
   label: string;
-};
-
-function GoogleIcon() {
+};function GoogleIcon() {
   return (
     <svg
       className="h-5 w-5"
@@ -35,15 +33,18 @@ function GoogleIcon() {
 }
 
 export function GoogleAuthButton({ label }: GoogleAuthButtonProps) {
+  const handleClick = () => {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+    window.location.href = `${apiBase}/auth/google/redirect`;
+  };
+
   return (
     <Button
       type="button"
       variant="secondary"
       fullWidth
       className="h-12 rounded-xl border-roicard-border bg-roicard-bg-muted/60 font-medium"
-      onClick={() => {
-        // UI only — backend OAuth integration goes here
-      }}
+      onClick={handleClick}
     >
       <GoogleIcon />
       {label}

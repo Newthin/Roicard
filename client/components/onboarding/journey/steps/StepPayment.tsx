@@ -3,6 +3,7 @@
  *
  * Mock payment method selection for members who chose to activate now.
  * A "pay later" escape hatch keeps payment fully optional.
+ * Active users skip this step automatically.
  */
 
 "use client";
@@ -10,13 +11,24 @@
 import { useJourney } from "@/components/onboarding/journey/JourneyContext";
 import { StepHeading } from "@/components/onboarding/journey/StepHeading";
 import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/cn";
 import { MEMBERSHIP_FEE_GHS, PAYMENT_METHODS } from "@/lib/profile/types";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function StepPayment() {
+  const { user } = useAuth();
   const { submitPayment, skipMembership } = useJourney();
   const [method, setMethod] = useState<string>(PAYMENT_METHODS[0].id);
+  const redirectedRef = useRef(false);
+
+  useEffect(() => {
+    if (redirectedRef.current) return;
+    if (user?.status === "active") {
+      redirectedRef.current = true;
+      submitPayment();
+    }
+  }, [user, submitPayment]);
 
   return (
     <div className="space-y-7">

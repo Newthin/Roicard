@@ -15,6 +15,9 @@ class Profile extends Model implements HasMedia
         'title',
         'organisation',
         'whatsapp_phone',
+        'date_of_birth',
+        'gender',
+        'interests',
         'location',
         'bio',
         'slug',
@@ -22,12 +25,21 @@ class Profile extends Model implements HasMedia
         'completion_pct',
     ];
 
+    protected $appends = ['avatar_url'];
+
     protected function casts(): array
     {
         return [
             'is_live' => 'boolean',
             'completion_pct' => 'integer',
+            'date_of_birth' => 'date',
+            'interests' => 'array',
         ];
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        return $this->getFirstMediaUrl('avatar') ?: null;
     }
 
     public function user()
@@ -53,6 +65,11 @@ class Profile extends Model implements HasMedia
     public function socialLinks()
     {
         return $this->hasMany(SocialLink::class);
+    }
+
+    public function interestOptions()
+    {
+        return $this->belongsToMany(InterestOption::class, 'profile_interest');
     }
 
     public function registerMediaCollections(): void

@@ -9,12 +9,16 @@ function mapApiProfileToUserProfile(data: Record<string, unknown>): UserProfile 
     firstName: (data.user as Record<string, string>)?.first_name ?? "",
     lastName: (data.user as Record<string, string>)?.last_name ?? "",
     email: (data.user as Record<string, string>)?.email ?? "",
-    profilePhotoUrl: (data as Record<string, string | null>)?.avatar ?? null,
+    profilePhotoUrl: (data as Record<string, string | null>)?.avatar_url ?? (data as Record<string, string | null>)?.avatar ?? null,
     professionalTitle: (data as Record<string, string | null>)?.title ?? "",
     organization: (data as Record<string, string | null>)?.organisation ?? "",
     bio: (data as Record<string, string | null>)?.bio ?? "",
     phone: "",
     whatsapp: (data as Record<string, string | null>)?.whatsapp_phone ?? "",
+    dateOfBirth: ((data as Record<string, string | null>)?.date_of_birth ?? "").slice(0, 10),
+    gender:
+      ((data as Record<string, string | null>)?.gender as "" | "male" | "female" | "prefer_not_to_say") ??
+      "",
     location: (data as Record<string, string | null>)?.location ?? "",
     social: {
       linkedin: "",
@@ -25,7 +29,9 @@ function mapApiProfileToUserProfile(data: Record<string, unknown>): UserProfile 
       snapchat: "",
       website: "",
     },
-    interests: [],
+    interests: Array.isArray((data as Record<string, unknown>)?.interests)
+      ? ((data as Record<string, unknown>).interests as string[])
+      : [],
     seeking: "",
     offering: "",
     username: (data as Record<string, string | null>)?.slug ?? "",
@@ -63,6 +69,9 @@ export async function updateCurrentUserProfile(updates: Partial<UserProfile>): P
     if (updates.professionalTitle) payload.title = updates.professionalTitle;
     if (updates.organization) payload.organisation = updates.organization;
     if (updates.whatsapp) payload.whatsapp_phone = updates.whatsapp;
+    if (updates.dateOfBirth) payload.date_of_birth = updates.dateOfBirth;
+    if (updates.gender) payload.gender = updates.gender;
+    if (updates.interests) payload.interests = JSON.stringify(updates.interests);
 
     const res = await apiUpdateProfile(payload);
     return mapApiProfileToUserProfile(res.profile as unknown as Record<string, unknown>);
@@ -74,11 +83,28 @@ export async function updateCurrentUserProfile(updates: Partial<UserProfile>): P
 export function createAndSaveProfile(data: UserProfile): UserProfile {
   localStorage.setItem(CURRENT_USER_KEY, data.username);
   localStorage.setItem("roicard_onboarding_complete", "true");
+  const raw = localStorage.getItem("roicard_profiles");
+  const store = raw ? JSON.parse(raw) : {};
+  store[data.username] = data;
+  localStorage.setItem("roicard_profiles", JSON.stringify(store));
   return data;
 }
 
 export function setMembershipStatus(status: string): UserProfile | null {
   return null;
+}
+
+export function updateStoredProfilePhoto(url: string): void {
+  const username = localStorage.getItem(CURRENT_USER_KEY);
+  if (!username) return;
+  const raw = localStorage.getItem("roicard_profiles");
+  if (!raw) return;
+  const store = JSON.parse(raw) as Record<string, UserProfile>;
+  if (store[username]) {
+    store[username].profilePhotoUrl = url;
+    localStorage.setItem("roicard_profiles", JSON.stringify(store));
+  }
+  window.dispatchEvent(new CustomEvent("profile-photo-changed", { detail: url }));
 }
 
 export function setOnboardingComplete(): void {

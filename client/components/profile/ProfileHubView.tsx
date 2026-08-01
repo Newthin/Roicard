@@ -13,6 +13,7 @@ import { ProfilePreviewCard } from "@/components/onboarding/ProfilePreviewCard";
 import { QrCodePreview } from "@/components/onboarding/QrCodePreview";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
+import { useAuth } from "@/contexts/AuthContext";
 import { getCurrentUserProfile } from "@/lib/profile/storage";
 import type { UserProfile } from "@/lib/profile/types";
 import {
@@ -77,6 +78,7 @@ function ProfileStatsSnapshot({ username: _username }: { username: string }) {
 }
 
 export function ProfileHubView() {
+  const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -118,7 +120,7 @@ export function ProfileHubView() {
     );
   }
 
-  const { username, createdAt, membershipStatus, ...formData } = profile;
+  const { username, createdAt, ...formData } = profile;
 
   return (
     <div className="space-y-8">
@@ -131,14 +133,12 @@ export function ProfileHubView() {
             <span
               className={cn(
                 "inline-flex w-fit rounded-full px-3 py-1 text-xs font-medium",
-                membershipStatus === "active"
-                  ? "bg-emerald-500/15 text-emerald-400"
-                  : "bg-roicard-bg-muted text-roicard-text-muted"
+                user?.status === "draft"
+                  ? "bg-amber-500/20 text-amber-400"
+                  : "bg-emerald-500/15 text-emerald-400"
               )}
             >
-              {membershipStatus === "active"
-                ? "Member · Active"
-                : "Membership pending"}
+              {user?.status === "draft" ? "Draft" : "Active"}
             </span>
           </div>
           <h1 className="mt-3 text-2xl font-bold text-roicard-text sm:text-3xl">

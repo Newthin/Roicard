@@ -7,6 +7,7 @@ export { AuthPageLayout } from "./AuthPageLayout";
 export { ErrorMessage } from "./ErrorMessage";
 export { ForgotPasswordForm } from "./ForgotPasswordForm";
 export { GoogleAuthButton } from "./GoogleAuthButton";
+export { GoogleCallbackContentPage } from "./GoogleCallbackContent";
 export { InputField } from "./InputField";
 export { LoginForm } from "./LoginForm";
 export { RegisterForm } from "./RegisterForm";

@@ -54,6 +54,8 @@ export type OnboardingFormData = {
   email: string;
   phone: string;
   whatsapp: string;
+  dateOfBirth: string;
+  gender: "" | "male" | "female" | "prefer_not_to_say";
   location: string;
   social: SocialLinks;
   /** Areas the member is interested in (selected during onboarding). */
@@ -89,6 +91,8 @@ export const EMPTY_ONBOARDING_DATA: OnboardingFormData = {
   email: "",
   phone: "",
   whatsapp: "",
+  dateOfBirth: "",
+  gender: "",
   location: "",
   social: {
     linkedin: "",
@@ -106,6 +110,13 @@ export const EMPTY_ONBOARDING_DATA: OnboardingFormData = {
 
 /** Public profile domain used for the profile URL preview during onboarding. */
 export const PUBLIC_PROFILE_DOMAIN = "roicard.africa";
+
+/** Gender options a member can select during onboarding. */
+export const GENDER_OPTIONS = [
+  { value: "male", label: "Male" },
+  { value: "female", label: "Female" },
+  { value: "prefer_not_to_say", label: "Prefer not to mention" },
+] as const;
 
 /** Interest areas a member can select during onboarding. */
 export const INTEREST_OPTIONS = [

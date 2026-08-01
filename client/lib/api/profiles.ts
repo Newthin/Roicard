@@ -10,6 +10,8 @@ export interface OnboardingData {
   professionalTitle: string;
   organization: string;
   whatsapp: string;
+  dateOfBirth: string;
+  gender: "" | "male" | "female" | "prefer_not_to_say";
   avatar: string | null;
   socialLinks: string;
   interests: string;
@@ -27,6 +29,9 @@ export async function updateProfile(data: Partial<OnboardingData>) {
     title: data.professionalTitle,
     organisation: data.organization,
     whatsapp_phone: data.whatsapp,
+    date_of_birth: data.dateOfBirth,
+    gender: data.gender,
+    interests: data.interests,
     social_links: data.socialLinks,
   };
   Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);

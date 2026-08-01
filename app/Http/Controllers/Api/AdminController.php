@@ -15,6 +15,8 @@ use App\Traits\LogsAdminActions;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Spatie\QueryBuilder\QueryBuilder;
 
 class AdminController extends Controller
@@ -75,6 +77,40 @@ class AdminController extends Controller
             'message' => 'User updated',
             'changes' => $changes,
         ]);
+    }
+
+    public function storeUser(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users')],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'status' => ['required', Rule::in(['draft', 'active'])],
+            'role' => ['required', Rule::in(['member', 'admin'])],
+        ]);
+
+        $user = User::create([
+            'first_name' => $validated['first_name'],
+            'last_name' => $validated['last_name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'status' => $validated['status'],
+            'role' => $validated['role'],
+        ]);
+
+        // Create an empty profile for the user
+        $user->profile()->create([]);
+
+        // Assign Spatie role
+        $user->assignRole($validated['role']);
+
+        $this->logAdminAction('create_user', $user->id);
+
+        return response()->json([
+            'user' => $user->only(['id', 'first_name', 'last_name', 'email', 'status', 'role', 'created_at']),
+            'message' => 'User created successfully',
+        ], 201);
     }
 
     public function dispatchCard(string $id): JsonResponse

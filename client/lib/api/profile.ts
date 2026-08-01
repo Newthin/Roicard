@@ -21,6 +21,9 @@ export interface PublicProfile {
   title: string | null;
   organisation: string | null;
   whatsapp_phone: string | null;
+  date_of_birth: string | null;
+  gender: "male" | "female" | "prefer_not_to_say" | null;
+  interests: string[] | null;
   location: string | null;
   bio: string | null;
   avatar: string | null;
@@ -73,6 +76,15 @@ export async function getPublicProfile(slug: string, src?: string): Promise<Publ
 
 export async function trackProfileEvent(slug: string, type: string): Promise<void> {
   await apiClient.post(`/public/${slug}/event`, { type });
+}
+
+export async function uploadAvatar(file: File): Promise<string> {
+  const form = new FormData();
+  form.append("avatar", file);
+  const { data } = await apiClient.post("/profile/avatar", form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data.url;
 }
 
 export async function uploadCv(file: File): Promise<void> {

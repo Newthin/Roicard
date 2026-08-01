@@ -10,6 +10,7 @@
 
 "use client";
 
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/cn";
 import { ExternalLink, Shield } from "lucide-react";
 import Link from "next/link";
@@ -22,7 +23,11 @@ type AdminDashboardNavLinkProps = {
 export function AdminDashboardNavLink({
   onNavigate,
 }: AdminDashboardNavLinkProps) {
+  const { user } = useAuth();
   const pathname = usePathname();
+
+  if (user?.role !== "admin") return null;
+
   const isActive = pathname.startsWith("/admin");
 
   return (

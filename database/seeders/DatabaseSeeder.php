@@ -21,6 +21,8 @@ class DatabaseSeeder extends Seeder
         Role::firstOrCreate(['name' => 'member', 'guard_name' => 'web']);
         Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
 
+        $this->call(InterestOptionSeeder::class);
+
         $admins = [
             [
                 'first_name' => 'Ebenener',

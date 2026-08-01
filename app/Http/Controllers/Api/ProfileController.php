@@ -7,6 +7,7 @@ use App\Http\Requests\ProfileRequest;
 use App\Models\Profile;
 use App\Models\SocialLink;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ProfileController extends Controller
 {
@@ -19,8 +20,10 @@ class ProfileController extends Controller
             'socialLinks',
         ])->firstOrFail();
 
+        $profile->load('user', 'media');
+
         return response()->json([
-            'profile' => $profile->load('media'),
+            'profile' => $profile,
         ]);
     }
 
@@ -35,31 +38,79 @@ class ProfileController extends Controller
         ]);
     }
 
+    public function uploadAvatar(Request $request): JsonResponse
+    {
+        $request->validate([
+            'avatar' => ['required', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
+        ]);
+
+        $file = $request->file('avatar');
+        $userId = auth()->id();
+        $ext = $file->extension();
+        $filename = "avatar.{$ext}";
+
+        $profile = auth()->user()->profile()->firstOrFail();
+        $profile->addMedia($file)
+            ->usingFileName($filename)
+            ->toMediaCollection('avatar');
+
+        $url = $profile->getFirstMediaUrl('avatar');
+        $versionedUrl = $url . '?v=' . now()->timestamp;
+
+        return response()->json([
+            'url' => $versionedUrl,
+        ]);
+    }
+
     public function update(ProfileRequest $request): JsonResponse
     {
         $user = auth()->user();
         $data = $request->validated();
 
-        // Update user fields if provided
+        // Update user name fields if provided (email is not changed here —
+        // the user is already authenticated with their existing email)
         $userFields = array_filter([
             'first_name' => $data['first_name'] ?? null,
             'last_name' => $data['last_name'] ?? null,
-            'email' => $data['email'] ?? null,
         ]);
         if ($userFields) {
             $user->update($userFields);
         }
 
-        // Update profile
-        $profile = $user->profile()->firstOrFail();
+        // Update profile (create if it doesn't exist yet)
+        $profile = $user->profile()->firstOrCreate([]);
+        // Decode interests JSON string into an array (empty array if invalid)
+        $interests = null;
+        if (!empty($data['interests'])) {
+            $decoded = json_decode($data['interests'], true);
+            $interests = is_array($decoded) ? array_values(array_filter($decoded, 'is_string')) : [];
+        }
+
+        // Sync interest options pivot table — create missing options so every
+        // saved interest becomes a selectable option for other members too.
+        if (is_array($interests)) {
+            $interestOptionIds = [];
+            foreach ($interests as $name) {
+                $option = \App\Models\InterestOption::firstOrCreate(
+                    ['name' => $name],
+                    ['sort_order' => \App\Models\InterestOption::max('sort_order') + 1]
+                );
+                $interestOptionIds[] = $option->id;
+            }
+            $profile->interestOptions()->sync($interestOptionIds);
+        }
+
         $profileFields = array_filter([
             'title' => $data['title'] ?? null,
             'organisation' => $data['organisation'] ?? null,
             'whatsapp_phone' => $data['whatsapp_phone'] ?? null,
+            'date_of_birth' => $data['date_of_birth'] ?? null,
+            'gender' => $data['gender'] ?? null,
+            'interests' => $interests,
             'location' => $data['location'] ?? null,
             'bio' => $data['bio'] ?? null,
             'is_live' => $data['is_live'] ?? null,
-        ]);
+        ], fn ($value) => $value !== null);
         if ($profileFields) {
             $profile->update($profileFields);
         }

@@ -15,9 +15,7 @@ class QRController extends Controller
 
     public function show(string $slug): Response
     {
-        $profile = Profile::where('slug', $slug)
-            ->where('is_live', true)
-            ->firstOrFail();
+        $profile = Profile::where('slug', $slug)->firstOrFail();
 
         $url = config('app.frontend_url', config('app.url')) . '/' . $profile->slug;
 

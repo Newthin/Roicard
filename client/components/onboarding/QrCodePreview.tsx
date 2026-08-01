@@ -10,6 +10,7 @@
 import { getPublicProfileUrl } from "@/lib/profile/username";
 import { cn } from "@/lib/cn";
 import { QrCode } from "lucide-react";
+import { useState } from "react";
 
 type QrCodePreviewProps = {
   /** Public username used to build the profile URL */
@@ -20,11 +21,10 @@ type QrCodePreviewProps = {
 };
 
 /**
- * Renders a decorative QR-style grid pattern.
- * Replace with a real QR library (e.g. qrcode.react) when backend is ready.
+ * Renders a decorative QR-style grid pattern shown while the real QR loads
+ * (or if the QR service is unavailable).
  */
 function MockQrPattern() {
-  // Fixed pseudo-random pattern for consistent visual
   const pattern = [
     "1110011010110110",
     "1001101011001101",
@@ -60,6 +60,9 @@ export function QrCodePreview({
 }: QrCodePreviewProps) {
   const profileUrl = getPublicProfileUrl(username);
   const displayUrl = profileUrl.replace(/^https?:\/\//, "");
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+  const qrUrl = `${apiBase}/qr/${username}`;
+  const [qrFailed, setQrFailed] = useState(false);
 
   return (
     <div
@@ -79,7 +82,19 @@ export function QrCodePreview({
           size === "sm" ? "scale-75" : "scale-100"
         )}
       >
-        <MockQrPattern />
+        {qrFailed ? (
+          <MockQrPattern />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={qrUrl}
+            alt="QR code"
+            width={200}
+            height={200}
+            className="block"
+            onError={() => setQrFailed(true)}
+          />
+        )}
       </div>
 
       <p className="mt-3 break-all text-xs text-roicard-text-muted">

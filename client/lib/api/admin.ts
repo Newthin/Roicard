@@ -120,6 +120,19 @@ export async function getAdminUsers(params?: {
   return data;
 }
 
+export async function createAdminUser(body: {
+  first_name: string;
+  last_name: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+  status: "draft" | "active";
+  role: "member" | "admin";
+}): Promise<{ user: AdminUser; message: string }> {
+  const { data } = await apiClient.post("/admin/users", body);
+  return data;
+}
+
 export async function updateAdminUser(
   id: number,
   body: { status?: string; role?: string }

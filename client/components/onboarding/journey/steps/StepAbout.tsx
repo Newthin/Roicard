@@ -11,6 +11,7 @@ import { FormField } from "@/components/onboarding/FormField";
 import { useJourney } from "@/components/onboarding/journey/JourneyContext";
 import { StepHeading } from "@/components/onboarding/journey/StepHeading";
 import { Button } from "@/components/ui/Button";
+import { GENDER_OPTIONS } from "@/lib/profile/types";
 
 export function StepAbout() {
   const { data, errors, updateField, next } = useJourney();
@@ -54,6 +55,42 @@ export function StepAbout() {
         onChange={(e) => updateField("email", e.target.value)}
         error={errors.email}
       />
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <FormField
+          label="Date of Birth"
+          name="dateOfBirth"
+          type="date"
+          value={data.dateOfBirth}
+          onChange={(e) => updateField("dateOfBirth", e.target.value)}
+          error={errors.dateOfBirth}
+        />
+        <div className="w-full space-y-2">
+          <label htmlFor="gender" className="block text-sm font-medium text-roicard-text">
+            Gender
+          </label>
+          <select
+            id="gender"
+            name="gender"
+            value={data.gender}
+            onChange={(e) => updateField("gender", e.target.value as "male" | "female" | "prefer_not_to_say")}
+            aria-invalid={Boolean(errors.gender)}
+            className="h-12 w-full rounded-xl border bg-roicard-bg-muted/80 px-4 text-sm text-roicard-text shadow-inner shadow-[var(--rc-shadow)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-roicard-accent/40 focus-visible:border-roicard-accent/50"
+          >
+            <option value="">Select...</option>
+            {GENDER_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          {errors.gender && (
+            <p className="text-sm text-red-400" role="alert">
+              {errors.gender}
+            </p>
+          )}
+        </div>
+      </div>
 
       <Button onClick={next} className="w-full rounded-xl">
         Continue

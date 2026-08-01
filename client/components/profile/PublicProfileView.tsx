@@ -50,6 +50,8 @@ function toUserProfile(p: PublicProfile): UserProfile {
     bio: p.bio ?? "",
     phone: "",
     whatsapp: p.whatsapp_phone ?? "",
+    dateOfBirth: (p.date_of_birth ?? "").slice(0, 10),
+    gender: (p.gender as "" | "male" | "female" | "prefer_not_to_say") ?? "",
     location: p.location ?? "",
     social: {
       linkedin: "",
@@ -60,7 +62,7 @@ function toUserProfile(p: PublicProfile): UserProfile {
       snapchat: "",
       website: "",
     },
-    interests: [],
+    interests: Array.isArray(p.interests) ? p.interests : [],
     seeking: "",
     offering: "",
     username: p.slug,
