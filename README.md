@@ -71,13 +71,25 @@ In the Google Cloud console, add your app as an **Authorized redirect URI** for 
 
 The backend is a standard Laravel app and the frontend is a standard Next.js app (server runtime — dynamic `/username` routes are rendered on demand, so **Node-server hosting** is required; static file hosting will not work).
 
-Backend deployment steps:
+### DigitalOcean droplet
+
+A full step-by-step guide for a single Ubuntu 24.04 droplet (Nginx + PHP-FPM + MySQL + Node/pm2 + queue worker) is in [`deploy/README.md`](deploy/README.md). The `deploy/` folder contains:
+
+- `provision.sh` — installs PHP 8.3, Composer, MySQL 8, Node 20, pm2, Nginx
+- `nginx.conf` — routes `/api/*` to Laravel, everything else to Next.js, with HTTPS
+- `roicard-worker.service` — Laravel database queue worker (systemd)
+- `roicard-frontend.service` — Next.js production server (systemd)
+- `.env.production.example` — production backend env template
+
+### Generic (any host)
+
+Backend:
 
 1. Set the same env vars as `.env.example` on your host (DB, `APP_KEY`, `GOOGLE_CLIENT_ID/SECRET`, queue driver).
 2. Run `php artisan migrate --seed`.
 3. Point your web server at `public/` (or use the provided `Dockerfile`).
 
-Frontend deployment steps:
+Frontend:
 
 1. Build with `npm run build`.
 2. Run with `npm start` (or the provided `client/Dockerfile`).

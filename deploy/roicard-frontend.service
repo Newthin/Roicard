@@ -1,0 +1,24 @@
+# Roicard Next.js frontend server
+# Place at /etc/systemd/system/roicard-frontend.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now roicard-frontend
+#
+# Build the frontend once before starting:
+#   cd /var/www/roicard/client && npm ci && npm run build
+[Unit]
+Description=Roicard Next.js frontend
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/roicard/client
+ExecStart=/usr/bin/npm run start -- --hostname 127.0.0.1 --port 3000
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+Environment=NEXT_PUBLIC_API_URL=https://DOMAIN/api
+
+[Install]
+WantedBy=multi-user.target
