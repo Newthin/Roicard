@@ -26,8 +26,11 @@ class ProcessActivationJob implements ShouldQueue
             if ($profile->slug === null) {
                 $slug = $slugService->generate($user->first_name, $user->last_name);
                 $profile->slug = $slug;
-                $profile->save();
             }
+
+            // Mark the public profile live now that membership is active.
+            $profile->is_live = true;
+            $profile->save();
 
             $user->status = 'active';
             $user->save();
