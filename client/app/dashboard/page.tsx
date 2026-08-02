@@ -3,6 +3,7 @@
 import { DashboardAnalyticsSummary } from "@/components/analytics/DashboardAnalyticsSummary";
 import { ConnectionsProvider } from "@/components/connections/ConnectionsProvider";
 import { DashboardConnectionSummary } from "@/components/connections/DashboardConnectionSummary";
+import { MembershipPaymentCard } from "@/components/payments/MembershipPaymentCard";
 import { ViewPublicProfileLink } from "@/components/profile/ViewPublicProfileLink";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -33,6 +34,8 @@ export default function DashboardPage() {
             professional network.
           </p>
         </div>
+
+        {user?.status !== "active" && <MembershipPaymentCard />}
 
         <DashboardAnalyticsSummary />
 
