@@ -10,7 +10,8 @@ class PaymentObserver
     public function updated(Payment $payment): void
     {
         if ($payment->wasChanged('status') && $payment->status === 'success') {
-            ProcessActivationJob::dispatch($payment);
+            // Run synchronously so activation doesn't depend on a queue worker.
+            ProcessActivationJob::dispatchSync($payment);
         }
     }
 }
