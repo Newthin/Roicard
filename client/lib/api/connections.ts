@@ -12,7 +12,11 @@ export interface Connection {
   updated_at: string;
 }
 
-export async function getConnections(): Promise<{ connections: Connection[] }> {
+export async function getConnections(): Promise<{
+  connections: {
+    data: Connection[];
+  };
+}> {
   const { data } = await apiClient.get("/connections");
   return data;
 }

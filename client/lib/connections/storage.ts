@@ -41,7 +41,8 @@ export async function getIncomingRequests(): Promise<
   IncomingConnectionRequest[]
 > {
   const { connections } = await fetchApiConnections();
-  return connections
+  const list = Array.isArray(connections) ? connections : connections.data;
+  return list
     .filter((c) => c.status === "pending")
     .map((c) => ({
       id: String(c.id),
@@ -53,7 +54,8 @@ export async function getIncomingRequests(): Promise<
 /** Established (approved) connections for the current user. */
 export async function getConnections(): Promise<Connection[]> {
   const { connections } = await fetchApiConnections();
-  return connections
+  const list = Array.isArray(connections) ? connections : connections.data;
+  return list
     .filter((c) => c.status === "approved")
     .map((c) => ({
       id: String(c.id),
