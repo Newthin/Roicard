@@ -47,7 +47,7 @@ class PaymentService
                 'amount' => (int) ($payment->amount * 100),
                 'currency' => $payment->currency,
                 'reference' => $payment->provider_reference,
-                'callback_url' => config('app.url') . '/api/payments/callback',
+                'callback_url' => config('app.frontend_url') . '/onboarding/callback',
             ]);
 
         $data = $response->throw()->json();

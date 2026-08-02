@@ -1,7 +1,9 @@
 /**
  * Step 06 — Payment
  *
- * Mock payment method selection for members who chose to activate now.
+ * Real payment method selection for members who chose to activate now.
+ * Submits a payment to the backend, persists the journey snapshot, and
+ * redirects to the payment provider (Paystack) to complete checkout.
  * A "pay later" escape hatch keeps payment fully optional.
  * Active users skip this step automatically.
  */
@@ -13,13 +15,17 @@ import { StepHeading } from "@/components/onboarding/journey/StepHeading";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/cn";
+import { initiatePayment } from "@/lib/api/payments";
+import { savePaymentSnapshot } from "@/lib/profile/storage";
 import { MEMBERSHIP_FEE_GHS, PAYMENT_METHODS } from "@/lib/profile/types";
 import { useEffect, useRef, useState } from "react";
 
 export function StepPayment() {
   const { user } = useAuth();
-  const { submitPayment, skipMembership } = useJourney();
+  const { data, submitPayment, skipMembership } = useJourney();
   const [method, setMethod] = useState<string>(PAYMENT_METHODS[0].id);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const redirectedRef = useRef(false);
 
   useEffect(() => {
@@ -29,6 +35,46 @@ export function StepPayment() {
       submitPayment();
     }
   }, [user, submitPayment]);
+
+  const handlePay = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const { redirect } = await initiatePayment({
+        amount: MEMBERSHIP_FEE_GHS,
+        currency: "GHS",
+        method: "card",
+      });
+
+      // Persist the journey so the profile survives the provider redirect.
+      // The username/createdAt are set at finalization; empty here is fine.
+      const snapshot = {
+        ...data,
+        email: data.email || user?.email || "",
+        username: "",
+        createdAt: new Date().toISOString(),
+        membershipStatus: "active" as const,
+      };
+      savePaymentSnapshot(snapshot);
+
+      const authorizationUrl = (redirect as { authorization_url?: string })
+        ?.authorization_url;
+
+      if (authorizationUrl) {
+        window.location.assign(authorizationUrl);
+      } else {
+        // No provider configured (mock mode) — advance as before.
+        submitPayment();
+      }
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Unable to start payment. Try again."
+      );
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="space-y-7">
@@ -74,9 +120,19 @@ export function StepPayment() {
         })}
       </div>
 
+      {error && (
+        <p className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-500">
+          {error}
+        </p>
+      )}
+
       <div className="flex flex-col gap-3">
-        <Button onClick={submitPayment} className="w-full rounded-xl">
-          Pay GHS {MEMBERSHIP_FEE_GHS}
+        <Button
+          onClick={handlePay}
+          disabled={isSubmitting}
+          className="w-full rounded-xl"
+        >
+          {isSubmitting ? "Starting payment..." : `Pay GHS ${MEMBERSHIP_FEE_GHS}`}
         </Button>
         <button
           type="button"

@@ -134,3 +134,26 @@ export async function deleteCurrentUserProfile(): Promise<void> {
   localStorage.removeItem(CURRENT_USER_KEY);
   localStorage.removeItem("roicard_onboarding_complete");
 }
+
+const PAYMENT_SNAPSHOT_KEY = "roicard_payment_snapshot";
+
+/** Persist the in-memory journey so it survives the Paystack redirect. */
+export function savePaymentSnapshot(data: UserProfile): void {
+  localStorage.setItem(PAYMENT_SNAPSHOT_KEY, JSON.stringify(data));
+}
+
+/** Retrieve a previously persisted payment journey snapshot. */
+export function getPaymentSnapshot(): UserProfile | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(PAYMENT_SNAPSHOT_KEY);
+    return raw ? (JSON.parse(raw) as UserProfile) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Clear the pending payment journey snapshot. */
+export function clearPaymentSnapshot(): void {
+  localStorage.removeItem(PAYMENT_SNAPSHOT_KEY);
+}
