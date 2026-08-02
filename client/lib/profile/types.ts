@@ -150,7 +150,7 @@ export const PAYMENT_METHODS = [
 ] as const;
 
 /** One-time membership activation fee in Ghanaian Cedis. */
-export const MEMBERSHIP_FEE_GHS = 300;
+export const MEMBERSHIP_FEE_GHS = 350;
 
 /** Metadata for each wizard step — drives stepper UI and navigation. */
 export type OnboardingStepConfig = {
