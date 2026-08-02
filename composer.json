@@ -8,9 +8,11 @@
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
         "laravel/socialite": "^5.29",
+        "resend/resend-laravel": "^1.4",
         "spatie/laravel-medialibrary": "^11.0",
         "spatie/laravel-permission": "^6.0",
-        "spatie/laravel-query-builder": "^6.0"
+        "spatie/laravel-query-builder": "^6.0",
+        "symfony/resend-mailer": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
