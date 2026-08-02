@@ -18,7 +18,6 @@ class SocialAuthController extends Controller
     protected const PROVIDERS = [
         'google' => 'google',
         'facebook' => 'facebook',
-        'apple' => 'apple',
         'linkedin' => 'linkedin-openid',
         'x' => 'x',
     ];
@@ -30,11 +29,6 @@ class SocialAuthController extends Controller
     {
         if (!isset(self::PROVIDERS[$provider])) {
             return $this->frontendRedirect(['error' => 'unsupported_provider']);
-        }
-
-        if ($provider === 'apple') {
-            // Apple requires an extra Socialite package (socialiteproviders/apple).
-            return $this->frontendRedirect(['error' => 'provider_not_configured']);
         }
 
         try {
@@ -52,10 +46,6 @@ class SocialAuthController extends Controller
     {
         if (!isset(self::PROVIDERS[$provider])) {
             return $this->frontendRedirect(['error' => 'unsupported_provider']);
-        }
-
-        if ($provider === 'apple') {
-            return $this->frontendRedirect(['error' => 'provider_not_configured']);
         }
 
         try {
