@@ -27,13 +27,7 @@ export function ViewPublicProfileLink() {
         >
           onboarding
         </Link>{" "}
-        to get your public profile link. Or try a demo:{" "}
-        <Link
-          href="/peleg-darkey"
-          className="font-medium text-roicard-accent hover:text-roicard-text"
-        >
-          /peleg-darkey
-        </Link>
+        to get your public profile link.
       </p>
     );
   }

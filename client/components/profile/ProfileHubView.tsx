@@ -14,6 +14,7 @@ import { QrCodePreview } from "@/components/onboarding/QrCodePreview";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/contexts/AuthContext";
+import { getDashboard } from "@/lib/api/dashboard";
 import { getCurrentUserProfile } from "@/lib/profile/storage";
 import type { UserProfile } from "@/lib/profile/types";
 import {
@@ -45,30 +46,33 @@ function ProfileEmptyState() {
             Start onboarding
           </Button>
         </Link>
-        <Link href="/peleg-darkey">
-          <Button variant="secondary" size="lg" className="rounded-xl">
-            View demo profile
-          </Button>
-        </Link>
       </div>
     </div>
   );
 }
 
-function ProfileStatsSnapshot({ username: _username }: { username: string }) {
+function ProfileStatsSnapshot({
+  views,
+  requests,
+  connections,
+}: {
+  views: number;
+  requests: number;
+  connections: number;
+}) {
   return (
     <div className="grid grid-cols-3 gap-3">
       {[
-        { label: "Views", value: "—" },
-        { label: "Requests", value: "—" },
-        { label: "Connections", value: "—" },
+        { label: "Views", value: views },
+        { label: "Requests", value: requests },
+        { label: "Connections", value: connections },
       ].map((item) => (
         <div
           key={item.label}
           className="rounded-xl border border-roicard-border bg-roicard-bg-muted/40 px-3 py-3 text-center"
         >
           <p className="text-lg font-bold text-roicard-text">
-            {item.value.toLocaleString()}
+            {Number.isFinite(item.value) ? item.value.toLocaleString() : "—"}
           </p>
           <p className="text-xs text-roicard-text-muted">{item.label}</p>
         </div>
@@ -81,12 +85,25 @@ export function ProfileHubView() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [stats, setStats] = useState({ views: 0, requests: 0, connections: 0 });
 
   useEffect(() => {
     getCurrentUserProfile().then((p) => {
       setProfile(p);
       setIsLoaded(true);
     });
+  }, []);
+
+  useEffect(() => {
+    getDashboard()
+      .then((d) =>
+        setStats({
+          views: d.stats.total_views ?? 0,
+          requests: d.stats.pending_connections ?? 0,
+          connections: d.stats.connections ?? 0,
+        })
+      )
+      .catch(() => {});
   }, []);
 
   if (!isLoaded) {
@@ -198,11 +215,12 @@ export function ProfileHubView() {
               </Link>
             </div>
             <div className="mt-4">
-              <ProfileStatsSnapshot username={username} />
+              <ProfileStatsSnapshot
+                views={stats.views}
+                requests={stats.requests}
+                connections={stats.connections}
+              />
             </div>
-            <p className="mt-3 text-xs text-roicard-text-muted">
-              Mock data for demo — real metrics will come from the analytics API.
-            </p>
           </section>
         </div>
 

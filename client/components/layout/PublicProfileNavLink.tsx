@@ -51,7 +51,7 @@ export function PublicProfileNavLink({ onNavigate }: PublicProfileNavLinkProps) 
     );
   }
 
-  // No profile yet — guide user to onboarding or demo
+  // No profile yet — guide user to onboarding
   return (
     <div className="mt-6 border-t border-roicard-border pt-4">
       <p className="mb-2 px-3 text-xs font-medium uppercase tracking-wider text-roicard-text-muted">
@@ -64,13 +64,6 @@ export function PublicProfileNavLink({ onNavigate }: PublicProfileNavLinkProps) 
       >
         <Globe className="h-5 w-5 text-roicard-text-muted" />
         Set up public card
-      </Link>
-      <Link
-        href="/peleg-darkey"
-        onClick={onNavigate}
-        className="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-roicard-text-muted transition-colors hover:text-roicard-accent"
-      >
-        <span className="pl-8 text-xs">View demo →</span>
       </Link>
     </div>
   );

@@ -117,8 +117,9 @@ export function PublicProfileView({ username }: PublicProfileViewProps) {
   /** Saves the guest request and moves to the pending state. */
   const handleConnectionSubmit = useCallback(
     (data: ConnectionRequestData) => {
-      addGuestConnectionRequest(username.toLowerCase(), data);
-      setConnectionState("pending");
+      addGuestConnectionRequest(username.toLowerCase(), data)
+        .then(() => setConnectionState("pending"))
+        .catch(() => setConnectionState("pending"));
     },
     [username]
   );

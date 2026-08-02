@@ -63,11 +63,16 @@ export function ConnectionsProvider({ children }: ConnectionsProviderProps) {
   });
   const [isLoading, setIsLoading] = useState(true);
 
-  /** Reloads all connection data from storage. */
+  /** Reloads all connection data from the backend. */
   const refresh = useCallback(async () => {
-    setRequests(getIncomingRequests());
-    setConnections(getConnections());
-    setSummary(await getConnectionSummary());
+    const [requests, connections, summary] = await Promise.all([
+      getIncomingRequests(),
+      getConnections(),
+      getConnectionSummary(),
+    ]);
+    setRequests(requests);
+    setConnections(connections);
+    setSummary(summary);
     setIsLoading(false);
   }, []);
 
@@ -77,8 +82,8 @@ export function ConnectionsProvider({ children }: ConnectionsProviderProps) {
 
   /** State transition: pending request → accepted connection. */
   const acceptRequest = useCallback(
-    (requestId: string) => {
-      acceptRequestStorage(requestId);
+    async (requestId: string) => {
+      await acceptRequestStorage(requestId);
       refresh();
     },
     [refresh]
@@ -86,8 +91,8 @@ export function ConnectionsProvider({ children }: ConnectionsProviderProps) {
 
   /** Removes a declined request from the queue. */
   const declineRequest = useCallback(
-    (requestId: string) => {
-      declineRequestStorage(requestId);
+    async (requestId: string) => {
+      await declineRequestStorage(requestId);
       refresh();
     },
     [refresh]
