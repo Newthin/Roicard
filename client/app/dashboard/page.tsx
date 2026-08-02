@@ -6,9 +6,13 @@ import { DashboardConnectionSummary } from "@/components/connections/DashboardCo
 import { MembershipPaymentCard } from "@/components/payments/MembershipPaymentCard";
 import { ViewPublicProfileLink } from "@/components/profile/ViewPublicProfileLink";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLiveMemberStatus } from "@/hooks/useLiveMemberStatus";
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { status: liveStatus, isLoading: liveLoading } = useLiveMemberStatus();
+  const effectiveStatus = liveStatus ?? user?.status;
+  const showPayCard = effectiveStatus !== "active";
 
   return (
     <ConnectionsProvider>
@@ -16,7 +20,7 @@ export default function DashboardPage() {
         <div>
           <span className="inline-flex w-fit items-center gap-2 rounded-full bg-roicard-primary/15 px-3 py-1 text-xs font-medium text-roicard-accent">
             Dashboard
-            {user?.status === "draft" ? (
+            {effectiveStatus === "draft" ? (
               <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-400">
                 Draft
               </span>
@@ -35,7 +39,7 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {user?.status !== "active" && <MembershipPaymentCard />}
+        {!liveLoading && showPayCard && <MembershipPaymentCard />}
 
         <DashboardAnalyticsSummary />
 

@@ -10,7 +10,7 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
-import { useAuth } from "@/contexts/AuthContext";
+import { useLiveMemberStatus } from "@/hooks/useLiveMemberStatus";
 import { initiatePayment } from "@/lib/api/payments";
 import {
   getCurrentUserProfile,
@@ -21,9 +21,14 @@ import { Check, Loader2, Wallet } from "lucide-react";
 import { useCallback, useState } from "react";
 
 export function MembershipPaymentCard() {
-  const { user } = useAuth();
+  const { status, isLoading } = useLiveMemberStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Hide entirely once the backend confirms the member is active.
+  if (!isLoading && status === "active") {
+    return null;
+  }
 
   const handlePay = useCallback(async () => {
     if (isSubmitting) return;
