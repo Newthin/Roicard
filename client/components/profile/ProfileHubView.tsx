@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/contexts/AuthContext";
 import { getDashboard } from "@/lib/api/dashboard";
+import { useLiveMemberStatus } from "@/hooks/useLiveMemberStatus";
 import { getCurrentUserProfile } from "@/lib/profile/storage";
 import type { UserProfile } from "@/lib/profile/types";
 import {
@@ -83,6 +84,7 @@ function ProfileStatsSnapshot({
 
 export function ProfileHubView() {
   const { user } = useAuth();
+  const { status: liveStatus } = useLiveMemberStatus();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [stats, setStats] = useState({ views: 0, requests: 0, connections: 0 });
@@ -150,12 +152,12 @@ export function ProfileHubView() {
             <span
               className={cn(
                 "inline-flex w-fit rounded-full px-3 py-1 text-xs font-medium",
-                user?.status === "draft"
+                (liveStatus ?? user?.status) === "draft"
                   ? "bg-amber-500/20 text-amber-400"
                   : "bg-emerald-500/15 text-emerald-400"
               )}
             >
-              {user?.status === "draft" ? "Draft" : "Active"}
+              {(liveStatus ?? user?.status) === "draft" ? "Draft" : "Active"}
             </span>
           </div>
           <h1 className="mt-3 text-2xl font-bold text-roicard-text sm:text-3xl">
