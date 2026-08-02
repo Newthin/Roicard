@@ -12,7 +12,7 @@ use Laravel\Socialite\Facades\Socialite;
 
 class SocialAuthController extends Controller
 {
-    /**
+/**
      * Allowed OAuth providers mapped to their Socialite driver name.
      */
     protected const PROVIDERS = [
@@ -20,7 +20,7 @@ class SocialAuthController extends Controller
         'facebook' => 'facebook',
         'apple' => 'apple',
         'linkedin' => 'linkedin-openid',
-        'x' => 'twitter-oauth-2',
+        'x' => 'x',
     ];
 
     /**
@@ -32,7 +32,16 @@ class SocialAuthController extends Controller
             return $this->frontendRedirect(['error' => 'unsupported_provider']);
         }
 
-        return Socialite::driver(self::PROVIDERS[$provider])->stateless()->redirect();
+        if ($provider === 'apple') {
+            // Apple requires an extra Socialite package (socialiteproviders/apple).
+            return $this->frontendRedirect(['error' => 'provider_not_configured']);
+        }
+
+        try {
+            return Socialite::driver(self::PROVIDERS[$provider])->stateless()->redirect();
+        } catch (\Throwable $e) {
+            return $this->frontendRedirect(['error' => 'provider_not_configured']);
+        }
     }
 
     /**
@@ -43,6 +52,10 @@ class SocialAuthController extends Controller
     {
         if (!isset(self::PROVIDERS[$provider])) {
             return $this->frontendRedirect(['error' => 'unsupported_provider']);
+        }
+
+        if ($provider === 'apple') {
+            return $this->frontendRedirect(['error' => 'provider_not_configured']);
         }
 
         try {

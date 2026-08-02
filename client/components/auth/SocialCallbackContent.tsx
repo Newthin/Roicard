@@ -16,7 +16,11 @@ function SocialCallbackContent() {
     const errorParam = searchParams.get("error");
 
     if (errorParam) {
-      setError("Social sign-in could not be completed. Please try again.");
+      setError(
+        errorParam === "provider_not_configured"
+          ? "This sign-in option isn't set up yet. Please use email or Google."
+          : "Sign-in could not be completed. Please try again."
+      );
       return;
     }
 
