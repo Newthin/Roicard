@@ -1,8 +1,7 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
-
 export type SocialProvider = "google" | "facebook" | "apple" | "linkedin" | "x";
+export type SocialAuthMode = "signin" | "signup";
 
 type SocialAuthButtonProps = {
   provider: SocialProvider;
@@ -50,21 +49,58 @@ function ProviderIcon({ provider }: { provider: SocialProvider }) {
   }
 }
 
-export function SocialAuthButton({ provider, label }: SocialAuthButtonProps) {
-  const handleClick = () => {
-    window.location.href = `${API_BASE}/auth/social/${provider}/redirect`;
-  };
-
+/** Horizontal row of compact social icons. Hover shows the action label. */
+export function SocialAuthButton({
+  provider,
+  label,
+}: SocialAuthButtonProps) {
   return (
-    <Button
+    <button
       type="button"
-      variant="secondary"
-      fullWidth
-      className="h-12 rounded-xl border-roicard-border bg-roicard-bg-muted/60 font-medium"
-      onClick={handleClick}
+      aria-label={label}
+      onClick={() => {
+        window.location.href = `${API_BASE}/auth/social/${provider}/redirect`;
+      }}
+      className="group relative flex h-12 flex-1 items-center justify-center rounded-xl border border-roicard-border bg-roicard-bg-muted/40 text-roicard-text transition-colors hover:border-roicard-accent/60 hover:bg-roicard-bg-elevated focus:outline-none focus-visible:ring-2 focus-visible:ring-roicard-accent"
     >
       <ProviderIcon provider={provider} />
-      {label}
-    </Button>
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute -top-9 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-md bg-roicard-text px-2.5 py-1 text-xs font-medium text-roicard-bg opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100"
+      >
+        {label}
+      </span>
+    </button>
   );
+}
+
+/** Horizontal row of icon-only social login buttons. */
+export function SocialAuthRow({ mode }: { mode: SocialAuthMode }) {
+  const prefix = mode === "signin" ? "Continue with" : "Sign up with";
+  const providers: SocialProvider[] = [
+    "google",
+    "facebook",
+    "apple",
+    "linkedin",
+    "x",
+  ];
+
+  return (
+    <div className="flex items-center gap-3">
+      {providers.map((p) => (
+        <SocialAuthButton key={p} provider={p} label={`${prefix} ${label(p)}`} />
+      ))}
+    </div>
+  );
+
+  function label(p: SocialProvider) {
+    const names: Record<SocialProvider, string> = {
+      google: "Google",
+      facebook: "Facebook",
+      apple: "Apple",
+      linkedin: "LinkedIn",
+      x: "X",
+    };
+    return names[p];
+  }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { AuthDivider } from "@/components/auth/AuthDivider";
-import { SocialAuthButton } from "@/components/auth/SocialAuthButton";
+import { SocialAuthRow } from "@/components/auth/SocialAuthButton";
 import { InputField } from "@/components/auth/InputField";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,13 +37,7 @@ export function LoginForm() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-3">
-        <SocialAuthButton provider="google" label="Continue with Google" />
-        <SocialAuthButton provider="facebook" label="Continue with Facebook" />
-        <SocialAuthButton provider="apple" label="Continue with Apple" />
-        <SocialAuthButton provider="linkedin" label="Continue with LinkedIn" />
-        <SocialAuthButton provider="x" label="Continue with X" />
-      </div>
+      <SocialAuthRow mode="signin" />
 
       <AuthDivider />
 
