@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\ProfileEnrichmentController;
 use App\Http\Controllers\Api\PublicProfileController;
 use App\Http\Controllers\Api\QRController;
 use App\Http\Controllers\Api\SmartCardController;
+use App\Http\Controllers\Api\SocialAuthController;
 use Illuminate\Support\Facades\Route;
 
 // Global baseline throttle for all API traffic
@@ -28,6 +29,8 @@ Route::post('/auth/register', [AuthController::class, 'register'])->middleware('
 Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
 Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect']);
 Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback']);
+Route::get('/auth/social/{provider}/redirect', [SocialAuthController::class, 'redirect']);
+Route::get('/auth/social/{provider}/callback', [SocialAuthController::class, 'callback']);
 Route::post('/auth/verify-email', [AuthController::class, 'verifyEmail'])->middleware('auth:sanctum');
 Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:forgot-password');
 Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);

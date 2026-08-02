@@ -1,7 +1,7 @@
 "use client";
 
 import { AuthDivider } from "@/components/auth/AuthDivider";
-import { GoogleAuthButton } from "@/components/auth/GoogleAuthButton";
+import { SocialAuthButton } from "@/components/auth/SocialAuthButton";
 import { InputField } from "@/components/auth/InputField";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -64,7 +64,13 @@ export function RegisterForm() {
 
   return (
     <div className="space-y-6">
-      <GoogleAuthButton label="Sign up with Google" />
+      <div className="space-y-3">
+        <SocialAuthButton provider="google" label="Sign up with Google" />
+        <SocialAuthButton provider="facebook" label="Sign up with Facebook" />
+        <SocialAuthButton provider="apple" label="Sign up with Apple" />
+        <SocialAuthButton provider="linkedin" label="Sign up with LinkedIn" />
+        <SocialAuthButton provider="x" label="Sign up with X" />
+      </div>
 
       <AuthDivider />
 

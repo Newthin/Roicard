@@ -12,4 +12,6 @@ export { InputField } from "./InputField";
 export { LoginForm } from "./LoginForm";
 export { RegisterForm } from "./RegisterForm";
 export { ResetPasswordForm } from "./ResetPasswordForm";
+export { SocialAuthButton } from "./SocialAuthButton";
+export { SocialCallbackContentPage } from "./SocialCallbackContent";
 export { VerifyEmailContent } from "./VerifyEmailContent";
