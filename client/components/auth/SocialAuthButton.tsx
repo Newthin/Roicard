@@ -1,11 +1,17 @@
 "use client";
 
+import { useState } from "react";
+
 export type SocialProvider = "google" | "facebook" | "linkedin" | "x";
 export type SocialAuthMode = "signin" | "signup";
+
+/** Providers that are live; others are shown as "coming soon". */
+const ENABLED_PROVIDERS: SocialProvider[] = ["google"];
 
 type SocialAuthButtonProps = {
   provider: SocialProvider;
   label: string;
+  onComingSoon?: () => void;
 };
 
 const API_BASE =
@@ -47,13 +53,18 @@ function ProviderIcon({ provider }: { provider: SocialProvider }) {
 export function SocialAuthButton({
   provider,
   label,
+  onComingSoon,
 }: SocialAuthButtonProps) {
   return (
     <button
       type="button"
       aria-label={label}
       onClick={() => {
-        window.location.href = `${API_BASE}/auth/social/${provider}/redirect`;
+        if (ENABLED_PROVIDERS.includes(provider)) {
+          window.location.href = `${API_BASE}/auth/social/${provider}/redirect`;
+        } else {
+          onComingSoon?.();
+        }
       }}
       className="group relative flex h-12 flex-1 items-center justify-center rounded-xl border border-roicard-border bg-roicard-bg-muted/40 text-roicard-text transition-colors hover:border-roicard-accent/60 hover:bg-roicard-bg-elevated focus:outline-none focus-visible:ring-2 focus-visible:ring-roicard-accent"
     >
@@ -71,6 +82,7 @@ export function SocialAuthButton({
 /** Horizontal row of icon-only social login buttons. */
 export function SocialAuthRow({ mode }: { mode: SocialAuthMode }) {
   const prefix = mode === "signin" ? "Continue with" : "Sign up with";
+  const [comingSoon, setComingSoon] = useState<string | null>(null);
   const providers: SocialProvider[] = [
     "google",
     "facebook",
@@ -79,10 +91,22 @@ export function SocialAuthRow({ mode }: { mode: SocialAuthMode }) {
   ];
 
   return (
-    <div className="flex items-center gap-3">
-      {providers.map((p) => (
-        <SocialAuthButton key={p} provider={p} label={`${prefix} ${label(p)}`} />
-      ))}
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        {providers.map((p) => (
+          <SocialAuthButton
+            key={p}
+            provider={p}
+            label={`${prefix} ${label(p)}`}
+            onComingSoon={() => setComingSoon(`${label(p)} is coming soon`)}
+          />
+        ))}
+      </div>
+      {comingSoon && (
+        <p className="text-center text-sm text-roicard-text-muted" role="status">
+          {comingSoon} — not available yet
+        </p>
+      )}
     </div>
   );
 
