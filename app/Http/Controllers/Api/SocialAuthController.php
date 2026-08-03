@@ -20,6 +20,7 @@ class SocialAuthController extends Controller
         'facebook' => 'facebook',
         'linkedin' => 'linkedin-openid',
         'x' => 'x',
+        'instagram' => 'instagram',
     ];
 
     /**

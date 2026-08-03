@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 
-export type SocialProvider = "google" | "facebook" | "linkedin" | "x";
+export type SocialProvider = "google" | "facebook" | "linkedin" | "x" | "instagram";
 export type SocialAuthMode = "signin" | "signup";
 
 /** Providers that are live; others are shown as "coming soon". */
-const ENABLED_PROVIDERS: SocialProvider[] = ["google", "facebook"];
+const ENABLED_PROVIDERS: SocialProvider[] = ["google", "facebook", "instagram"];
 
 type SocialAuthButtonProps = {
   provider: SocialProvider;
@@ -44,6 +44,14 @@ function ProviderIcon({ provider }: { provider: SocialProvider }) {
       return (
         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden xmlns="http://www.w3.org/2000/svg">
           <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+        </svg>
+      );
+    case "instagram":
+      return (
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" strokeWidth="2" />
+          <circle cx="12" cy="12" r="4.5" stroke="currentColor" strokeWidth="2" />
+          <circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" />
         </svg>
       );
   }
@@ -86,6 +94,7 @@ export function SocialAuthRow({ mode }: { mode: SocialAuthMode }) {
   const providers: SocialProvider[] = [
     "google",
     "facebook",
+    "instagram",
     "linkedin",
     "x",
   ];
@@ -116,6 +125,7 @@ export function SocialAuthRow({ mode }: { mode: SocialAuthMode }) {
       facebook: "Facebook",
       linkedin: "LinkedIn",
       x: "X",
+      instagram: "Instagram",
     };
     return names[p];
   }

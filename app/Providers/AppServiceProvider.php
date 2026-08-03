@@ -6,7 +6,9 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Socialite;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Socialite\Contracts\Factory;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -16,6 +18,13 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Socialite::extend('instagram', function ($app) {
+            return $app->make(Factory::class)->buildProvider(
+                \App\Socialite\InstagramProvider::class,
+                config('services.instagram')
+            );
+        });
+
         ResetPassword::createUrlUsing(function ($user, string $token) {
             return rtrim(config('app.frontend_url'), '/')
                 . '/auth/reset-password?token=' . $token
