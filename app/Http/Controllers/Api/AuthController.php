@@ -11,6 +11,7 @@ use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 
@@ -30,11 +31,18 @@ class AuthController extends Controller
         // Create empty profile
         $user->profile()->create([]);
 
-        $token = $user->createToken('auth-token')->plainTextToken;
+        try {
+            $user->sendEmailVerificationNotification();
+        } catch (\Throwable $e) {
+            Log::warning('Failed to send verification email', [
+                'email' => $user->email,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return response()->json([
-            'user' => $user->only(['id', 'first_name', 'last_name', 'email', 'status', 'role']),
-            'token' => $token,
+            'user' => $this->userPayload($user),
+            'requires_email_verification' => true,
         ], 201);
     }
 
@@ -46,27 +54,68 @@ class AuthController extends Controller
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
+        if (!$user->hasVerifiedEmail()) {
+            return response()->json([
+                'message' => 'Please verify your email before signing in. Check your inbox for the verification link.',
+                'error' => 'email_not_verified',
+            ], 403);
+        }
+
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([
-            'user' => $user->only(['id', 'first_name', 'last_name', 'email', 'status', 'role']),
+            'user' => $this->userPayload($user),
             'token' => $token,
         ]);
     }
 
-    public function verifyEmail(Request $request): JsonResponse
+    public function verifyEmail(Request $request, string $id, string $hash)
     {
-        $user = auth()->user();
+        $frontendUrl = rtrim(config('app.frontend_url', 'http://localhost:3000'), '/');
+
+        if (!$request->hasValidSignature()) {
+            return redirect($frontendUrl . '/auth/verify-email?verified=invalid');
+        }
+
+        $user = User::find($id);
+
+        if (!$user || !hash_equals(sha1($user->getEmailForVerification()), (string) $hash)) {
+            return redirect($frontendUrl . '/auth/verify-email?verified=invalid');
+        }
+
+        if (!$user->hasVerifiedEmail() && $user->markEmailAsVerified()) {
+            event(new Verified($user));
+        }
+
+        return redirect($frontendUrl . '/auth/verify-email?verified=true');
+    }
+
+    public function resendVerification(Request $request): JsonResponse
+    {
+        $request->validate(['email' => ['required', 'email']]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json(['message' => 'If that email is registered, a verification link has been sent.']);
+        }
 
         if ($user->hasVerifiedEmail()) {
             return response()->json(['message' => 'Email already verified']);
         }
 
-        if ($user->markEmailAsVerified()) {
-            event(new Verified($user));
+        try {
+            $user->sendEmailVerificationNotification();
+        } catch (\Throwable $e) {
+            Log::warning('Failed to resend verification email', [
+                'email' => $user->email,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['message' => 'Unable to send verification email right now'], 500);
         }
 
-        return response()->json(['message' => 'Email verified successfully']);
+        return response()->json(['message' => 'Verification email sent']);
     }
 
     public function forgotPassword(Request $request): JsonResponse
@@ -104,5 +153,11 @@ class AuthController extends Controller
         return $status === Password::PASSWORD_RESET
             ? response()->json(['message' => 'Password reset successfully'])
             : response()->json(['message' => 'Invalid token'], 400);
+    }
+
+    protected function userPayload(User $user): array
+    {
+        return $user->only(['id', 'first_name', 'last_name', 'email', 'status', 'role'])
+            + ['email_verified' => (bool) $user->hasVerifiedEmail()];
     }
 }

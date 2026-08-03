@@ -50,7 +50,7 @@ export function RegisterForm() {
         password,
         password_confirmation: confirmPassword,
       });
-      router.push("/onboarding");
+      router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err: unknown) {
       const msg =
         err && typeof err === "object" && "response" in err

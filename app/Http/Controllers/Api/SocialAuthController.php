@@ -92,10 +92,14 @@ class SocialAuthController extends Controller
                     'password' => Hash::make(Str::random(32)),
                     'status' => 'draft',
                     'role' => 'member',
+                    'email_verified_at' => now(),
                 ]);
 
                 $user->profile()->create([]);
                 $user->assignRole('member');
+            } elseif (!$user->hasVerifiedEmail() && $email) {
+                // Provider already verified this email, mark it as such.
+                $user->markEmailAsVerified();
             }
 
             // 3) Persist the social identity.
@@ -113,7 +117,10 @@ class SocialAuthController extends Controller
 
         return $this->frontendRedirect([
             'token' => $token,
-            'user' => json_encode($user->only(['id', 'first_name', 'last_name', 'email', 'status', 'role'])),
+            'user' => json_encode(
+                $user->only(['id', 'first_name', 'last_name', 'email', 'status', 'role'])
+                + ['email_verified' => (bool) $user->hasVerifiedEmail()]
+            ),
         ]);
     }
 

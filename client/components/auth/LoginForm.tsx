@@ -25,11 +25,17 @@ export function LoginForm() {
       await login(email, password);
       router.push("/dashboard");
     } catch (err: unknown) {
-      const msg =
+      const data =
         err && typeof err === "object" && "response" in err
-          ? (err as { response: { data: { message: string } } }).response?.data?.message
-          : "Invalid credentials";
-      setError(msg || "Login failed");
+          ? (err as { response: { data: { message?: string; error?: string } } }).response?.data
+          : null;
+
+      if (data?.error === "email_not_verified") {
+        router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
+        return;
+      }
+
+      setError(data?.message || "Login failed");
     } finally {
       setIsLoading(false);
     }

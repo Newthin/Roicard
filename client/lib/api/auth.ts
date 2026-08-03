@@ -8,8 +8,22 @@ export interface LoginResponse {
     email: string;
     status: string;
     role: string;
+    email_verified?: boolean;
   };
   token: string;
+}
+
+export interface RegisterResponse {
+  user: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    status: string;
+    role: string;
+    email_verified?: boolean;
+  };
+  requires_email_verification: boolean;
 }
 
 export interface RegisterPayload {
@@ -25,8 +39,8 @@ export interface LoginPayload {
   password: string;
 }
 
-export async function register(payload: RegisterPayload): Promise<LoginResponse> {
-  const { data } = await apiClient.post<LoginResponse>("/auth/register", payload);
+export async function register(payload: RegisterPayload): Promise<RegisterResponse> {
+  const { data } = await apiClient.post<RegisterResponse>("/auth/register", payload);
   return data;
 }
 
@@ -36,7 +50,7 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
 }
 
 export async function verifyEmail(email: string): Promise<void> {
-  await apiClient.post("/auth/verify-email", { email });
+  await apiClient.post("/auth/email/resend", { email });
 }
 
 export async function forgotPassword(email: string): Promise<void> {

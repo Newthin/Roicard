@@ -31,7 +31,8 @@ Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect']);
 Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback']);
 Route::get('/auth/social/{provider}/redirect', [SocialAuthController::class, 'redirect']);
 Route::get('/auth/social/{provider}/callback', [SocialAuthController::class, 'callback']);
-Route::post('/auth/verify-email', [AuthController::class, 'verifyEmail'])->middleware('auth:sanctum');
+Route::get('/auth/verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])->name('verification.verify');
+Route::post('/auth/email/resend', [AuthController::class, 'resendVerification'])->middleware('throttle:forgot-password');
 Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:forgot-password');
 Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
 

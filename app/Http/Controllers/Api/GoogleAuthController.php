@@ -49,12 +49,16 @@ class GoogleAuthController extends Controller
                 'status' => 'draft',
                 'role' => 'member',
                 'google_id' => $googleUser->getId(),
+                'email_verified_at' => now(),
             ]);
 
             $user->profile()->create([]);
             $user->assignRole('member');
         } else {
             $user->google_id = $googleUser->getId();
+            if (!$user->hasVerifiedEmail()) {
+                $user->markEmailAsVerified();
+            }
             $user->save();
         }
 
@@ -62,7 +66,10 @@ class GoogleAuthController extends Controller
 
         return $this->frontendRedirect([
             'token' => $token,
-            'user' => json_encode($user->only(['id', 'first_name', 'last_name', 'email', 'status', 'role'])),
+            'user' => json_encode(
+                $user->only(['id', 'first_name', 'last_name', 'email', 'status', 'role'])
+                + ['email_verified' => (bool) $user->hasVerifiedEmail()]
+            ),
         ]);
     }
 

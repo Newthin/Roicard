@@ -18,6 +18,7 @@ interface User {
   email: string;
   status: string;
   role: string;
+  email_verified?: boolean;
 }
 
 interface AuthContextValue {
@@ -66,10 +67,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = useCallback(
     async (payload: authApi.RegisterPayload) => {
       const response = await authApi.register(payload);
-      localStorage.setItem(TOKEN_KEY, response.token);
       localStorage.setItem(USER_KEY, JSON.stringify(response.user));
-      setToken(response.token);
       setUser(response.user);
+      setToken(null);
     },
     []
   );

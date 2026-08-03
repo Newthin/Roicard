@@ -4,16 +4,22 @@ import { Button } from "@/components/ui/Button";
 import { verifyEmail } from "@/lib/api/auth";
 import { CheckCircle2, Mail, RefreshCw } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 
 type VerifyEmailContentProps = {
   initialVerified?: boolean;
+  initialInvalid?: boolean;
+  email?: string;
 };
 
 export function VerifyEmailContent({
   initialVerified = false,
+  initialInvalid = false,
+  email = "",
 }: VerifyEmailContentProps) {
+  const router = useRouter();
   const [isResending, setIsResending] = useState(false);
   const [resent, setResent] = useState(false);
 
@@ -22,12 +28,12 @@ export function VerifyEmailContent({
     setResent(false);
 
     try {
-      await verifyEmail("");
+      await verifyEmail(email);
+      setResent(true);
     } catch {
-      // silently fail
+      setResent(false);
     }
     setIsResending(false);
-    setResent(true);
   };
 
   if (initialVerified) {
@@ -46,7 +52,7 @@ export function VerifyEmailContent({
         </div>
 
         <Link
-          href="/dashboard"
+          href="/auth/login"
           className="flex h-12 w-full items-center justify-center rounded-xl bg-roicard-primary text-sm font-medium text-roicard-on-primary transition-colors hover:bg-roicard-primary-hover"
         >
           Go to Dashboard
@@ -68,11 +74,14 @@ export function VerifyEmailContent({
 
       <div className="space-y-2">
         <h2 className="text-xl font-semibold text-roicard-text">
-          Verification pending
+          {initialInvalid ? "Request a new link" : "Verification pending"}
         </h2>
         <p className="text-sm leading-relaxed text-roicard-text-muted">
-          We sent a verification link to your email. Click the link to activate
-          your account — it expires in 24 hours.
+          {initialInvalid
+            ? "Click below to send a fresh verification link to your email."
+            : email
+              ? <>We sent a verification link to <span className="font-medium text-roicard-text">{email}</span>. Click the link to activate your account — it expires in 24 hours.</>
+              : "We sent a verification link to your email. Click the link to activate your account — it expires in 24 hours."}
         </p>
       </div>
 
@@ -82,16 +91,32 @@ export function VerifyEmailContent({
         </p>
       )}
 
-      <Button
-        variant="secondary"
-        fullWidth
-        isLoading={isResending}
-        className="h-12 rounded-xl"
-        onClick={handleResend}
-      >
-        {!isResending && <RefreshCw className="h-4 w-4" />}
-        Resend Verification Email
-      </Button>
+      {!email && (
+        <div className="space-y-3">
+          <Button
+            variant="secondary"
+            fullWidth
+            isLoading={isResending}
+            className="h-12 rounded-xl"
+            onClick={() => router.push("/auth/login")}
+          >
+            Sign in
+          </Button>
+        </div>
+      )}
+
+      {email && (
+        <Button
+          variant="secondary"
+          fullWidth
+          isLoading={isResending}
+          className="h-12 rounded-xl"
+          onClick={handleResend}
+        >
+          {!isResending && <RefreshCw className="h-4 w-4" />}
+          Resend Verification Email
+        </Button>
+      )}
     </div>
   );
 }
