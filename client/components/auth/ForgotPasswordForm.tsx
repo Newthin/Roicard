@@ -44,7 +44,7 @@ export function ForgotPasswordForm() {
           <p className="text-sm leading-relaxed text-roicard-text-muted">
             We sent a password reset link to{" "}
             <span className="font-medium text-roicard-text">{email}</span>. The link
-            expires in 1 hour.
+            expires in 15 minutes.
           </p>
         </div>
         <Button
