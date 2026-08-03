@@ -6,7 +6,7 @@ export type SocialProvider = "google" | "facebook" | "linkedin" | "x";
 export type SocialAuthMode = "signin" | "signup";
 
 /** Providers that are live; others are shown as "coming soon". */
-const ENABLED_PROVIDERS: SocialProvider[] = ["google"];
+const ENABLED_PROVIDERS: SocialProvider[] = ["google", "facebook"];
 
 type SocialAuthButtonProps = {
   provider: SocialProvider;
