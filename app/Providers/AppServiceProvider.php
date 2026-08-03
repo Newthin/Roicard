@@ -6,8 +6,8 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\Socialite;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Contracts\Factory;
 
 class AppServiceProvider extends ServiceProvider
