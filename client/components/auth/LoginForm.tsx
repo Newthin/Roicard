@@ -6,11 +6,12 @@ import { InputField } from "@/components/auth/InputField";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useState } from "react";
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,7 +24,8 @@ export function LoginForm() {
     setError("");
     try {
       await login(email, password);
-      router.push("/dashboard");
+      const next = searchParams.get("next");
+      router.push(next || "/dashboard");
     } catch (err: unknown) {
       const data =
         err && typeof err === "object" && "response" in err

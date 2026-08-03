@@ -52,7 +52,7 @@ export function VerifyEmailContent({
         </div>
 
         <Link
-          href="/auth/login"
+          href="/auth/login?next=/onboarding"
           className="flex h-12 w-full items-center justify-center rounded-xl bg-roicard-primary text-sm font-medium text-roicard-on-primary transition-colors hover:bg-roicard-primary-hover"
         >
           Go to Dashboard
