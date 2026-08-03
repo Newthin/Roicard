@@ -34,6 +34,10 @@ class SocialAuthController extends Controller
         try {
             return Socialite::driver(self::PROVIDERS[$provider])->stateless()->redirect();
         } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("Social redirect failed [{$provider}]", [
+                'message' => $e->getMessage(),
+                'class' => get_class($e),
+            ]);
             return $this->frontendRedirect(['error' => 'provider_not_configured']);
         }
     }
@@ -51,6 +55,11 @@ class SocialAuthController extends Controller
         try {
             $socialUser = Socialite::driver(self::PROVIDERS[$provider])->stateless()->user();
         } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("Social auth failed [{$provider}]", [
+                'message' => $e->getMessage(),
+                'class' => get_class($e),
+                'query' => $request->query(),
+            ]);
             return $this->frontendRedirect(['error' => 'social_auth_failed']);
         }
 
