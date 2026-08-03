@@ -17,27 +17,48 @@ function mapApiProfileToUserProfile(data: Record<string, unknown>): UserProfile 
     professionalTitle: (data as Record<string, string | null>)?.title ?? "",
     organization: (data as Record<string, string | null>)?.organisation ?? "",
     bio: (data as Record<string, string | null>)?.bio ?? "",
-    phone: "",
+    phone: (data as Record<string, string | null>)?.phone ?? "",
     whatsapp: (data as Record<string, string | null>)?.whatsapp_phone ?? "",
     dateOfBirth: ((data as Record<string, string | null>)?.date_of_birth ?? "").slice(0, 10),
     gender:
       ((data as Record<string, string | null>)?.gender as "" | "male" | "female" | "prefer_not_to_say") ??
       "",
     location: (data as Record<string, string | null>)?.location ?? "",
-    social: {
-      linkedin: "",
-      instagram: "",
-      twitter: "",
-      facebook: "",
-      tiktok: "",
-      snapchat: "",
-      website: "",
-    },
+    social: (() => {
+      const links = (data as Record<string, unknown>)?.social_links;
+      if (!Array.isArray(links)) {
+        return {
+          linkedin: "",
+          instagram: "",
+          twitter: "",
+          facebook: "",
+          tiktok: "",
+          snapchat: "",
+          website: "",
+        };
+      }
+      const found: Record<string, string> = {};
+      for (const link of links) {
+        const row = link as { platform?: string; value?: string };
+        if (row?.platform && typeof row.value === "string") {
+          found[row.platform] = row.value;
+        }
+      }
+      return {
+        linkedin: found.linkedin ?? "",
+        instagram: found.instagram ?? "",
+        twitter: found.twitter ?? "",
+        facebook: found.facebook ?? "",
+        tiktok: found.tiktok ?? "",
+        snapchat: found.snapchat ?? "",
+        website: found.website ?? "",
+      };
+    })(),
     interests: Array.isArray((data as Record<string, unknown>)?.interests)
       ? ((data as Record<string, unknown>).interests as string[])
       : [],
-    seeking: "",
-    offering: "",
+    seeking: (data as Record<string, string | null>)?.seeking ?? "",
+    offering: (data as Record<string, string | null>)?.offering ?? "",
     username: (data as Record<string, string | null>)?.slug ?? "",
     createdAt: (data as Record<string, string>)?.created_at ?? new Date().toISOString(),
     membershipStatus: "active",
@@ -69,6 +90,9 @@ export async function updateCurrentUserProfile(updates: Partial<UserProfile>): P
     if (updates.lastName) payload.last_name = updates.lastName;
     if (updates.email) payload.email = updates.email;
     if (updates.bio) payload.bio = updates.bio;
+    if (updates.phone) payload.phone = updates.phone;
+    if (updates.seeking) payload.seeking = updates.seeking;
+    if (updates.offering) payload.offering = updates.offering;
     if (updates.location) payload.location = updates.location;
     if (updates.professionalTitle) payload.title = updates.professionalTitle;
     if (updates.organization) payload.organisation = updates.organization;
@@ -76,6 +100,7 @@ export async function updateCurrentUserProfile(updates: Partial<UserProfile>): P
     if (updates.dateOfBirth) payload.date_of_birth = updates.dateOfBirth;
     if (updates.gender) payload.gender = updates.gender;
     if (updates.interests) payload.interests = JSON.stringify(updates.interests);
+    if (updates.social) payload.social_links = JSON.stringify(updates.social);
 
     const res = await apiUpdateProfile(payload);
     return mapApiProfileToUserProfile(res.profile as unknown as Record<string, unknown>);

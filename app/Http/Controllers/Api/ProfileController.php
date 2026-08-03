@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ProfileRequest;
+use App\Mail\WelcomeMemberMail;
 use App\Models\Profile;
 use App\Models\SocialLink;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 
 class ProfileController extends Controller
 {
@@ -104,11 +106,14 @@ class ProfileController extends Controller
             'title' => $data['title'] ?? null,
             'organisation' => $data['organisation'] ?? null,
             'whatsapp_phone' => $data['whatsapp_phone'] ?? null,
+            'phone' => $data['phone'] ?? null,
             'date_of_birth' => $data['date_of_birth'] ?? null,
             'gender' => $data['gender'] ?? null,
             'interests' => $interests,
             'location' => $data['location'] ?? null,
             'bio' => $data['bio'] ?? null,
+            'seeking' => $data['seeking'] ?? null,
+            'offering' => $data['offering'] ?? null,
             'is_live' => $data['is_live'] ?? null,
         ], fn ($value) => $value !== null);
         if ($profileFields) {
@@ -132,6 +137,17 @@ class ProfileController extends Controller
         }
 
         $profile->recalculateCompletion();
+
+        // Send the welcome email exactly once — the first successful profile
+        // save after a user begins onboarding. Variant depends on whether they
+        // already paid (active) or not (draft).
+        if (!$user->onboarding_completed_at) {
+            $user->forceFill(['onboarding_completed_at' => now()])->save();
+
+            Mail::to($user)->queue(
+                new WelcomeMemberMail($user, $user->status === 'active' ? 'member' : 'draft')
+            );
+        }
 
         $profile->load('education', 'experience', 'achievements', 'socialLinks', 'media');
 

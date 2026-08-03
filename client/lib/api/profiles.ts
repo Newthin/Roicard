@@ -24,6 +24,7 @@ export async function updateProfile(data: Partial<OnboardingData>) {
     first_name: data.firstName,
     last_name: data.lastName,
     email: data.email,
+    phone: data.phone,
     bio: data.bio,
     location: data.city,
     title: data.professionalTitle,
@@ -33,6 +34,8 @@ export async function updateProfile(data: Partial<OnboardingData>) {
     gender: data.gender,
     interests: data.interests,
     social_links: data.socialLinks,
+    seeking: data.seeking,
+    offering: data.offering,
   };
   Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
 
