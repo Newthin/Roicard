@@ -1,5 +1,9 @@
 import { getProfile, getPublicProfile, updateProfile as apiUpdateProfile } from "@/lib/api/profile";
-import type { UserProfile } from "@/lib/profile/types";
+import type {
+  MembershipStatus,
+  OnboardingFormData,
+  UserProfile,
+} from "@/lib/profile/types";
 import { generateUsername } from "@/lib/profile/username";
 
 const CURRENT_USER_KEY = "roicard_current_user";
@@ -156,4 +160,36 @@ export function getPaymentSnapshot(): UserProfile | null {
 /** Clear the pending payment journey snapshot. */
 export function clearPaymentSnapshot(): void {
   localStorage.removeItem(PAYMENT_SNAPSHOT_KEY);
+}
+
+const JOURNEY_STATE_KEY = "roicard_journey_state";
+
+/** Persisted onboarding journey position + collected data (survives reload). */
+export interface JourneyState {
+  step: string;
+  data: OnboardingFormData;
+  membershipStatus: MembershipStatus;
+}
+
+/** Persist the onboarding journey position + data so a refresh/redirect resumes. */
+export function saveJourneyState(state: JourneyState): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(JOURNEY_STATE_KEY, JSON.stringify(state));
+}
+
+/** Retrieve a previously persisted onboarding journey state, if any. */
+export function getJourneyState(): JourneyState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(JOURNEY_STATE_KEY);
+    return raw ? (JSON.parse(raw) as JourneyState) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Clear the persisted onboarding journey state. */
+export function clearJourneyState(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(JOURNEY_STATE_KEY);
 }

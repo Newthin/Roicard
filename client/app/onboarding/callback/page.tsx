@@ -15,16 +15,19 @@ import {
   createAndSaveProfile,
   getCurrentUserProfile,
   getPaymentSnapshot,
+  getJourneyState,
+  saveJourneyState,
 } from "@/lib/profile/storage";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 
 type CallbackState = "checking" | "success" | "failed" | "no_reference";
 
 function PaymentCallbackContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const reference = searchParams.get("reference");
   const [state, setState] = useState<CallbackState>("checking");
   const runRef = useRef(false);
@@ -43,6 +46,23 @@ function PaymentCallbackContent() {
         const { status } = await getPaymentStatus(reference);
 
         if (status === "success") {
+          const journey = getJourneyState();
+
+          // Onboarding flow: the member is mid-journey. Advance to the Success
+          // step (the next step after payment) and resume onboarding — NOT the
+          // dashboard. The profile is only finalized at StepComplete.
+          if (journey) {
+            saveJourneyState({
+              ...journey,
+              step: "success",
+              membershipStatus: "active",
+            });
+            clearPaymentSnapshot();
+            router.replace("/onboarding");
+            return;
+          }
+
+          // Dashboard flow: no journey in progress (pay-later activation).
           const snapshot = getPaymentSnapshot() ?? (await getCurrentProfile());
           if (snapshot) {
             createAndSaveProfile(snapshot);
@@ -56,7 +76,7 @@ function PaymentCallbackContent() {
         setState("failed");
       }
     })();
-  }, [reference]);
+  }, [reference, router]);
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col items-center gap-5 py-16 text-center">

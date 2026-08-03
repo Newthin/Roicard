@@ -15,6 +15,10 @@
 import {
   createAndSaveProfile,
   setOnboardingComplete,
+  getJourneyState,
+  saveJourneyState,
+  clearJourneyState,
+  clearPaymentSnapshot,
 } from "@/lib/profile/storage";
 import {
   EMPTY_ONBOARDING_DATA,
@@ -29,6 +33,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -182,6 +187,27 @@ export function OnboardingJourneyProvider({ children }: ProviderProps) {
   const [errors, setErrors] = useState<JourneyFieldErrors>({});
   const [membershipStatus, setMembershipStatusState] =
     useState<MembershipStatus>("pending");
+  const [hydrated, setHydrated] = useState(false);
+
+  // Restore a previously persisted journey (e.g. after a payment redirect) once
+  // the client mounts, so SSR and hydration render the same initial state.
+  useEffect(() => {
+    const saved = getJourneyState();
+    if (saved) {
+      setStep((saved.step as JourneyStepId) ?? "about");
+      setData(saved.data ?? EMPTY_JOURNEY_DATA);
+      setMembershipStatusState(saved.membershipStatus ?? "pending");
+    }
+    setHydrated(true);
+  }, []);
+
+  // Persist journey position + data so a refresh or provider redirect resumes
+  // the exact step the member left off at. Gated on hydration so the persisted
+  // state is never clobbered by the default (empty) initial state.
+  useEffect(() => {
+    if (!hydrated) return;
+    saveJourneyState({ step, data, membershipStatus });
+  }, [hydrated, step, data, membershipStatus]);
 
   const username = useMemo(
     () => generateUsername(data.firstName || "your", data.lastName || "name"),
@@ -300,6 +326,8 @@ export function OnboardingJourneyProvider({ children }: ProviderProps) {
     };
     createAndSaveProfile(profile);
     setOnboardingComplete();
+    clearJourneyState();
+    clearPaymentSnapshot();
     return profile.username;
   }, [data, membershipStatus, username]);
 
