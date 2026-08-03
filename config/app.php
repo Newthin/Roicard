@@ -6,7 +6,7 @@ return [
     'debug' => (bool) env('APP_DEBUG', false),
     'url' => env('APP_URL', 'http://localhost'),
     'frontend_url' => rtrim(env('FRONTEND_URL', env('APP_URL', 'http://localhost:3000')), '/'),
-    'logo_url' => env('LOGO_URL', rtrim(env('FRONTEND_URL', 'http://localhost:3000'), '/') . '/logo.png'),
+    'logo_url' => env('LOGO_URL', rtrim(env('FRONTEND_URL', 'http://localhost:3000'), '/') . '/images/logo.png'),
     'payment_provider' => env('PAYMENT_PROVIDER', 'mock'),
 
     'timezone' => 'Africa/Accra',
