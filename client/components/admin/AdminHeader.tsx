@@ -50,7 +50,7 @@ export function AdminHeader({ onMenuOpen }: AdminHeaderProps) {
     : "AD";
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-roicard-border header-surface px-4 backdrop-blur-sm theme-transition lg:px-6">
+    <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-roicard-border header-surface px-4 backdrop-blur-sm theme-transition lg:px-6 print:hidden">
       <div className="flex items-center gap-3">
         <AdminSidebarToggle onOpen={onMenuOpen} />
         <p className="text-sm font-medium text-roicard-text-muted lg:hidden">

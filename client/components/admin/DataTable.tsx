@@ -27,18 +27,18 @@ export function DataTable({ columns, children, className }: DataTableProps) {
   return (
     <div
       className={cn(
-        "overflow-x-auto rounded-xl border border-roicard-border bg-roicard-bg-elevated",
+        "overflow-x-auto rounded-2xl border border-roicard-border bg-roicard-bg-elevated shadow-sm shadow-[var(--rc-shadow)]",
         className
       )}
     >
-      <table className="w-full min-w-[640px] text-left text-sm">
+      <table className="w-full min-w-[680px] text-left text-sm">
         <thead>
-          <tr className="border-b border-roicard-border bg-roicard-bg-muted/40">
+          <tr className="border-b border-roicard-border bg-roicard-bg-muted/50">
             {columns.map((col) => (
               <th
                 key={col.key}
                 className={cn(
-                  "px-4 py-3 font-medium text-roicard-text-muted",
+                  "px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-roicard-text-muted",
                   col.className
                 )}
               >
@@ -61,7 +61,12 @@ export function DataTableRow({
   className?: string;
 }) {
   return (
-    <tr className={cn("hover:bg-roicard-bg-muted/30 transition-colors", className)}>
+    <tr
+      className={cn(
+        "group transition-colors hover:bg-roicard-bg-muted/30",
+        className
+      )}
+    >
       {children}
     </tr>
   );
@@ -75,7 +80,7 @@ export function DataTableCell({
   className?: string;
 }) {
   return (
-    <td className={cn("px-4 py-3 text-roicard-text-muted", className)}>
+    <td className={cn("px-5 py-4 align-middle text-roicard-text-muted", className)}>
       {children}
     </td>
   );

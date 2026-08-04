@@ -75,14 +75,14 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         <button
           type="button"
           aria-label="Close sidebar"
-          className="fixed inset-0 z-40 bg-[var(--rc-overlay)] lg:hidden"
+          className="fixed inset-0 z-40 bg-[var(--rc-overlay)] lg:hidden print:hidden"
           onClick={onClose}
         />
       )}
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-roicard-border bg-roicard-bg-elevated p-4 transition-transform lg:hidden",
+          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-roicard-border bg-roicard-bg-elevated p-4 transition-transform lg:hidden print:hidden",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -98,7 +98,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         {nav}
       </aside>
 
-      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-60 lg:flex-col lg:border-r lg:border-roicard-border lg:bg-roicard-bg-elevated lg:p-5">
+      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-60 lg:flex-col lg:border-r lg:border-roicard-border lg:bg-roicard-bg-elevated lg:p-5 print:hidden">
         {nav}
       </aside>
     </>

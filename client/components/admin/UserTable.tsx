@@ -1,8 +1,9 @@
 /**
  * UserTable
  *
- * Admin user management table with search, status filter, and pagination.
- * View/Edit/Suspend/Activate actions open modals or update mock state.
+ * Admin user management table with search, status filter, pagination, and
+ * per-user actions. View/Edit/Suspend/Activate use the shared Modal + Confirm
+ * components; "Card" opens the printable business-card view.
  */
 
 "use client";
@@ -17,35 +18,61 @@ import { Button } from "@/components/ui/Button";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
+import { PasswordStrengthChecklist } from "@/components/ui/PasswordStrengthChecklist";
 import { cn } from "@/lib/cn";
 import type { AdminUser, UserStatus } from "@/lib/admin/types";
+import { arePasswordRulesMet } from "@/lib/validation/password";
+import { Printer, Search, UserPlus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
 const DEFAULT_PAGE_SIZE = 20;
 
-const COLUMNS = [
-  { key: "name", label: "User Name" },
-  { key: "email", label: "Email" },
-  { key: "username", label: "Username" },
-  { key: "status", label: "Status" },
-  { key: "joined", label: "Join Date" },
-  { key: "actions", label: "Actions", className: "text-right" },
-];
+const selectClassName =
+  "h-11 w-full rounded-lg border border-roicard-border bg-roicard-bg-muted px-4 text-sm text-roicard-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-roicard-accent/50 focus-visible:border-roicard-accent/50";
 
 function StatusBadge({ status }: { status: UserStatus }) {
   return (
     <span
       className={cn(
-        "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium capitalize",
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium capitalize",
         status === "active"
-          ? "bg-emerald-500/15 text-emerald-400"
+          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
           : status === "draft"
-            ? "bg-amber-500/15 text-amber-400"
-            : "bg-red-500/15 text-red-400"
+            ? "border-amber-500/30 bg-amber-500/10 text-amber-400"
+            : "border-red-500/30 bg-red-500/10 text-red-400"
       )}
     >
+      <span
+        className={cn(
+          "h-1.5 w-1.5 rounded-full",
+          status === "active"
+            ? "bg-emerald-400"
+            : status === "draft"
+              ? "bg-amber-400"
+              : "bg-red-400"
+        )}
+        aria-hidden
+      />
       {status}
+    </span>
+  );
+}
+
+function UserAvatar({
+  firstName,
+  lastName,
+}: {
+  firstName: string;
+  lastName: string;
+}) {
+  const initials =
+    `${(firstName?.[0] ?? "").toUpperCase()}${(lastName?.[0] ?? "").toUpperCase()}` ||
+    "U";
+  return (
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full roicard-gradient text-xs font-bold text-roicard-on-primary">
+      {initials}
     </span>
   );
 }
@@ -65,40 +92,67 @@ function ViewUserModal({
       isOpen={!!user}
       onClose={onClose}
       title="User Details"
-      description={`@${user.username}`}
+      description={`@${user.username || "no profile yet"}`}
     >
-      <dl className="space-y-3 text-sm">
-        <div>
-          <dt className="text-roicard-text-muted">Name</dt>
-          <dd className="text-roicard-text">
-            {user.firstName} {user.lastName}
-          </dd>
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <UserAvatar firstName={user.firstName} lastName={user.lastName} />
+          <div>
+            <p className="text-base font-semibold text-roicard-text">
+              {user.firstName} {user.lastName}
+            </p>
+            {user.professionalTitle && (
+              <p className="text-sm text-roicard-text-muted">
+                {user.professionalTitle}
+              </p>
+            )}
+          </div>
         </div>
+
+        <dl className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wider text-roicard-text-muted">
+              Email
+            </dt>
+            <dd className="mt-1 break-all text-sm text-roicard-text">
+              {user.email}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wider text-roicard-text-muted">
+              Username
+            </dt>
+            <dd className="mt-1 text-sm text-roicard-text">
+              {user.username ? `@${user.username}` : "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wider text-roicard-text-muted">
+              Organization
+            </dt>
+            <dd className="mt-1 text-sm text-roicard-text">
+              {user.organization || "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wider text-roicard-text-muted">
+              Joined
+            </dt>
+            <dd className="mt-1 text-sm text-roicard-text">
+              {new Date(user.joinedAt).toLocaleDateString()}
+            </dd>
+          </div>
+        </dl>
+
         <div>
-          <dt className="text-roicard-text-muted">Email</dt>
-          <dd className="text-roicard-text">{user.email}</dd>
-        </div>
-        <div>
-          <dt className="text-roicard-text-muted">Title</dt>
-          <dd className="text-roicard-text">{user.professionalTitle}</dd>
-        </div>
-        <div>
-          <dt className="text-roicard-text-muted">Organization</dt>
-          <dd className="text-roicard-text">{user.organization}</dd>
-        </div>
-        <div>
-          <dt className="text-roicard-text-muted">Status</dt>
-          <dd>
+          <dt className="text-xs font-semibold uppercase tracking-wider text-roicard-text-muted">
+            Status
+          </dt>
+          <dd className="mt-1">
             <StatusBadge status={user.status} />
           </dd>
         </div>
-        <div>
-          <dt className="text-roicard-text-muted">Joined</dt>
-          <dd className="text-roicard-text">
-            {new Date(user.joinedAt).toLocaleDateString()}
-          </dd>
-        </div>
-      </dl>
+      </div>
     </Modal>
   );
 }
@@ -115,17 +169,35 @@ function EditUserModal({
 }) {
   const { confirm } = useConfirm();
   const [form, setForm] = useState<Partial<AdminUser>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   /** Reset form when a different user is opened for editing. */
   useEffect(() => {
     setForm({});
+    setErrors({});
   }, [user?.id]);
 
   const current = user ? { ...user, ...form } : null;
 
   if (!user || !current) return null;
 
+  const setField = (field: keyof AdminUser, value: string) => {
+    setForm((f) => ({ ...f, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: "" }));
+  };
+
   const handleSave = async () => {
+    const nextErrors: Record<string, string> = {};
+    if (!current.firstName.trim()) nextErrors.firstName = "First name is required";
+    if (!current.lastName.trim()) nextErrors.lastName = "Last name is required";
+    if (!current.email.trim()) {
+      nextErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(current.email)) {
+      nextErrors.email = "Enter a valid email address";
+    }
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
     const confirmed = await confirm({
       title: "Save user changes?",
       description: `Update profile information for ${current.firstName} ${current.lastName}.`,
@@ -160,50 +232,56 @@ function EditUserModal({
         </>
       }
     >
-      <div className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
+      <div className="space-y-5">
+        <div className="space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-roicard-accent">
+            Name
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="First Name"
+              value={current.firstName}
+              error={errors.firstName}
+              onChange={(e) => setField("firstName", e.target.value)}
+            />
+            <Input
+              label="Last Name"
+              value={current.lastName}
+              error={errors.lastName}
+              onChange={(e) => setField("lastName", e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-roicard-accent">
+            Profile
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="Email"
+              type="email"
+              value={current.email}
+              error={errors.email}
+              onChange={(e) => setField("email", e.target.value)}
+            />
+            <Input
+              label="Username"
+              value={current.username}
+              onChange={(e) => setField("username", e.target.value)}
+            />
+          </div>
           <Input
-            label="First Name"
-            value={current.firstName}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, firstName: e.target.value }))
-            }
+            label="Professional Title"
+            value={current.professionalTitle}
+            onChange={(e) => setField("professionalTitle", e.target.value)}
           />
           <Input
-            label="Last Name"
-            value={current.lastName}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, lastName: e.target.value }))
-            }
+            label="Organization"
+            value={current.organization}
+            onChange={(e) => setField("organization", e.target.value)}
           />
         </div>
-        <Input
-          label="Email"
-          type="email"
-          value={current.email}
-          onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-        />
-        <Input
-          label="Username"
-          value={current.username}
-          onChange={(e) =>
-            setForm((f) => ({ ...f, username: e.target.value }))
-          }
-        />
-        <Input
-          label="Professional Title"
-          value={current.professionalTitle}
-          onChange={(e) =>
-            setForm((f) => ({ ...f, professionalTitle: e.target.value }))
-          }
-        />
-        <Input
-          label="Organization"
-          value={current.organization}
-          onChange={(e) =>
-            setForm((f) => ({ ...f, organization: e.target.value }))
-          }
-        />
       </div>
     </Modal>
   );
@@ -226,15 +304,39 @@ function AddUserModal({
     status: "draft" as const,
     role: "member" as const,
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const handleChange = (field: string, value: string) =>
+  const handleChange = (field: string, value: string) => {
     setForm((f) => ({ ...f, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: "" }));
+  };
+
+  const validate = (): Record<string, string> => {
+    const next: Record<string, string> = {};
+    if (!form.first_name.trim()) next.first_name = "First name is required";
+    if (!form.last_name.trim()) next.last_name = "Last name is required";
+    if (!form.email.trim()) {
+      next.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      next.email = "Enter a valid email address";
+    }
+    if (!form.password) {
+      next.password = "Password is required";
+    } else if (!arePasswordRulesMet(form.password, form.password_confirmation)) {
+      next.password = "Password doesn't meet the requirements below";
+    }
+    return next;
+  };
 
   const handleSubmit = async () => {
-    setSaving(true);
     setError("");
+    const nextErrors = validate();
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
+    setSaving(true);
     const result = await registerUser(form);
     setSaving(false);
     if (!result.ok) {
@@ -249,6 +351,7 @@ function AddUserModal({
         status: "draft",
         role: "member",
       });
+      setErrors({});
       onClose();
     }
   };
@@ -270,66 +373,100 @@ function AddUserModal({
         </>
       }
     >
-      <div className="space-y-4">
+      <div className="space-y-6">
         {error && (
           <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">
             {error}
           </p>
         )}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Input
-            label="First Name"
-            value={form.first_name}
-            onChange={(e) => handleChange("first_name", e.target.value)}
-          />
-          <Input
-            label="Last Name"
-            value={form.last_name}
-            onChange={(e) => handleChange("last_name", e.target.value)}
-          />
-        </div>
-        <Input
-          label="Email"
-          type="email"
-          value={form.email}
-          onChange={(e) => handleChange("email", e.target.value)}
-        />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Input
-            label="Password"
-            type="password"
-            value={form.password}
-            onChange={(e) => handleChange("password", e.target.value)}
-          />
-          <Input
-            label="Confirm Password"
-            type="password"
-            value={form.password_confirmation}
-            onChange={(e) => handleChange("password_confirmation", e.target.value)}
-          />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-roicard-text">Status</label>
-            <select
-              value={form.status}
-              onChange={(e) => handleChange("status", e.target.value)}
-              className="h-11 w-full rounded-lg border border-roicard-border bg-roicard-bg-muted px-4 text-sm text-roicard-text"
-            >
-              <option value="draft">Draft</option>
-              <option value="active">Active</option>
-            </select>
+
+        <div className="space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-roicard-accent">
+            Name
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="First Name"
+              value={form.first_name}
+              error={errors.first_name}
+              onChange={(e) => handleChange("first_name", e.target.value)}
+            />
+            <Input
+              label="Last Name"
+              value={form.last_name}
+              error={errors.last_name}
+              onChange={(e) => handleChange("last_name", e.target.value)}
+            />
           </div>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-roicard-text">Role</label>
-            <select
-              value={form.role}
-              onChange={(e) => handleChange("role", e.target.value)}
-              className="h-11 w-full rounded-lg border border-roicard-border bg-roicard-bg-muted px-4 text-sm text-roicard-text"
-            >
-              <option value="member">Member</option>
-              <option value="admin">Admin</option>
-            </select>
+        </div>
+
+        <div className="space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-roicard-accent">
+            Contact & Login
+          </p>
+          <Input
+            label="Email"
+            type="email"
+            value={form.email}
+            error={errors.email}
+            onChange={(e) => handleChange("email", e.target.value)}
+          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Input
+                label="Password"
+                type="password"
+                value={form.password}
+                error={errors.password}
+                onChange={(e) => handleChange("password", e.target.value)}
+              />
+              <PasswordStrengthChecklist
+                password={form.password}
+                confirmPassword={form.password_confirmation}
+              />
+            </div>
+            <Input
+              label="Confirm Password"
+              type="password"
+              value={form.password_confirmation}
+              onChange={(e) =>
+                handleChange("password_confirmation", e.target.value)
+              }
+            />
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-roicard-accent">
+            Role & Status
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-roicard-text">
+                Status
+              </label>
+              <select
+                value={form.status}
+                onChange={(e) => handleChange("status", e.target.value)}
+                className={selectClassName}
+              >
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-roicard-text">
+                Role
+              </label>
+              <select
+                value={form.role}
+                onChange={(e) => handleChange("role", e.target.value)}
+                className={selectClassName}
+              >
+                <option value="member">Member</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -340,6 +477,7 @@ function AddUserModal({
 export function UserTable() {
   const { users, isLoading, updateUserStatus, updateUser } = useAdmin();
   const { confirm } = useConfirm();
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | UserStatus>("all");
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
@@ -403,18 +541,82 @@ export function UserTable() {
     );
   }
 
+  const actionsFor = (user: AdminUser) => (
+    <div className="flex flex-wrap justify-end gap-1">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setViewUser(user)}
+      >
+        View
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setEditUser(user)}
+      >
+        Edit
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="text-roicard-accent"
+        disabled={!user.username}
+        title={
+          user.username
+            ? "Generate printable card"
+            : "No public profile yet — complete onboarding first"
+        }
+        onClick={() => router.push(`/admin/users/card/${user.id}`)}
+      >
+        <Printer className="h-3.5 w-3.5" aria-hidden />
+        Card
+      </Button>
+      {user.status === "active" ? (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-red-400"
+          onClick={() => handleSuspend(user)}
+        >
+          Suspend
+        </Button>
+      ) : (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-emerald-400"
+          onClick={() => handleActivate(user)}
+        >
+          Activate
+        </Button>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Input
-          placeholder="Search by name, email, or username..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-          className="sm:max-w-xs"
-        />
+        <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative sm:max-w-xs">
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-roicard-text-muted"
+              aria-hidden
+            />
+            <Input
+              placeholder="Search by name, email, or username..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="pl-9"
+            />
+          </div>
+          <p className="text-sm text-roicard-text-muted">
+            {filtered.length} {filtered.length === 1 ? "user" : "users"}
+          </p>
+        </div>
         <div className="flex items-center gap-3">
           <select
             value={statusFilter}
@@ -422,7 +624,7 @@ export function UserTable() {
               setStatusFilter(e.target.value as "all" | UserStatus);
               setPage(1);
             }}
-            className="h-11 rounded-lg border border-roicard-border bg-roicard-bg-muted px-4 text-sm text-roicard-text"
+            className="h-11 rounded-lg border border-roicard-border bg-roicard-bg-muted px-4 text-sm text-roicard-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-roicard-accent/50 focus-visible:border-roicard-accent/50"
             aria-label="Filter by status"
           >
             <option value="all">All statuses</option>
@@ -431,63 +633,64 @@ export function UserTable() {
             <option value="suspended">Suspended</option>
           </select>
           <Button onClick={() => setShowAddModal(true)} className="shrink-0">
-            + Add User
+            <UserPlus className="h-4 w-4" aria-hidden />
+            Add User
           </Button>
         </div>
       </div>
 
       {/* Desktop table */}
       <div className="hidden md:block">
-        <DataTable columns={COLUMNS}>
+        <DataTable
+          columns={[
+            { key: "name", label: "User" },
+            { key: "email", label: "Email" },
+            { key: "username", label: "Username" },
+            { key: "status", label: "Status" },
+            { key: "joined", label: "Joined" },
+            { key: "actions", label: "Actions", className: "text-right" },
+          ]}
+        >
           {paginated.map((user) => (
             <DataTableRow key={user.id}>
-              <DataTableCell className="font-medium text-roicard-text">
-                {user.firstName} {user.lastName}
+              <DataTableCell>
+                <div className="flex items-center gap-3">
+                  <UserAvatar
+                    firstName={user.firstName}
+                    lastName={user.lastName}
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-roicard-text">
+                      {user.firstName} {user.lastName}
+                    </p>
+                    {user.professionalTitle && (
+                      <p className="truncate text-xs text-roicard-text-muted">
+                        {user.professionalTitle}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </DataTableCell>
-              <DataTableCell>{user.email}</DataTableCell>
-              <DataTableCell>@{user.username}</DataTableCell>
+              <DataTableCell className="break-all">
+                {user.email}
+              </DataTableCell>
+              <DataTableCell>
+                {user.username ? (
+                  <span className="text-roicard-text">
+                    @{user.username}
+                  </span>
+                ) : (
+                  <span className="text-roicard-text-muted">—</span>
+                )}
+              </DataTableCell>
               <DataTableCell>
                 <StatusBadge status={user.status} />
               </DataTableCell>
-              <DataTableCell>
+              <DataTableCell className="whitespace-nowrap">
                 {new Date(user.joinedAt).toLocaleDateString()}
               </DataTableCell>
               <DataTableCell className="text-right">
-                <div className="flex flex-wrap justify-end gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setViewUser(user)}
-                  >
-                    View
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setEditUser(user)}
-                  >
-                    Edit
-                  </Button>
-                  {user.status === "active" ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-400"
-                      onClick={() => handleSuspend(user)}
-                    >
-                      Suspend
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-emerald-400"
-                      onClick={() => handleActivate(user)}
-                    >
-                      Activate
-                    </Button>
-                  )}
-                </div>
+                {actionsFor(user)}
               </DataTableCell>
             </DataTableRow>
           ))}
@@ -502,14 +705,19 @@ export function UserTable() {
             className="rounded-xl border border-roicard-border bg-roicard-bg-elevated p-4"
           >
             <div className="flex items-start justify-between gap-2">
-              <div>
-                <p className="font-medium text-roicard-text">
-                  {user.firstName} {user.lastName}
-                </p>
-                <p className="text-sm text-roicard-text-muted">{user.email}</p>
-                <p className="text-xs text-roicard-text-muted">
-                  @{user.username}
-                </p>
+              <div className="flex items-center gap-3">
+                <UserAvatar firstName={user.firstName} lastName={user.lastName} />
+                <div className="min-w-0">
+                  <p className="font-medium text-roicard-text">
+                    {user.firstName} {user.lastName}
+                  </p>
+                  <p className="text-sm text-roicard-text-muted">
+                    {user.email}
+                  </p>
+                  <p className="text-xs text-roicard-text-muted">
+                    @{user.username}
+                  </p>
+                </div>
               </div>
               <StatusBadge status={user.status} />
             </div>
@@ -522,6 +730,16 @@ export function UserTable() {
               </Button>
               <Button variant="secondary" size="sm" onClick={() => setEditUser(user)}>
                 Edit
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="text-roicard-accent"
+                disabled={!user.username}
+                onClick={() => router.push(`/admin/users/card/${user.id}`)}
+              >
+                <Printer className="h-3.5 w-3.5" aria-hidden />
+                Card
               </Button>
               {user.status === "active" ? (
                 <Button
@@ -553,7 +771,7 @@ export function UserTable() {
 
       {/* Pagination controls */}
       {filtered.length > 0 && (
-        <div className="flex flex-col gap-3 border-t border-roicard-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-xl border border-roicard-border bg-roicard-bg-elevated px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <p className="text-sm text-roicard-text-muted whitespace-nowrap">
               Showing {(safePage - 1) * pageSize + 1}–
@@ -566,7 +784,7 @@ export function UserTable() {
                 setPageSize(Number(e.target.value));
                 setPage(1);
               }}
-              className="h-8 rounded-lg border border-roicard-border bg-roicard-bg-muted px-2 text-xs text-roicard-text"
+              className="h-8 rounded-lg border border-roicard-border bg-roicard-bg-muted px-2 text-xs text-roicard-text focus-visible:outline-none"
               aria-label="Rows per page"
             >
               {PAGE_SIZE_OPTIONS.map((n) => (

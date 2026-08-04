@@ -18,15 +18,15 @@ export function AdminShell({ children }: AdminShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-roicard-bg">
+    <div className="min-h-screen bg-roicard-bg print:bg-white">
       <AdminSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
 
-      <div className="lg:pl-60">
+      <div className="lg:pl-60 print:pl-0">
         <AdminHeader onMenuOpen={() => setSidebarOpen(true)} />
-        <main className="p-4 lg:p-8">{children}</main>
+        <main className="p-4 lg:p-8 print:p-0">{children}</main>
       </div>
     </div>
   );

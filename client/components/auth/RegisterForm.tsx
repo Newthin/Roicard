@@ -4,20 +4,11 @@ import { AuthDivider } from "@/components/auth/AuthDivider";
 import { SocialAuthRow } from "@/components/auth/SocialAuthButton";
 import { InputField } from "@/components/auth/InputField";
 import { Button } from "@/components/ui/Button";
+import { PasswordStrengthChecklist } from "@/components/ui/PasswordStrengthChecklist";
 import { useAuth } from "@/contexts/AuthContext";
-import { cn } from "@/lib/cn";
+import { arePasswordRulesMet } from "@/lib/validation/password";
 import { useRouter } from "next/navigation";
-import { FormEvent, useMemo, useState } from "react";
-
-type Rule = { key: string; label: string; test: (pw: string, cf: string) => boolean };
-
-const RULES: Rule[] = [
-  { key: "min", label: "At least 8 characters", test: (pw) => pw.length >= 8 },
-  { key: "upper", label: "1 uppercase letter", test: (pw) => /[A-Z]/.test(pw) },
-  { key: "lower", label: "1 lowercase letter", test: (pw) => /[a-z]/.test(pw) },
-  { key: "num-sym", label: "1 number or special character", test: (pw) => /[\d\W]/.test(pw) },
-  { key: "match", label: "Passwords match", test: (pw, cf) => pw.length > 0 && pw === cf },
-];
+import { FormEvent, useState } from "react";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -29,8 +20,7 @@ export function RegisterForm() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const checks = useMemo(() => RULES.map((r) => ({ ...r, passed: r.test(password, confirmPassword) })), [password, confirmPassword]);
-  const allPassed = checks.every((c) => c.passed);
+  const allPassed = arePasswordRulesMet(password, confirmPassword);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -99,27 +89,11 @@ export function RegisterForm() {
         />
 
         {/* Password strength checklist */}
-        <ul className="space-y-1 -mt-2">
-          {checks.map((c) => (
-            <li key={c.key} className="flex items-center gap-2 text-xs">
-              <span
-                className={cn(
-                  "shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-bold leading-none transition-colors",
-                  c.passed
-                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
-                    : "border-roicard-border text-roicard-text-muted/60"
-                )}
-              >
-                {c.passed ? "✓" : "✗"}
-              </span>
-              <span
-                className={c.passed ? "text-emerald-400" : "text-roicard-text-muted/60"}
-              >
-                {c.label}
-              </span>
-            </li>
-          ))}
-        </ul>
+        <PasswordStrengthChecklist
+          password={password}
+          confirmPassword={confirmPassword}
+          className="-mt-2"
+        />
 
         <InputField
           label="Confirm Password"
