@@ -8,6 +8,7 @@
 "use client";
 
 import { ConnectionCard } from "@/components/connections/ConnectionCard";
+import { GuestProfileModal } from "@/components/connections/GuestProfileModal";
 import { ConnectionSearchBar } from "@/components/connections/ConnectionSearchBar";
 import { useConnections } from "@/components/connections/ConnectionsProvider";
 import { ConnectionsEmptyState } from "@/components/connections/ConnectionsEmptyState";
@@ -20,7 +21,10 @@ import {
   paginate,
   sortConnections,
 } from "@/lib/connections/helpers";
-import type { ConnectionSortOption } from "@/lib/connections/types";
+import type {
+  ConnectionPerson,
+  ConnectionSortOption,
+} from "@/lib/connections/types";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -37,6 +41,7 @@ export function MyConnectionsView() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<ConnectionSortOption>("most_recent");
   const [page, setPage] = useState(1);
+  const [guestPerson, setGuestPerson] = useState<ConnectionPerson | null>(null);
 
   /** Search → sort → paginate pipeline */
   const filtered = useMemo(() => {
@@ -120,10 +125,20 @@ export function MyConnectionsView() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {paged.map((connection) => (
-            <ConnectionCard key={connection.id} connection={connection} />
+            <ConnectionCard
+              key={connection.id}
+              connection={connection}
+              onViewGuest={setGuestPerson}
+            />
           ))}
         </div>
       )}
+
+      <GuestProfileModal
+        person={guestPerson}
+        isOpen={guestPerson !== null}
+        onClose={() => setGuestPerson(null)}
+      />
 
       {/* Pagination controls */}
       {!isLoading && filtered.length > PAGE_SIZE && (

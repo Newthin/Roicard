@@ -16,6 +16,8 @@ export type ConnectionPerson = {
   organization: string;
   email?: string;
   phone?: string;
+  /** Set when the guest has a linked ROICARD account. */
+  guestUserId?: string;
 };
 
 /** Incoming connection request awaiting accept/decline. */

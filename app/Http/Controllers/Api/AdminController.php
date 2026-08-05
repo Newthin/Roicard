@@ -69,6 +69,13 @@ class AdminController extends Controller
         }
         $user->save();
 
+        // Bust public profile cache when status changes (affects draft privacy)
+        if ($profile = $user->profile) {
+            if ($profile->slug) {
+                \Illuminate\Support\Facades\Cache::forget("public_profile:{$profile->slug}");
+            }
+        }
+
         $this->logAdminAction('update_user', $user->id);
 
         $changes = $request->only(['status', 'role']);
@@ -101,6 +108,9 @@ class AdminController extends Controller
 
         // Create an empty profile for the user
         $user->profile()->create([]);
+
+        // Link any prior guest connection requests to this account
+        Connection::linkGuestRequestsToUser($user);
 
         // Assign Spatie role
         $user->assignRole($validated['role']);

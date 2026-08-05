@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ConnectionRequest;
 use App\Models\Connection;
 use App\Models\Profile;
+use App\Models\User;
 use App\Notifications\ConnectionApprovedNotification;
 use App\Notifications\ConnectionRequestNotification;
 use Illuminate\Http\JsonResponse;
@@ -16,6 +17,7 @@ class ConnectionController extends Controller
     public function index(): JsonResponse
     {
         $connections = Connection::where('member_id', auth()->id())
+            ->with('guestUser:id,name,email', 'guestUser.profile:id,user_id,slug')
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
@@ -27,8 +29,12 @@ class ConnectionController extends Controller
         $profile = Profile::where('slug', $request->slug)->firstOrFail();
         $member = $profile->user;
 
+        $guestUserId = User::where('email', $request->guest_email)
+            ->value('id');
+
         $connection = Connection::create([
             'member_id' => $member->id,
+            'guest_user_id' => $guestUserId,
             'guest_name' => $request->guest_name,
             'guest_email' => $request->guest_email,
             'guest_phone' => $request->guest_phone,

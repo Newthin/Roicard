@@ -26,6 +26,7 @@ function toConnectionPerson(api: ApiConnection): ConnectionPerson {
   const lastName = rest.join(" ") || "";
   return {
     id: String(api.id),
+    username: api.guest_user?.profile?.slug ?? undefined,
     firstName,
     lastName,
     profilePhotoUrl: null,
@@ -33,6 +34,7 @@ function toConnectionPerson(api: ApiConnection): ConnectionPerson {
     organization: api.guest_org || "",
     email: api.guest_email,
     phone: api.guest_phone || undefined,
+    guestUserId: api.guest_user_id ? String(api.guest_user_id) : undefined,
   };
 }
 

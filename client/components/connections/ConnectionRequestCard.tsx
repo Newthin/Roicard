@@ -18,13 +18,18 @@ import {
   formatConnectionDate,
   getPersonFullName,
 } from "@/lib/connections/helpers";
-import type { IncomingConnectionRequest } from "@/lib/connections/types";
+import type {
+  ConnectionPerson,
+  IncomingConnectionRequest,
+} from "@/lib/connections/types";
 import { Check, MapPin, X } from "lucide-react";
+import Link from "next/link";
 
 type ConnectionRequestCardProps = {
   request: IncomingConnectionRequest;
   onAccept: (requestId: string) => void;
   onDecline: (requestId: string) => void;
+  onViewGuest: (person: ConnectionPerson) => void;
   isProcessing?: boolean;
 };
 
@@ -32,10 +37,30 @@ export function ConnectionRequestCard({
   request,
   onAccept,
   onDecline,
+  onViewGuest,
   isProcessing = false,
 }: ConnectionRequestCardProps) {
   const { person } = request;
   const fullName = getPersonFullName(person);
+
+  const name =
+    person.username && person.guestUserId ? (
+      <Link
+        href={`/${person.username}`}
+        className="block truncate font-semibold text-roicard-text underline-offset-4 hover:text-roicard-accent hover:underline"
+      >
+        {fullName}
+      </Link>
+    ) : (
+      <button
+        type="button"
+        onClick={() => onViewGuest(person)}
+        className="block truncate font-semibold text-roicard-text underline-offset-4 hover:text-roicard-accent hover:underline"
+        title="View guest profile"
+      >
+        {fullName}
+      </button>
+    );
 
   return (
     <article className="glass-card rounded-2xl p-4 sm:p-5">
@@ -43,7 +68,7 @@ export function ConnectionRequestCard({
         <div className="flex min-w-0 flex-1 items-center gap-4">
           <ConnectionAvatar person={person} size="lg" />
           <div className="min-w-0">
-            <h3 className="truncate font-semibold text-roicard-text">{fullName}</h3>
+            <h3 className="truncate">{name}</h3>
             <p className="mt-0.5 truncate text-sm text-roicard-text-muted">
               {person.professionalTitle}
             </p>

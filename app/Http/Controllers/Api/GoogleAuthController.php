@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Connection;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -54,6 +55,9 @@ class GoogleAuthController extends Controller
 
             $user->profile()->create([]);
             $user->assignRole('member');
+
+            // Link any prior guest connection requests to this account
+            Connection::linkGuestRequestsToUser($user);
         } else {
             $user->google_id = $googleUser->getId();
             if (!$user->hasVerifiedEmail()) {

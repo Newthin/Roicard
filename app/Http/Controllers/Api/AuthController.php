@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Models\Connection;
 use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Verified;
@@ -30,6 +31,9 @@ class AuthController extends Controller
 
         // Create empty profile
         $user->profile()->create([]);
+
+        // Link any prior guest connection requests to this account
+        Connection::linkGuestRequestsToUser($user);
 
         try {
             $user->sendEmailVerificationNotification();

@@ -3,6 +3,12 @@ import apiClient from "./client";
 export interface Connection {
   id: number;
   member_id: number;
+  guest_user_id: number | null;
+  guest_user: {
+    name: string;
+    email: string;
+    profile: { slug: string } | null;
+  } | null;
   guest_name: string;
   guest_email: string;
   guest_phone: string | null;

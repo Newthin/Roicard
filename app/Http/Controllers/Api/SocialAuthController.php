@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Connection;
 use App\Models\SocialAccount;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -97,6 +98,9 @@ class SocialAuthController extends Controller
 
                 $user->profile()->create([]);
                 $user->assignRole('member');
+
+                // Link any prior guest connection requests to this account
+                Connection::linkGuestRequestsToUser($user);
             } elseif (!$user->hasVerifiedEmail() && $email) {
                 // Provider already verified this email, mark it as such.
                 $user->markEmailAsVerified();

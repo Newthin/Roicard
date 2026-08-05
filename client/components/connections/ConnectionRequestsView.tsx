@@ -8,12 +8,14 @@
 "use client";
 
 import { ConnectionRequestCard } from "@/components/connections/ConnectionRequestCard";
+import { GuestProfileModal } from "@/components/connections/GuestProfileModal";
 import { useConnections } from "@/components/connections/ConnectionsProvider";
 import { ConnectionsEmptyState } from "@/components/connections/ConnectionsEmptyState";
 import { ConnectionsLoadingState } from "@/components/connections/ConnectionsLoadingState";
 import { ConnectionsSubNav } from "@/components/connections/ConnectionsSubNav";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { getPersonFullName, sortRequests } from "@/lib/connections/helpers";
+import type { ConnectionPerson } from "@/lib/connections/types";
 import { useMemo, useState } from "react";
 
 export function ConnectionRequestsView() {
@@ -21,6 +23,7 @@ export function ConnectionRequestsView() {
     useConnections();
   const { confirm } = useConfirm();
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [guestPerson, setGuestPerson] = useState<ConnectionPerson | null>(null);
 
   const sortedRequests = useMemo(() => sortRequests(requests), [requests]);
 
@@ -100,11 +103,18 @@ export function ConnectionRequestsView() {
               request={request}
               onAccept={handleAccept}
               onDecline={handleDecline}
+              onViewGuest={setGuestPerson}
               isProcessing={processingId === request.id}
             />
           ))}
         </div>
       )}
+
+      <GuestProfileModal
+        person={guestPerson}
+        isOpen={guestPerson !== null}
+        onClose={() => setGuestPerson(null)}
+      />
     </div>
   );
 }

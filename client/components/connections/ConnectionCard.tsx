@@ -12,14 +12,18 @@ import {
   formatConnectionDate,
   getPersonFullName,
 } from "@/lib/connections/helpers";
-import type { Connection } from "@/lib/connections/types";
+import type { Connection, ConnectionPerson } from "@/lib/connections/types";
 import Link from "next/link";
 
 type ConnectionCardProps = {
   connection: Connection;
+  onViewGuest?: (person: ConnectionPerson) => void;
 };
 
-export function ConnectionCard({ connection }: ConnectionCardProps) {
+export function ConnectionCard({
+  connection,
+  onViewGuest,
+}: ConnectionCardProps) {
   const { person } = connection;
   const fullName = getPersonFullName(person);
 
@@ -49,6 +53,19 @@ export function ConnectionCard({ connection }: ConnectionCardProps) {
       <Link href={`/${person.username}`} className="block">
         {cardContent}
       </Link>
+    );
+  }
+
+  if (onViewGuest) {
+    return (
+      <button
+        type="button"
+        onClick={() => onViewGuest(person)}
+        className="block w-full text-left"
+        title="View guest profile"
+      >
+        {cardContent}
+      </button>
     );
   }
 
