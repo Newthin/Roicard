@@ -36,7 +36,7 @@ export function GuestInviteCard({ name }: GuestInviteCardProps) {
             Join {name} on ROICARD
           </p>
           <p className="truncate text-xs text-roicard-text-muted">
-            Create your own profile — it&apos;s free.
+            Create your own profile.
           </p>
         </div>
 

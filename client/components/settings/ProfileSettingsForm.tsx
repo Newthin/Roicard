@@ -215,6 +215,15 @@ export function ProfileSettingsForm({
           value={form.organization}
           onChange={(e) => updateField("organization", e.target.value)}
         />
+        <div className="sm:col-span-2">
+          <FormField
+            variant="textarea"
+            label="Role Description"
+            hint="A short line describing what your role involves (optional)"
+            value={form.roleDescription}
+            onChange={(e) => updateField("roleDescription", e.target.value)}
+          />
+        </div>
         <FormField
           label="Date of Birth"
           type="date"

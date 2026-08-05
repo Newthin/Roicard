@@ -308,6 +308,7 @@ export function OnboardingJourneyProvider({ children }: ProviderProps) {
       lastName: data.lastName,
       profilePhotoUrl: data.profilePhotoUrl,
       professionalTitle: data.professionalTitle,
+      roleDescription: data.roleDescription,
       organization: data.organization,
       bio: data.bio,
       email: data.email,

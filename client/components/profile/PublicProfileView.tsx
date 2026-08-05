@@ -40,31 +40,43 @@ type PublicProfileViewProps = {
 
 /** Maps a PublicProfile API response into UserProfile shape for card components. */
 function toUserProfile(p: PublicProfile): UserProfile {
+  // Parse social_links array [{platform, value}] into the SocialLinks object
+  const social: Record<string, string> = {};
+  const defaultSocial = { linkedin: "", instagram: "", twitter: "", facebook: "", tiktok: "", snapchat: "", website: "" };
+  if (Array.isArray(p.social_links)) {
+    for (const link of p.social_links) {
+      if (link?.platform && typeof link.value === "string") {
+        social[link.platform] = link.value;
+      }
+    }
+  }
+
   return {
     firstName: p.user.first_name,
     lastName: p.user.last_name,
     email: p.user.email,
     profilePhotoUrl: p.avatar,
     professionalTitle: p.title ?? "",
+    roleDescription: p.role_description ?? "",
     organization: p.organisation ?? "",
     bio: p.bio ?? "",
-    phone: "",
+    phone: p.phone ?? "",
     whatsapp: p.whatsapp_phone ?? "",
     dateOfBirth: (p.date_of_birth ?? "").slice(0, 10),
     gender: (p.gender as "" | "male" | "female" | "prefer_not_to_say") ?? "",
     location: p.location ?? "",
     social: {
-      linkedin: "",
-      instagram: "",
-      twitter: "",
-      facebook: "",
-      tiktok: "",
-      snapchat: "",
-      website: "",
+      linkedin: social.linkedin ?? defaultSocial.linkedin,
+      instagram: social.instagram ?? defaultSocial.instagram,
+      twitter: social.twitter ?? defaultSocial.twitter,
+      facebook: social.facebook ?? defaultSocial.facebook,
+      tiktok: social.tiktok ?? defaultSocial.tiktok,
+      snapchat: social.snapchat ?? defaultSocial.snapchat,
+      website: social.website ?? defaultSocial.website,
     },
     interests: Array.isArray(p.interests) ? p.interests : [],
-    seeking: "",
-    offering: "",
+    seeking: p.seeking ?? "",
+    offering: p.offering ?? "",
     username: p.slug,
     createdAt: "",
     membershipStatus: "active",
@@ -73,6 +85,10 @@ function toUserProfile(p: PublicProfile): UserProfile {
 
 /** Builds a downloadable vCard string from the profile fields. */
 function buildVCard(profile: PublicProfile, profileUrl: string): string {
+  const phone = profile.phone ?? "";
+  const whatsapp = profile.whatsapp_phone ?? "";
+  const contactPhone = whatsapp || phone;
+
   const lines = [
     "BEGIN:VCARD",
     "VERSION:3.0",
@@ -81,6 +97,8 @@ function buildVCard(profile: PublicProfile, profileUrl: string): string {
     profile.title && `TITLE:${profile.title}`,
     profile.organisation && `ORG:${profile.organisation}`,
     profile.user.email && `EMAIL;TYPE=INTERNET:${profile.user.email}`,
+    contactPhone && `TEL;TYPE=CELL:${contactPhone.replace(/[^\d+]/g, "")}`,
+    profile.avatar && `PHOTO;VALUE=URL:${profile.avatar}`,
     `URL:${profileUrl}`,
     "END:VCARD",
   ].filter(Boolean);
@@ -91,14 +109,21 @@ function buildVCard(profile: PublicProfile, profileUrl: string): string {
 export function PublicProfileView({ username }: PublicProfileViewProps) {
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [profileStatus, setProfileStatus] = useState<"loading" | "active" | "draft" | "not_found">("loading");
   const [connectionState, setConnectionState] =
     useState<ConnectionState>("none");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     getPublicProfile(username.toLowerCase())
-      .then(setProfile)
-      .catch(() => setProfile(null))
+      .then((data) => {
+        setProfile(data);
+        setProfileStatus("active");
+      })
+      .catch((err) => {
+        const status = err?.response?.status;
+        setProfileStatus(status === 403 ? "draft" : "not_found");
+      })
       .finally(() => setIsLoaded(true));
   }, [username]);
 
@@ -189,6 +214,23 @@ export function PublicProfileView({ username }: PublicProfileViewProps) {
           role="status"
           aria-label="Loading profile"
         />
+      </div>
+    );
+  }
+
+  if (profileStatus === "draft") {
+    return (
+      <div className="min-h-screen bg-roicard-bg">
+        <PublicProfileHeader onShare={handleShareProfile} onCopyLink={handleCopyLink} />
+        <div className="mx-auto max-w-lg px-4 py-20 text-center">
+          <h1 className="text-2xl font-bold text-roicard-text">Profile not yet available</h1>
+          <p className="mt-3 text-sm text-roicard-text-muted">
+            This member&apos;s profile is still being set up. Check back soon.
+          </p>
+          <Link href="/auth/register" className="mt-8 inline-block">
+            <Button className="rounded-xl">Create Your Roicard</Button>
+          </Link>
+        </div>
       </div>
     );
   }

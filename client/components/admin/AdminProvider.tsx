@@ -74,7 +74,7 @@ function mapApiUser(u: ApiAdminUser): AdminUser {
     username: u.profile?.slug ?? "",
     status: (u.status === "active" || u.status === "draft" ? u.status : "suspended") as UserStatus,
     joinedAt: u.created_at,
-    profilePhotoUrl: null,
+    profilePhotoUrl: u.profile?.avatar_url || null,
     professionalTitle: u.profile?.title ?? "",
     organization: u.profile?.organisation ?? "",
   };

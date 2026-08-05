@@ -53,6 +53,7 @@ export function PublicProfileCardStack({
         <WorkCard
           organization={profile.organization}
           title={profile.professionalTitle || "—"}
+          description={profile.roleDescription}
         />
       )}
 
@@ -65,7 +66,6 @@ export function PublicProfileCardStack({
         social={profile.social}
         email={profile.email}
         phone={profile.phone}
-        whatsapp={profile.whatsapp}
       />
 
       {showGuestInvite && <GuestInviteCard name={profile.firstName} />}

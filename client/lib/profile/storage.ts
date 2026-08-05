@@ -15,6 +15,7 @@ function mapApiProfileToUserProfile(data: Record<string, unknown>): UserProfile 
     email: (data.user as Record<string, string>)?.email ?? "",
     profilePhotoUrl: (data as Record<string, string | null>)?.avatar_url ?? (data as Record<string, string | null>)?.avatar ?? null,
     professionalTitle: (data as Record<string, string | null>)?.title ?? "",
+    roleDescription: (data as Record<string, string | null>)?.role_description ?? "",
     organization: (data as Record<string, string | null>)?.organisation ?? "",
     bio: (data as Record<string, string | null>)?.bio ?? "",
     phone: (data as Record<string, string | null>)?.phone ?? "",
@@ -86,21 +87,22 @@ export async function getProfileByUsername(username: string): Promise<UserProfil
 export async function updateCurrentUserProfile(updates: Partial<UserProfile>): Promise<UserProfile | null> {
   try {
     const payload: Record<string, unknown> = {};
-    if (updates.firstName) payload.first_name = updates.firstName;
-    if (updates.lastName) payload.last_name = updates.lastName;
-    if (updates.email) payload.email = updates.email;
-    if (updates.bio) payload.bio = updates.bio;
-    if (updates.phone) payload.phone = updates.phone;
-    if (updates.seeking) payload.seeking = updates.seeking;
-    if (updates.offering) payload.offering = updates.offering;
-    if (updates.location) payload.location = updates.location;
-    if (updates.professionalTitle) payload.title = updates.professionalTitle;
-    if (updates.organization) payload.organisation = updates.organization;
-    if (updates.whatsapp) payload.whatsapp_phone = updates.whatsapp;
-    if (updates.dateOfBirth) payload.date_of_birth = updates.dateOfBirth;
-    if (updates.gender) payload.gender = updates.gender;
-    if (updates.interests) payload.interests = JSON.stringify(updates.interests);
-    if (updates.social) payload.social_links = JSON.stringify(updates.social);
+    if (updates.firstName !== undefined) payload.first_name = updates.firstName;
+    if (updates.lastName !== undefined) payload.last_name = updates.lastName;
+    if (updates.email !== undefined) payload.email = updates.email;
+    if (updates.bio !== undefined) payload.bio = updates.bio;
+    if (updates.phone !== undefined) payload.phone = updates.phone;
+    if (updates.seeking !== undefined) payload.seeking = updates.seeking;
+    if (updates.offering !== undefined) payload.offering = updates.offering;
+    if (updates.location !== undefined) payload.location = updates.location;
+    if (updates.professionalTitle !== undefined) payload.title = updates.professionalTitle;
+    if (updates.roleDescription !== undefined) payload.role_description = updates.roleDescription;
+    if (updates.organization !== undefined) payload.organisation = updates.organization;
+    if (updates.whatsapp !== undefined) payload.whatsapp_phone = updates.whatsapp;
+    if (updates.dateOfBirth !== undefined) payload.date_of_birth = updates.dateOfBirth;
+    if (updates.gender !== undefined) payload.gender = updates.gender;
+    if (updates.interests !== undefined) payload.interests = JSON.stringify(updates.interests);
+    if (updates.social !== undefined) payload.social_links = JSON.stringify(updates.social);
 
     const res = await apiUpdateProfile(payload);
     return mapApiProfileToUserProfile(res.profile as unknown as Record<string, unknown>);

@@ -8,6 +8,7 @@ export interface OnboardingData {
   bio: string;
   city: string;
   professionalTitle: string;
+  roleDescription: string;
   organization: string;
   whatsapp: string;
   dateOfBirth: string;
@@ -28,6 +29,7 @@ export async function updateProfile(data: Partial<OnboardingData>) {
     bio: data.bio,
     location: data.city,
     title: data.professionalTitle,
+    role_description: data.roleDescription,
     organisation: data.organization,
     whatsapp_phone: data.whatsapp,
     date_of_birth: data.dateOfBirth,

@@ -19,13 +19,17 @@ export interface PublicProfile {
   id: number;
   slug: string;
   title: string | null;
+  role_description: string | null;
   organisation: string | null;
   whatsapp_phone: string | null;
+  phone: string | null;
   date_of_birth: string | null;
   gender: "male" | "female" | "prefer_not_to_say" | null;
   interests: string[] | null;
   location: string | null;
   bio: string | null;
+  seeking: string | null;
+  offering: string | null;
   avatar: string | null;
   user: { first_name: string; last_name: string; email: string };
   social_links: { platform: string; value: string }[];

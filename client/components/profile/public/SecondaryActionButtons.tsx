@@ -10,7 +10,8 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
-import { Download, MessageCircle } from "lucide-react";
+import { WhatsAppIcon } from "@/components/profile/public/BrandIcons";
+import { Download } from "lucide-react";
 
 type SecondaryActionButtonsProps = {
   onSaveContact: () => void;
@@ -39,7 +40,7 @@ export function SecondaryActionButtons({
           className="h-12 rounded-2xl"
           onClick={onWhatsApp}
         >
-          <MessageCircle className="h-4 w-4 text-emerald-500" aria-hidden />
+          <WhatsAppIcon className="h-[18px] w-[18px] text-emerald-500" aria-hidden />
           WhatsApp
         </Button>
       )}

@@ -1,9 +1,9 @@
 /**
  * WorkCard
  *
- * "Current Work" section showing the member's organization, role, and an
- * optional employment start date. The organization mark falls back to initials
- * when no logo URL is supplied.
+ * "Current Role" section showing the member's organization, role, an optional
+ * short role description, and an optional employment start date. The
+ * organization mark falls back to a neutral glyph when no logo is supplied.
  */
 
 import { OrgAvatar } from "@/components/profile/public/OrgAvatar";
@@ -13,6 +13,8 @@ import { Briefcase, Calendar, ChevronRight } from "lucide-react";
 type WorkCardProps = {
   organization: string;
   title: string;
+  /** Optional short description of what the role involves. */
+  description?: string;
   /** Optional human-readable start date, e.g. "May 2023". */
   startDate?: string;
   /** Optional organization logo URL. */
@@ -22,6 +24,7 @@ type WorkCardProps = {
 export function WorkCard({
   organization,
   title,
+  description,
   startDate,
   logoUrl,
 }: WorkCardProps) {
@@ -53,6 +56,11 @@ export function WorkCard({
           <p className="truncate text-sm text-roicard-text-muted">
             {organization}
           </p>
+          {description?.trim() && (
+            <p className="mt-1.5 whitespace-pre-line text-justify text-[13px] leading-relaxed text-roicard-text-muted">
+              {description}
+            </p>
+          )}
           {startDate && (
             <p className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-roicard-text-muted">
               <Calendar className="h-3.5 w-3.5 text-roicard-accent" aria-hidden />

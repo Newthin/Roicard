@@ -63,10 +63,23 @@ function StatusBadge({ status }: { status: UserStatus }) {
 function UserAvatar({
   firstName,
   lastName,
+  photoUrl,
 }: {
   firstName: string;
   lastName: string;
+  photoUrl?: string | null;
 }) {
+  if (photoUrl) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return (
+      <img
+        src={photoUrl}
+        alt={`${firstName} ${lastName}`}
+        className="h-9 w-9 shrink-0 rounded-full object-cover"
+      />
+    );
+  }
+
   const initials =
     `${(firstName?.[0] ?? "").toUpperCase()}${(lastName?.[0] ?? "").toUpperCase()}` ||
     "U";
@@ -96,7 +109,7 @@ function ViewUserModal({
     >
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <UserAvatar firstName={user.firstName} lastName={user.lastName} />
+          <UserAvatar firstName={user.firstName} lastName={user.lastName} photoUrl={user.profilePhotoUrl} />
           <div>
             <p className="text-base font-semibold text-roicard-text">
               {user.firstName} {user.lastName}
@@ -658,6 +671,7 @@ export function UserTable() {
                   <UserAvatar
                     firstName={user.firstName}
                     lastName={user.lastName}
+                    photoUrl={user.profilePhotoUrl}
                   />
                   <div className="min-w-0">
                     <p className="truncate font-medium text-roicard-text">
@@ -706,7 +720,7 @@ export function UserTable() {
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-3">
-                <UserAvatar firstName={user.firstName} lastName={user.lastName} />
+          <UserAvatar firstName={user.firstName} lastName={user.lastName} photoUrl={user.profilePhotoUrl} />
                 <div className="min-w-0">
                   <p className="font-medium text-roicard-text">
                     {user.firstName} {user.lastName}

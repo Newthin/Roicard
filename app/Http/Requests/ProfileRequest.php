@@ -17,6 +17,7 @@ class ProfileRequest extends FormRequest
             'last_name' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
             'title' => ['nullable', 'string', 'max:255'],
+            'role_description' => ['nullable', 'string', 'max:1000'],
             'organisation' => ['nullable', 'string', 'max:255'],
             'whatsapp_phone' => ['nullable', 'string', 'max:20'],
             'phone' => ['nullable', 'string', 'max:20'],

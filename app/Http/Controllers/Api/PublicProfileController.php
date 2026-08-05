@@ -23,7 +23,7 @@ class PublicProfileController extends Controller
         $data = Cache::remember($cacheKey, 3600, function () use ($slug) {
             $profile = Profile::where('slug', $slug)
                 ->with([
-                    'user:id,first_name,last_name,email',
+                    'user:id,first_name,last_name,email,status',
                     'socialLinks',
                     'education',
                     'experience',
@@ -36,20 +36,31 @@ class PublicProfileController extends Controller
                 return null;
             }
 
+            // Draft profiles are not publicly visible — only activated
+            // (paid) members can be viewed via their share link.
+            if ($profile->user->status !== 'active') {
+                return ['_draft' => true, 'slug' => $slug];
+            }
+
             $cv = $profile->getMedia('cv')->first();
             $avatar = $profile->getFirstMediaUrl('avatar');
 
             return [
                 'id' => $profile->id,
+                'user_id' => $profile->user_id,
                 'slug' => $profile->slug,
                 'title' => $profile->title,
+                'role_description' => $profile->role_description,
                 'organisation' => $profile->organisation,
                 'whatsapp_phone' => $profile->whatsapp_phone,
+                'phone' => $profile->phone,
                 'date_of_birth' => $profile->date_of_birth?->toDateString(),
                 'gender' => $profile->gender,
                 'interests' => $profile->interestOptions->pluck('name')->all(),
                 'location' => $profile->location,
                 'bio' => $profile->bio,
+                'seeking' => $profile->seeking,
+                'offering' => $profile->offering,
                 'avatar' => $avatar,
                 'user' => [
                     'first_name' => $profile->user->first_name,
@@ -70,6 +81,14 @@ class PublicProfileController extends Controller
 
         if (!$data) {
             return response()->json(['message' => 'Profile not found'], 404);
+        }
+
+        // Draft profile — profile exists but user hasn't activated yet
+        if (!empty($data['_draft'])) {
+            return response()->json([
+                'message' => 'This profile is not yet available',
+                'status' => 'draft',
+            ], 403);
         }
 
         $source = $request->input('src', 'profile_view');

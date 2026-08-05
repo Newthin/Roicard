@@ -26,6 +26,7 @@ export interface AdminUser {
     slug?: string;
     title?: string;
     organisation?: string;
+    avatar_url?: string | null;
   };
   created_at: string;
 }

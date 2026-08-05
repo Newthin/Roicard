@@ -13,6 +13,7 @@ class Profile extends Model implements HasMedia
     protected $fillable = [
         'user_id',
         'title',
+        'role_description',
         'organisation',
         'whatsapp_phone',
         'phone',

@@ -9,6 +9,7 @@ use App\Models\Profile;
 use App\Models\SocialLink;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
 
 class ProfileController extends Controller
@@ -104,6 +105,7 @@ class ProfileController extends Controller
 
         $profileFields = array_filter([
             'title' => $data['title'] ?? null,
+            'role_description' => $data['role_description'] ?? null,
             'organisation' => $data['organisation'] ?? null,
             'whatsapp_phone' => $data['whatsapp_phone'] ?? null,
             'phone' => $data['phone'] ?? null,
@@ -137,6 +139,11 @@ class ProfileController extends Controller
         }
 
         $profile->recalculateCompletion();
+
+        // Bust the public profile cache so changes are visible immediately
+        if ($profile->slug) {
+            Cache::forget("public_profile:{$profile->slug}");
+        }
 
         // Send the welcome email exactly once — the first successful profile
         // save after a user begins onboarding. Variant depends on whether they

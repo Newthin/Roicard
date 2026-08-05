@@ -72,7 +72,7 @@ export function InfoCard({
       {open && (
         <div
           id={bodyId}
-          className="px-5 pb-5 text-sm leading-relaxed text-roicard-text-muted"
+          className="px-5 pb-5 text-sm leading-relaxed text-roicard-text-muted whitespace-pre-line text-justify"
         >
           {children}
         </div>

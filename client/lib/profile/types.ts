@@ -49,6 +49,7 @@ export type OnboardingFormData = {
   lastName: string;
   profilePhotoUrl: string | null;
   professionalTitle: string;
+  roleDescription: string;
   organization: string;
   bio: string;
   email: string;
@@ -86,6 +87,7 @@ export const EMPTY_ONBOARDING_DATA: OnboardingFormData = {
   lastName: "",
   profilePhotoUrl: null,
   professionalTitle: "",
+  roleDescription: "",
   organization: "",
   bio: "",
   email: "",

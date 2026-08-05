@@ -20,14 +20,13 @@ import {
 } from "@/components/profile/public/BrandIcons";
 import { ProfileCard } from "@/components/profile/public/ProfileCard";
 import type { SocialLinks } from "@/lib/profile/types";
-import { Globe, Link2, Mail, MessageCircle, Phone } from "lucide-react";
+import { Globe, Link2, Mail, Phone } from "lucide-react";
 import { ComponentType } from "react";
 
 type SocialLinksCardProps = {
   social: SocialLinks;
   email?: string;
   phone?: string;
-  whatsapp?: string;
 };
 
 type LinkItem = {
@@ -48,7 +47,6 @@ export function SocialLinksCard({
   social,
   email,
   phone,
-  whatsapp,
 }: SocialLinksCardProps) {
   const links: LinkItem[] = [
     social.linkedin && {
@@ -111,13 +109,6 @@ export function SocialLinksCard({
       label: "Call",
       href: `tel:${phone.replace(/\s/g, "")}`,
       icon: Phone,
-    },
-    whatsapp && {
-      key: "whatsapp",
-      label: "WhatsApp",
-      href: `https://wa.me/${whatsapp.replace(/\D/g, "")}`,
-      icon: MessageCircle,
-      external: true,
     },
   ].filter(Boolean) as LinkItem[];
 
