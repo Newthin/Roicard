@@ -16,11 +16,12 @@ class DashboardController extends Controller
         $userId = auth()->id();
         $user = auth()->user();
 
-        // Profile scoped strictly to the authenticated user — never rely on a
-        // relationship that could resolve to a different account. Media is
-        // loaded explicitly so the avatar URL is available without lazy hits.
+        // Load the profile with the exact same relations as ProfileController::show()
+        // (education, experience, achievements, socialLinks, user, media) so the
+        // avatar and enrichment data match the profile page — while still scoped
+        // strictly to the authenticated user.
         $profile = Profile::where('user_id', $userId)
-            ->with('media')
+            ->with(['education', 'experience', 'achievements', 'socialLinks', 'user', 'media'])
             ->first();
 
         // Smart card / connections / analytics are all scoped to this user.
