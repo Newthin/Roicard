@@ -57,14 +57,14 @@ Route::post('/payments/webhook/{provider}', [PaymentController::class, 'webhook'
 | Authenticated Routes
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'prevent_leak'])->group(function () {
     // Current authenticated user (used to validate the cached session on boot)
     Route::get('/me', [AuthController::class, 'me']);
 
     // Profile
     Route::post('/profile', [ProfileController::class, 'store']);
     Route::put('/profile', [ProfileController::class, 'update']);
-    Route::get('/profile', [ProfileController::class, 'show'])->middleware('cache.get');
+    Route::get('/profile', [ProfileController::class, 'show']);
     Route::post('/profile/avatar', [ProfileController::class, 'uploadAvatar']);
 
     // Profile Enrichment (Screens 12-14)
@@ -89,18 +89,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/smart-cards/delivery', [SmartCardController::class, 'storeDelivery']);
 
     // Dashboard
-    Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('cache.get');
+    Route::get('/dashboard', [DashboardController::class, 'index']);
 
     // Connections
-    Route::get('/connections', [ConnectionController::class, 'index'])->middleware('cache.get');
+    Route::get('/connections', [ConnectionController::class, 'index']);
     Route::patch('/connections/{id}', [ConnectionController::class, 'update']);
 
     // Notifications
-    Route::get('/notifications', [NotificationController::class, 'index'])->middleware('cache.get');
+    Route::get('/notifications', [NotificationController::class, 'index']);
     Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead']);
 
     // Analytics
-    Route::get('/analytics/summary', [AnalyticsController::class, 'summary'])->middleware('cache.get');
+    Route::get('/analytics/summary', [AnalyticsController::class, 'summary']);
     Route::post('/analytics/events', [AnalyticsController::class, 'store']);
 
     /*
@@ -109,18 +109,18 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::middleware('is_admin')->prefix('admin')->group(function () {
-        Route::get('/stats', [AdminController::class, 'stats'])->middleware('cache.get');
-        Route::get('/stats/trends', [AdminController::class, 'trends'])->middleware('cache.get');
-        Route::get('/users', [AdminController::class, 'users'])->middleware('cache.get');
+        Route::get('/stats', [AdminController::class, 'stats']);
+        Route::get('/stats/trends', [AdminController::class, 'trends']);
+        Route::get('/users', [AdminController::class, 'users']);
         Route::post('/users', [AdminController::class, 'storeUser']);
         Route::patch('/users/{id}', [AdminController::class, 'updateUser']);
-        Route::get('/smart-cards', [AdminController::class, 'smartCards'])->middleware('cache.get');
+        Route::get('/smart-cards', [AdminController::class, 'smartCards']);
         Route::patch('/smart-cards/{id}/assign', [AdminController::class, 'assignCard']);
         Route::patch('/smart-cards/{id}/unassign', [AdminController::class, 'unassignCard']);
         Route::patch('/smart-cards/{id}/dispatch', [AdminController::class, 'dispatchCard']);
         Route::patch('/smart-cards/{id}/deliver', [AdminController::class, 'deliverCard']);
-        Route::get('/connections', [AdminController::class, 'connections'])->middleware('cache.get');
-        Route::get('/activity-log', [AdminController::class, 'activityLog'])->middleware('cache.get');
+        Route::get('/connections', [AdminController::class, 'connections']);
+        Route::get('/activity-log', [AdminController::class, 'activityLog']);
     });
 });
 

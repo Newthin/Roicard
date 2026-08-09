@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'is_admin' => \App\Http\Middleware\IsAdmin::class,
             'owns' => \App\Http\Middleware\EnsureResourceOwnership::class,
+            'prevent_leak' => \App\Http\Middleware\PreventCrossUserLeak::class,
             'idempotency' => \App\Http\Middleware\IdempotencyMiddleware::class,
             'cache.get' => \App\Http\Middleware\PageCacheMiddleware::class,
         ]);
