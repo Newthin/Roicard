@@ -7,9 +7,11 @@ use App\Http\Requests\SocialLinksRequest;
 use App\Models\AchievementEntry;
 use App\Models\EducationEntry;
 use App\Models\ExperienceEntry;
+use App\Models\Profile;
 use App\Models\SocialLink;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class ProfileEnrichmentController extends Controller
 {
@@ -36,10 +38,19 @@ class ProfileEnrichmentController extends Controller
         ]);
     }
 
-    public function deleteCv(string $id): JsonResponse
+    public function deleteCv(Media $media): JsonResponse
     {
         $profile = $this->profile();
-        $media = $profile->media()->where('id', $id)->where('collection_name', 'cv')->firstOrFail();
+
+        // Defense-in-depth: the owns middleware already bound this media to the
+        // current profile — double-check the polymorphic owner and that it is
+        // actually a CV before deleting.
+        if ($media->model_type !== Profile::class
+            || (string) $media->model_id !== (string) $profile->id
+            || $media->collection_name !== 'cv') {
+            abort(403, 'Resource does not belong to this account.');
+        }
+
         $media->delete();
 
         return response()->json(['message' => 'CV deleted']);
@@ -60,7 +71,7 @@ class ProfileEnrichmentController extends Controller
         return response()->json(['education' => $entry, 'message' => 'Education entry added'], 201);
     }
 
-    public function updateEducation(string $id, Request $request): JsonResponse
+    public function updateEducation(EducationEntry $education, Request $request): JsonResponse
     {
         $validated = $request->validate([
             'institution' => ['required', 'string', 'max:255'],
@@ -70,15 +81,17 @@ class ProfileEnrichmentController extends Controller
             'honours' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $entry = $this->profile()->education()->findOrFail($id);
+        // The owns middleware already guarantees this entry belongs to the
+        // current user; the scoped find keeps that guarantee explicit.
+        $entry = $this->profile()->education()->findOrFail($education->getKey());
         $entry->update($validated);
 
         return response()->json(['education' => $entry, 'message' => 'Education entry updated']);
     }
 
-    public function destroyEducation(string $id): JsonResponse
+    public function destroyEducation(EducationEntry $education): JsonResponse
     {
-        $entry = $this->profile()->education()->findOrFail($id);
+        $entry = $this->profile()->education()->findOrFail($education->getKey());
         $entry->delete();
 
         return response()->json(['message' => 'Education entry deleted']);
@@ -99,7 +112,7 @@ class ProfileEnrichmentController extends Controller
         return response()->json(['experience' => $entry, 'message' => 'Experience entry added'], 201);
     }
 
-    public function updateExperience(string $id, Request $request): JsonResponse
+    public function updateExperience(ExperienceEntry $experience, Request $request): JsonResponse
     {
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
@@ -109,15 +122,16 @@ class ProfileEnrichmentController extends Controller
             'location' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $entry = $this->profile()->experience()->findOrFail($id);
+        // Owned via the owns middleware; scoped find keeps the guarantee explicit.
+        $entry = $this->profile()->experience()->findOrFail($experience->getKey());
         $entry->update($validated);
 
         return response()->json(['experience' => $entry, 'message' => 'Experience entry updated']);
     }
 
-    public function destroyExperience(string $id): JsonResponse
+    public function destroyExperience(ExperienceEntry $experience): JsonResponse
     {
-        $entry = $this->profile()->experience()->findOrFail($id);
+        $entry = $this->profile()->experience()->findOrFail($experience->getKey());
         $entry->delete();
 
         return response()->json(['message' => 'Experience entry deleted']);
@@ -136,7 +150,7 @@ class ProfileEnrichmentController extends Controller
         return response()->json(['achievement' => $entry, 'message' => 'Achievement added'], 201);
     }
 
-    public function updateAchievement(string $id, Request $request): JsonResponse
+    public function updateAchievement(AchievementEntry $achievement, Request $request): JsonResponse
     {
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
@@ -144,15 +158,16 @@ class ProfileEnrichmentController extends Controller
             'date' => ['nullable', 'date'],
         ]);
 
-        $entry = $this->profile()->achievements()->findOrFail($id);
+        // Owned via the owns middleware; scoped find keeps the guarantee explicit.
+        $entry = $this->profile()->achievements()->findOrFail($achievement->getKey());
         $entry->update($validated);
 
         return response()->json(['achievement' => $entry, 'message' => 'Achievement updated']);
     }
 
-    public function destroyAchievement(string $id): JsonResponse
+    public function destroyAchievement(AchievementEntry $achievement): JsonResponse
     {
-        $entry = $this->profile()->achievements()->findOrFail($id);
+        $entry = $this->profile()->achievements()->findOrFail($achievement->getKey());
         $entry->delete();
 
         return response()->json(['message' => 'Achievement deleted']);

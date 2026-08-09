@@ -26,6 +26,21 @@ class PaymentController extends Controller
             return response()->json(['message' => 'Account already active'], 400);
         }
 
+        // Guard against duplicate pending payments for this user within the
+        // last hour (retry storm / double-tap protection).
+        $recentPending = Payment::where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->where('created_at', '>=', now()->subHour())
+            ->exists();
+
+        if ($recentPending) {
+            return response()->json([
+                'message' => 'A pending payment already exists for this account',
+            ], 409);
+        }
+
+        // user_id is hardcoded to the authenticated user — it is never taken
+        // from request input.
         $payment = Payment::create([
             'user_id' => $user->id,
             'amount' => $request->amount,

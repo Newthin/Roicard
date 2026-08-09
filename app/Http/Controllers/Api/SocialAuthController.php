@@ -117,7 +117,10 @@ class SocialAuthController extends Controller
             );
         }
 
-        $token = $user->createToken('auth-token')->plainTextToken;
+        // Revoke any previously issued tokens so old sessions can't linger.
+        $user->tokens()->delete();
+
+        $token = $user->createToken('auth-token', ['*'], now()->addDays(30))->plainTextToken;
 
         return $this->frontendRedirect([
             'token' => $token,

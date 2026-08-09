@@ -65,12 +65,38 @@ class AuthController extends Controller
             ], 403);
         }
 
-        $token = $user->createToken('auth-token')->plainTextToken;
+        // Revoke every previously issued token so each fresh login invalidates
+        // any old sessions (prevents a stale token from another account).
+        $user->tokens()->delete();
+
+        $token = $user->createToken('auth-token', ['*'], now()->addDays(30))->plainTextToken;
 
         return response()->json([
             'user' => $this->userPayload($user),
             'token' => $token,
         ]);
+    }
+
+    public function me(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $storedUserId = $request->header('X-Roicard-User-Id');
+        $storedEmail = $request->header('X-Roicard-User-Email');
+
+        // Identity-mismatch guard: the token resolves to a user, but the browser
+        // cached a different identity. Answer 409 so the client purges its state.
+        $mismatch = ($storedUserId !== null && (string) $storedUserId !== (string) $user->getKey())
+            || ($storedEmail !== null && strtolower($storedEmail) !== strtolower($user->email));
+
+        if ($mismatch) {
+            return response()->json([
+                'message' => 'Session identity does not match this account — please sign in again.',
+                'error' => 'identity_mismatch',
+            ], 409);
+        }
+
+        return response()->json(['user' => $this->userPayload($user)]);
     }
 
     public function verifyEmail(Request $request, string $id, string $hash)

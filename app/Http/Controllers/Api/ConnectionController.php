@@ -52,6 +52,9 @@ class ConnectionController extends Controller
 
     public function update(string $id, Request $request): JsonResponse
     {
+        // Scoped to the authenticated user (member_id): a caller can only act
+        // on connection records addressed to their own inbox — foreign IDs
+        // resolve to 404 and member_ids from the request body are ignored.
         $connection = Connection::where('member_id', auth()->id())
             ->findOrFail($id);
 

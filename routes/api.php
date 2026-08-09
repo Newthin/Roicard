@@ -58,6 +58,9 @@ Route::post('/payments/webhook/{provider}', [PaymentController::class, 'webhook'
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth:sanctum')->group(function () {
+    // Current authenticated user (used to validate the cached session on boot)
+    Route::get('/me', [AuthController::class, 'me']);
+
     // Profile
     Route::post('/profile', [ProfileController::class, 'store']);
     Route::put('/profile', [ProfileController::class, 'update']);
@@ -66,16 +69,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Profile Enrichment (Screens 12-14)
     Route::post('/profile/cv', [ProfileEnrichmentController::class, 'uploadCv']);
-    Route::delete('/profile/cv/{id}', [ProfileEnrichmentController::class, 'deleteCv']);
+    Route::delete('/profile/cv/{media}', [ProfileEnrichmentController::class, 'deleteCv'])->middleware('owns');
     Route::post('/profile/education', [ProfileEnrichmentController::class, 'storeEducation']);
-    Route::patch('/profile/education/{id}', [ProfileEnrichmentController::class, 'updateEducation']);
-    Route::delete('/profile/education/{id}', [ProfileEnrichmentController::class, 'destroyEducation']);
+    Route::patch('/profile/education/{education}', [ProfileEnrichmentController::class, 'updateEducation'])->middleware('owns');
+    Route::delete('/profile/education/{education}', [ProfileEnrichmentController::class, 'destroyEducation'])->middleware('owns');
     Route::post('/profile/experience', [ProfileEnrichmentController::class, 'storeExperience']);
-    Route::patch('/profile/experience/{id}', [ProfileEnrichmentController::class, 'updateExperience']);
-    Route::delete('/profile/experience/{id}', [ProfileEnrichmentController::class, 'destroyExperience']);
+    Route::patch('/profile/experience/{experience}', [ProfileEnrichmentController::class, 'updateExperience'])->middleware('owns');
+    Route::delete('/profile/experience/{experience}', [ProfileEnrichmentController::class, 'destroyExperience'])->middleware('owns');
     Route::post('/profile/achievements', [ProfileEnrichmentController::class, 'storeAchievement']);
-    Route::patch('/profile/achievements/{id}', [ProfileEnrichmentController::class, 'updateAchievement']);
-    Route::delete('/profile/achievements/{id}', [ProfileEnrichmentController::class, 'destroyAchievement']);
+    Route::patch('/profile/achievements/{achievement}', [ProfileEnrichmentController::class, 'updateAchievement'])->middleware('owns');
+    Route::delete('/profile/achievements/{achievement}', [ProfileEnrichmentController::class, 'destroyAchievement'])->middleware('owns');
     Route::put('/profile/social-links', [ProfileEnrichmentController::class, 'updateSocialLinks']);
 
     // Payments

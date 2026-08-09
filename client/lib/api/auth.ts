@@ -49,6 +49,23 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
   return data;
 }
 
+export interface MeResponse {
+  user: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    status: string;
+    role: string;
+    email_verified?: boolean;
+  };
+}
+
+export async function me(): Promise<MeResponse> {
+  const { data } = await apiClient.get<MeResponse>("/me");
+  return data;
+}
+
 export async function verifyEmail(email: string): Promise<void> {
   await apiClient.post("/auth/email/resend", { email });
 }

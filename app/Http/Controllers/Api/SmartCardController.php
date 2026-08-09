@@ -11,13 +11,20 @@ class SmartCardController extends Controller
 {
     public function storeDelivery(DeliveryRequest $request): JsonResponse
     {
-        $user = auth()->user();
+        $userId = auth()->id();
 
-        if ($user->smartCard()->exists()) {
+        // Explicitly scope to the authenticated user — never accept a user_id
+        // from the request body (DeliveryRequest does not include one).
+        $existing = SmartCard::where('user_id', $userId)->first();
+
+        if ($existing) {
             return response()->json(['message' => 'Delivery address already submitted'], 400);
         }
 
-        $smartCard = $user->smartCard()->create($request->validated());
+        $smartCard = SmartCard::create([
+            'user_id' => $userId,
+            ...$request->validated(),
+        ]);
 
         return response()->json([
             'smart_card' => $smartCard,
