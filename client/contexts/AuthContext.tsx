@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import * as authApi from "@/lib/api/auth";
+import { clearAllUserStorage } from "@/lib/storageCleanup";
 
 interface User {
   id: string;
@@ -38,8 +39,7 @@ const TOKEN_KEY = "roicard_token";
 const USER_KEY = "roicard_user";
 
 function clearStoredSession() {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(USER_KEY);
+  clearAllUserStorage();
 }
 
 interface StoredSession {

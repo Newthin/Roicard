@@ -1,4 +1,5 @@
 import axios from "axios";
+import { clearAllUserStorage } from "@/lib/storageCleanup";
 
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
@@ -34,8 +35,7 @@ apiClient.interceptors.request.use((config) => {
 });
 
 function clearStoredSession() {
-  localStorage.removeItem("roicard_token");
-  localStorage.removeItem("roicard_user");
+  clearAllUserStorage();
 }
 
 apiClient.interceptors.response.use(

@@ -8,6 +8,12 @@ import { generateUsername } from "@/lib/profile/username";
 
 const CURRENT_USER_KEY = "roicard_current_user";
 
+/** Point local photo storage at the account that actually owns the session. */
+function syncCurrentUserKey(profile: UserProfile): void {
+  if (typeof window === "undefined" || !profile.username) return;
+  localStorage.setItem(CURRENT_USER_KEY, profile.username);
+}
+
 function mapApiProfileToUserProfile(data: Record<string, unknown>): UserProfile {
   return {
     firstName: (data.user as Record<string, string>)?.first_name ?? "",
@@ -69,7 +75,9 @@ function mapApiProfileToUserProfile(data: Record<string, unknown>): UserProfile 
 export async function getCurrentUserProfile(): Promise<UserProfile | null> {
   try {
     const res = await getProfile();
-    return mapApiProfileToUserProfile(res.profile as unknown as Record<string, unknown>);
+    const profile = mapApiProfileToUserProfile(res.profile as unknown as Record<string, unknown>);
+    syncCurrentUserKey(profile);
+    return profile;
   } catch {
     return null;
   }
@@ -105,7 +113,9 @@ export async function updateCurrentUserProfile(updates: Partial<UserProfile>): P
     if (updates.social !== undefined) payload.social_links = JSON.stringify(updates.social);
 
     const res = await apiUpdateProfile(payload);
-    return mapApiProfileToUserProfile(res.profile as unknown as Record<string, unknown>);
+    const profile = mapApiProfileToUserProfile(res.profile as unknown as Record<string, unknown>);
+    syncCurrentUserKey(profile);
+    return profile;
   } catch {
     return null;
   }
