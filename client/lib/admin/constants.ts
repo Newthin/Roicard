@@ -4,6 +4,7 @@
 
 import {
   BarChart3,
+  CreditCard,
   LayoutDashboard,
   Nfc,
   Users,
@@ -20,6 +21,7 @@ export type AdminNavItem = {
 export const ADMIN_NAV: AdminNavItem[] = [
   { label: "Dashboard Overview", href: "/admin", icon: LayoutDashboard, exact: true },
   { label: "Users", href: "/admin/users", icon: Users },
+  { label: "Generate Card", href: "/admin/cards/generate", icon: CreditCard },
   { label: "Roicard Management", href: "/admin/nfc", icon: Nfc },
   { label: "Statistics", href: "/admin/statistics", icon: BarChart3 },
 ];
