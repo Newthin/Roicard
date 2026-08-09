@@ -37,12 +37,6 @@ export function ProfileHero({
           className="absolute inset-0 bg-[radial-gradient(circle_at_12%_120%,rgba(0,0,0,0.18),transparent_55%)]"
           aria-hidden
         />
-        <span
-          aria-hidden
-          className="pointer-events-none absolute -bottom-9 left-5 select-none text-[72px] font-black leading-none text-white/10"
-        >
-          R
-        </span>
       </div>
 
       {/* Identity */}
