@@ -97,7 +97,7 @@ export function StepIdentity() {
       />
 
       <FormField
-        label="Oragnisation / Institution"
+        label="Organisation / Institution"
         name="organization"
         placeholder="University of Ghana / Acme Inc."
         hint="Optional"
