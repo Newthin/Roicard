@@ -83,11 +83,56 @@ function toUserProfile(p: PublicProfile): UserProfile {
   };
 }
 
-/** Builds a downloadable vCard string from the profile fields. */
-function buildVCard(profile: PublicProfile, profileUrl: string): string {
+/**
+ * Fetches an image and returns it as a base64 data string with its MIME type,
+ * or null when the image can't be loaded (network/CORS/format issues).
+ */
+async function fetchImageAsBase64(
+  url: string
+): Promise<{ data: string; mime: string } | null> {
+  try {
+    const res = await fetch(url, { mode: "cors" });
+    if (!res.ok) return null;
+    const buffer = await res.arrayBuffer();
+    const mime =
+      res.headers
+        .get("content-type")
+        ?.split(";")[0]
+        ?.trim()
+        .toLowerCase() || "image/jpeg";
+
+    const bytes = new Uint8Array(buffer);
+    let binary = "";
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...Array.from(bytes.subarray(i, i + chunkSize)));
+    }
+    return { data: btoa(binary), mime };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Builds a downloadable vCard string from the profile fields. The profile
+ * image is fetched and embedded inline (base64) so the saved contact carries
+ * the member's photo — falling back to a URL reference when it can't load.
+ */
+async function buildVCard(profile: PublicProfile, profileUrl: string): Promise<string> {
   const phone = profile.phone ?? "";
   const whatsapp = profile.whatsapp_phone ?? "";
   const contactPhone = whatsapp || phone;
+
+  const photoLines: string[] = [];
+  if (profile.avatar) {
+    const photo = await fetchImageAsBase64(profile.avatar);
+    if (photo) {
+      const typeParam = photo.mime.startsWith("image/png") ? "PNG" : "JPEG";
+      photoLines.push(`PHOTO;ENCODING=b;TYPE=${typeParam}:${photo.data}`);
+    } else {
+      photoLines.push(`PHOTO;VALUE=URL:${profile.avatar}`);
+    }
+  }
 
   const lines = [
     "BEGIN:VCARD",
@@ -98,7 +143,7 @@ function buildVCard(profile: PublicProfile, profileUrl: string): string {
     profile.organisation && `ORG:${profile.organisation}`,
     profile.user.email && `EMAIL;TYPE=INTERNET:${profile.user.email}`,
     contactPhone && `TEL;TYPE=CELL:${contactPhone.replace(/[^\d+]/g, "")}`,
-    profile.avatar && `PHOTO;VALUE=URL:${profile.avatar}`,
+    ...photoLines,
     `URL:${profileUrl}`,
     "END:VCARD",
   ].filter(Boolean);
@@ -154,10 +199,10 @@ export function PublicProfileView({ username }: PublicProfileViewProps) {
     if (connectionState === "pending") setConnectionState("connected");
   };
 
-  /** Downloads the profile as a .vcf contact card. */
-  const handleSaveContact = useCallback(() => {
+  /** Downloads the profile as a .vcf contact card (photo embedded). */
+  const handleSaveContact = useCallback(async () => {
     if (!profile) return;
-    const vcard = buildVCard(profile, profileUrl);
+    const vcard = await buildVCard(profile, profileUrl);
     const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
