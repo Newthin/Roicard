@@ -13,6 +13,7 @@ export interface Connection {
   guest_email: string;
   guest_phone: string | null;
   guest_org: string | null;
+  guest_meeting_context: string | null;
   status: "pending" | "approved" | "declined";
   created_at: string;
   updated_at: string;
@@ -33,6 +34,7 @@ export async function createConnection(payload: {
   guest_email: string;
   guest_phone?: string;
   guest_org?: string;
+  guest_meeting_context?: string;
 }): Promise<{ connection: Connection; message: string }> {
   const { data } = await apiClient.post("/connections", payload);
   return data;

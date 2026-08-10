@@ -19,6 +19,7 @@ class ConnectionRequest extends FormRequest
             'guest_email' => ['required', 'string', 'email', 'max:255'],
             'guest_phone' => ['nullable', 'string', 'max:20'],
             'guest_org' => ['nullable', 'string', 'max:255'],
+            'guest_meeting_context' => ['nullable', 'string', 'max:255'],
         ];
     }
 }

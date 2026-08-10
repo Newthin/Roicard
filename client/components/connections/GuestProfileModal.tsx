@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { getPersonFullName } from "@/lib/connections/helpers";
 import type { ConnectionPerson } from "@/lib/connections/types";
-import { AtSign, Building2, Mail, Phone } from "lucide-react";
+import { AtSign, Building2, Mail, MapPin, Phone } from "lucide-react";
 import Link from "next/link";
 
 type GuestProfileModalProps = {
@@ -88,6 +88,11 @@ export function GuestProfileModal({
               icon={<Building2 className="h-4 w-4" />}
               label="Organization"
               value={person.organization || "Not provided"}
+            />
+            <DetailRow
+              icon={<MapPin className="h-4 w-4" />}
+              label="Where you met"
+              value={person.meetingContext || "Not provided"}
             />
             <DetailRow
               icon={<AtSign className="h-4 w-4" />}

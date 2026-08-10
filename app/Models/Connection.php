@@ -13,6 +13,7 @@ class Connection extends Model
         'guest_email',
         'guest_phone',
         'guest_org',
+        'guest_meeting_context',
         'status',
     ];
 

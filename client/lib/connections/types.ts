@@ -18,6 +18,8 @@ export type ConnectionPerson = {
   phone?: string;
   /** Set when the guest has a linked ROICARD account. */
   guestUserId?: string;
+  /** Where the guest said they met the profile owner. */
+  meetingContext?: string;
 };
 
 /** Incoming connection request awaiting accept/decline. */

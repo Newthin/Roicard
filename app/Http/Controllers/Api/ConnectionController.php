@@ -39,6 +39,7 @@ class ConnectionController extends Controller
             'guest_email' => $request->guest_email,
             'guest_phone' => $request->guest_phone,
             'guest_org' => $request->guest_org,
+            'guest_meeting_context' => $request->guest_meeting_context,
             'status' => 'pending',
         ]);
 

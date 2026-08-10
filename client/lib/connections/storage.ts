@@ -35,6 +35,7 @@ function toConnectionPerson(api: ApiConnection): ConnectionPerson {
     email: api.guest_email,
     phone: api.guest_phone || undefined,
     guestUserId: api.guest_user_id ? String(api.guest_user_id) : undefined,
+    meetingContext: api.guest_meeting_context || undefined,
   };
 }
 
@@ -49,6 +50,7 @@ export async function getIncomingRequests(): Promise<
     .map((c) => ({
       id: String(c.id),
       person: toConnectionPerson(c),
+      meetingContext: c.guest_meeting_context || undefined,
       requestedAt: c.created_at,
     }));
 }
@@ -90,6 +92,7 @@ export async function addGuestConnectionRequest(
     guest_email: data.email,
     guest_phone: data.phone || undefined,
     guest_org: data.organization || undefined,
+    guest_meeting_context: data.meetingContext || undefined,
   });
 }
 
