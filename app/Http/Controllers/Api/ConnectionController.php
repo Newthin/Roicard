@@ -17,7 +17,7 @@ class ConnectionController extends Controller
     public function index(): JsonResponse
     {
         $connections = Connection::where('member_id', auth()->id())
-            ->with('guestUser:id,name,email', 'guestUser.profile:id,user_id,slug')
+            ->with('guestUser:id,first_name,last_name,email', 'guestUser.profile:id,user_id,slug')
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
