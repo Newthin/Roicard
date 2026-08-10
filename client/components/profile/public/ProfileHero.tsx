@@ -28,13 +28,14 @@ export function ProfileHero({
   return (
     <header className="relative overflow-hidden rounded-3xl border border-roicard-border/70 bg-roicard-bg-elevated/80 shadow-[0_10px_30px_-12px_var(--rc-shadow)] backdrop-blur-sm theme-transition">
       {/* Brand banner */}
-      <div className="relative h-24 roicard-gradient sm:h-28">
+      <div className="relative h-24 sm:h-28">
+        <div className="absolute inset-0 bg-roicard-bg-muted" aria-hidden />
         <div
-          className="absolute inset-0 bg-[radial-gradient(circle_at_82%_18%,rgba(255,255,255,0.28),transparent_52%)]"
+          className="absolute inset-0 bg-[radial-gradient(circle_at_82%_18%,rgba(255,255,255,0.16),transparent_52%)]"
           aria-hidden
         />
         <div
-          className="absolute inset-0 bg-[radial-gradient(circle_at_12%_120%,rgba(0,0,0,0.18),transparent_55%)]"
+          className="absolute inset-0 bg-[radial-gradient(circle_at_12%_120%,rgba(0,0,0,0.08),transparent_55%)]"
           aria-hidden
         />
       </div>
