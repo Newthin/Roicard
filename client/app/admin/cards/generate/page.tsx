@@ -111,7 +111,7 @@ export default function AdminGenerateCardPage() {
                   type="text"
                   value={cardNumber}
                   onChange={(e) => setCardNumber(e.target.value)}
-                  placeholder="e.g. RC-0001"
+                  placeholder="e.g. NFC-ROIC-0001"
                   className={inputClass}
                 />
               </div>
