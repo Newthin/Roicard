@@ -115,7 +115,7 @@ function seedNfcCards(): NFCCard[] {
       cardId: "NFC-ROIC-003",
       assignedUserId: null,
       assignedUserName: null,
-      status: "unassigned",
+      status: "available",
       assignedAt: null,
     },
     {
@@ -131,7 +131,7 @@ function seedNfcCards(): NFCCard[] {
       cardId: "NFC-ROIC-005",
       assignedUserId: null,
       assignedUserName: null,
-      status: "unassigned",
+      status: "available",
       assignedAt: null,
     },
   ];
@@ -232,7 +232,7 @@ export function getAdminPlatformStats(range: AdminDateRange): AdminPlatformStats
     connectionsGrowth: buildChartSeries(range, 25 * mult),
     nfcUsage: [
       { label: "Assigned", value: Math.round(18 * mult) },
-      { label: "Unassigned", value: Math.round(7 * mult) },
+      { label: "available", value: Math.round(7 * mult) },
       { label: "Inactive", value: Math.round(3 * mult) },
     ],
     profileViewTrends: buildChartSeries(range, 120 * mult),

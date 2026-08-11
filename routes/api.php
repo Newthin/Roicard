@@ -115,8 +115,11 @@ Route::middleware(['auth:sanctum', 'prevent_leak'])->group(function () {
         Route::post('/users', [AdminController::class, 'storeUser']);
         Route::patch('/users/{id}', [AdminController::class, 'updateUser']);
         Route::get('/smart-cards', [AdminController::class, 'smartCards']);
+        Route::post('/smart-cards', [AdminController::class, 'registerCard']);
         Route::patch('/smart-cards/{id}/assign', [AdminController::class, 'assignCard']);
         Route::patch('/smart-cards/{id}/unassign', [AdminController::class, 'unassignCard']);
+        Route::patch('/smart-cards/{id}/activate', [AdminController::class, 'activateCard']);
+        Route::patch('/smart-cards/{id}/deactivate', [AdminController::class, 'deactivateCard']);
         Route::patch('/smart-cards/{id}/dispatch', [AdminController::class, 'dispatchCard']);
         Route::patch('/smart-cards/{id}/deliver', [AdminController::class, 'deliverCard']);
         Route::get('/connections', [AdminController::class, 'connections']);

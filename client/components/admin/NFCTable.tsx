@@ -35,9 +35,13 @@ function NfcStatusBadge({ status }: { status: NFCCard["status"] }) {
     <span
       className={cn(
         "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium capitalize",
-        status === "assigned"
+        status === "active"
           ? "bg-roicard-accent/15 text-roicard-accent"
-          : "bg-roicard-bg-muted text-roicard-text-muted"
+          : status === "assigned"
+            ? "bg-roicard-primary/15 text-roicard-primary"
+            : status === "deactivated"
+              ? "bg-red-500/15 text-red-400"
+              : "bg-roicard-bg-muted text-roicard-text-muted"
       )}
     >
       {status}
@@ -217,8 +221,15 @@ function RegisterNfcModal({
 }
 
 export function NFCTable() {
-  const { nfcCards, isLoading, assignNfc, unassignNfc, registerNfcCard } =
-    useAdmin();
+  const {
+    nfcCards,
+    isLoading,
+    assignNfc,
+    unassignNfc,
+    activateNfc,
+    deactivateNfc,
+    registerNfcCard,
+  } = useAdmin();
   const { confirm } = useConfirm();
   const [assignCard, setAssignCard] = useState<NFCCard | null>(null);
   const [registerOpen, setRegisterOpen] = useState(false);
@@ -236,6 +247,27 @@ export function NFCTable() {
 
     if (!confirmed) return;
     unassignNfc(card.id);
+  };
+
+  const handleActivate = async (card: NFCCard) => {
+    const confirmed = await confirm({
+      title: "Activate Roicard?",
+      description: `Set ${card.cardId} as active for ${card.assignedUserName ?? "the assigned member"}.`,
+      confirmLabel: "Activate",
+    });
+    if (!confirmed) return;
+    activateNfc(card.id);
+  };
+
+  const handleDeactivate = async (card: NFCCard) => {
+    const confirmed = await confirm({
+      title: "Deactivate Roicard?",
+      description: `Remove ${card.cardId} from circulation. The holder is kept on record.`,
+      confirmLabel: "Deactivate",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+    deactivateNfc(card.id);
   };
 
   if (isLoading) {
@@ -279,21 +311,49 @@ export function NFCTable() {
               </DataTableCell>
               <DataTableCell className="text-right">
                 <div className="flex flex-wrap justify-end gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setAssignCard(card)}
-                  >
-                    {card.status === "assigned" ? "Reassign" : "Assign"}
-                  </Button>
+                  {(card.status === "available" || card.status === "deactivated") && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setAssignCard(card)}
+                    >
+                      Assign
+                    </Button>
+                  )}
                   {card.status === "assigned" && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setAssignCard(card)}
+                      >
+                        Reassign
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleActivate(card)}
+                      >
+                        Activate
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-400"
+                        onClick={() => handleRemoveAssignment(card)}
+                      >
+                        Remove
+                      </Button>
+                    </>
+                  )}
+                  {card.status === "active" && (
                     <Button
                       variant="ghost"
                       size="sm"
                       className="text-red-400"
-                      onClick={() => handleRemoveAssignment(card)}
+                      onClick={() => handleDeactivate(card)}
                     >
-                      Remove
+                      Deactivate
                     </Button>
                   )}
                 </div>
@@ -323,20 +383,47 @@ export function NFCTable() {
               </p>
             )}
             <div className="mt-3 flex flex-wrap gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setAssignCard(card)}
-              >
-                {card.status === "assigned" ? "Reassign" : "Assign"}
-              </Button>
+              {(card.status === "available" || card.status === "deactivated") && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setAssignCard(card)}
+                >
+                  Assign
+                </Button>
+              )}
               {card.status === "assigned" && (
+                <>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setAssignCard(card)}
+                  >
+                    Reassign
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleActivate(card)}
+                  >
+                    Activate
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => handleRemoveAssignment(card)}
+                  >
+                    Remove
+                  </Button>
+                </>
+              )}
+              {card.status === "active" && (
                 <Button
                   variant="danger"
                   size="sm"
-                  onClick={() => handleRemoveAssignment(card)}
+                  onClick={() => handleDeactivate(card)}
                 >
-                  Remove
+                  Deactivate
                 </Button>
               )}
             </div>

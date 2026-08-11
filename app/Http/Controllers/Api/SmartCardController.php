@@ -23,6 +23,8 @@ class SmartCardController extends Controller
 
         $smartCard = SmartCard::create([
             'user_id' => $userId,
+            'inventory_status' => SmartCard::STATUS_ASSIGNED,
+            'assigned_at' => now(),
             ...$request->validated(),
         ]);
 

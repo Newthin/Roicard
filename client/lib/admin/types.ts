@@ -20,7 +20,11 @@ export type AdminUser = {
   organization: string;
 };
 
-export type NFCStatus = "assigned" | "unassigned";
+export type NFCStatus =
+  | "available"
+  | "assigned"
+  | "active"
+  | "deactivated";
 
 /** NFC card assignment record. */
 export type NFCCard = {

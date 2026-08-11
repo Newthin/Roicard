@@ -6,10 +6,18 @@ use Illuminate\Database\Eloquent\Model;
 
 class SmartCard extends Model
 {
+    // Inventory lifecycle statuses (admin card management)
+    public const STATUS_AVAILABLE = 'available';
+    public const STATUS_ASSIGNED = 'assigned';
+    public const STATUS_ACTIVE = 'active';
+    public const STATUS_DEACTIVATED = 'deactivated';
+
     protected $fillable = [
         'card_id',
         'user_id',
         'status',
+        'inventory_status',
+        'assigned_at',
         'delivery_name',
         'street_address',
         'city',
@@ -27,6 +35,7 @@ class SmartCard extends Model
         return [
             'dispatched_at' => 'datetime',
             'delivered_at' => 'datetime',
+            'assigned_at' => 'datetime',
         ];
     }
 

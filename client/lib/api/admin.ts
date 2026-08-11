@@ -46,6 +46,8 @@ export interface AdminSmartCard {
   card_id: string;
   user_id: number | null;
   status: string;
+  inventory_status: string;
+  assigned_at: string | null;
   delivery_name: string | null;
   dispatched_at: string | null;
   delivered_at: string | null;
@@ -150,6 +152,13 @@ export async function getAdminSmartCards(params?: {
   return data;
 }
 
+export async function registerSmartCard(body: {
+  card_id?: string;
+}): Promise<{ smart_card: AdminSmartCard; message: string }> {
+  const { data } = await apiClient.post("/admin/smart-cards", body);
+  return data;
+}
+
 export async function assignSmartCard(id: number, userId: number): Promise<{ smart_card: AdminSmartCard; message: string }> {
   const { data } = await apiClient.patch(`/admin/smart-cards/${id}/assign`, { user_id: userId });
   return data;
@@ -157,6 +166,16 @@ export async function assignSmartCard(id: number, userId: number): Promise<{ sma
 
 export async function unassignSmartCard(id: number): Promise<{ smart_card: AdminSmartCard; message: string }> {
   const { data } = await apiClient.patch(`/admin/smart-cards/${id}/unassign`);
+  return data;
+}
+
+export async function activateSmartCard(id: number): Promise<{ smart_card: AdminSmartCard; message: string }> {
+  const { data } = await apiClient.patch(`/admin/smart-cards/${id}/activate`);
+  return data;
+}
+
+export async function deactivateSmartCard(id: number): Promise<{ smart_card: AdminSmartCard; message: string }> {
+  const { data } = await apiClient.patch(`/admin/smart-cards/${id}/deactivate`);
   return data;
 }
 

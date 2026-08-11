@@ -123,7 +123,11 @@ class AdminController extends Controller
     {
         $smartCard = SmartCard::findOrFail($id);
 
-        if ($smartCard->status !== 'in_production' && $smartCard->status !== 'pending') {
+        if (!in_array($smartCard->inventory_status, [SmartCard::STATUS_ASSIGNED, SmartCard::STATUS_ACTIVE])) {
+            return response()->json(['message' => 'Card must be assigned to a member before dispatch'], 400);
+        }
+
+        if (!in_array($smartCard->status, ['in_production', 'pending'])) {
             return response()->json(['message' => 'Card cannot be dispatched from current status'], 400);
         }
 
@@ -132,7 +136,7 @@ class AdminController extends Controller
             'dispatched_at' => now(),
         ]);
 
-        $smartCard->user->notify(new SmartCardShippedNotification($smartCard));
+        $smartCard->user?->notify(new SmartCardShippedNotification($smartCard));
         $this->logAdminAction('dispatch_card', $smartCard->user_id);
 
         return response()->json([
@@ -141,12 +145,50 @@ class AdminController extends Controller
         ]);
     }
 
+    /** Register a physical Roicard into inventory with an "available" status. */
+    public function registerCard(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'card_id' => ['nullable', 'string', 'max:255', Rule::unique('smart_cards', 'card_id')],
+        ]);
+
+        $smartCard = SmartCard::create([
+            'card_id' => $validated['card_id'] ?? SmartCard::generateCardId(),
+            'inventory_status' => SmartCard::STATUS_AVAILABLE,
+        ]);
+
+        $this->logAdminAction('register_card', $smartCard->user_id);
+
+        return response()->json([
+            'smart_card' => $smartCard->fresh(),
+            'message' => "Card {$smartCard->card_id} registered and available",
+        ], 201);
+    }
+
     public function assignCard(string $id, Request $request): JsonResponse
     {
         $request->validate(['user_id' => ['required', 'integer', 'exists:users,id']]);
 
         $smartCard = SmartCard::findOrFail($id);
-        $smartCard->update(['user_id' => $request->user_id]);
+
+        if ($smartCard->inventory_status === SmartCard::STATUS_ACTIVE) {
+            return response()->json(['message' => 'Active card cannot be reassigned'], 400);
+        }
+
+        // A member holds at most one card (mirrors the hasOne relation and the
+        // member-side storeDelivery guard). Releasing any previous holder first.
+        SmartCard::where('user_id', $request->user_id)
+            ->where('id', '!=', $smartCard->id)
+            ->update([
+                'user_id' => null,
+                'inventory_status' => SmartCard::STATUS_AVAILABLE,
+            ]);
+
+        $smartCard->update([
+            'user_id' => $request->user_id,
+            'inventory_status' => SmartCard::STATUS_ASSIGNED,
+            'assigned_at' => now(),
+        ]);
 
         $this->logAdminAction('assign_card', $request->user_id);
 
@@ -159,13 +201,60 @@ class AdminController extends Controller
     public function unassignCard(string $id): JsonResponse
     {
         $smartCard = SmartCard::findOrFail($id);
-        $smartCard->update(['user_id' => null]);
+
+        if ($smartCard->inventory_status === SmartCard::STATUS_ACTIVE) {
+            return response()->json(['message' => 'Active card must be deactivated before unassigning'], 400);
+        }
+
+        $smartCard->update([
+            'user_id' => null,
+            'inventory_status' => SmartCard::STATUS_AVAILABLE,
+            'assigned_at' => null,
+        ]);
 
         $this->logAdminAction('unassign_card');
 
         return response()->json([
             'smart_card' => $smartCard->fresh(),
             'message' => 'Card unassigned',
+        ]);
+    }
+
+    /** Mark an assigned card as active (linked and in use with its holder). */
+    public function activateCard(string $id): JsonResponse
+    {
+        $smartCard = SmartCard::findOrFail($id);
+
+        if ($smartCard->inventory_status !== SmartCard::STATUS_ASSIGNED || !$smartCard->user_id) {
+            return response()->json(['message' => 'Only an assigned card can be activated'], 400);
+        }
+
+        $smartCard->update(['inventory_status' => SmartCard::STATUS_ACTIVE]);
+
+        $this->logAdminAction('activate_card', $smartCard->user_id);
+
+        return response()->json([
+            'smart_card' => $smartCard->fresh()->load('user:id,first_name,last_name,email'),
+            'message' => 'Card activated',
+        ]);
+    }
+
+    /** Deactivate a card (removed from circulation, holder retained on record). */
+    public function deactivateCard(string $id): JsonResponse
+    {
+        $smartCard = SmartCard::findOrFail($id);
+
+        if (!in_array($smartCard->inventory_status, [SmartCard::STATUS_ASSIGNED, SmartCard::STATUS_ACTIVE])) {
+            return response()->json(['message' => 'Card is not assigned or active'], 400);
+        }
+
+        $smartCard->update(['inventory_status' => SmartCard::STATUS_DEACTIVATED]);
+
+        $this->logAdminAction('deactivate_card', $smartCard->user_id);
+
+        return response()->json([
+            'smart_card' => $smartCard->fresh()->load('user:id,first_name,last_name,email'),
+            'message' => 'Card deactivated',
         ]);
     }
 
@@ -182,7 +271,7 @@ class AdminController extends Controller
             'delivered_at' => now(),
         ]);
 
-        $smartCard->user->notify(new SmartCardDeliveredNotification($smartCard));
+        $smartCard->user?->notify(new SmartCardDeliveredNotification($smartCard));
         $this->logAdminAction('deliver_card', $smartCard->user_id);
 
         return response()->json([
@@ -247,8 +336,9 @@ class AdminController extends Controller
         ])->toArray();
 
         $nfcUsage = [
-            ['label' => 'Assigned', 'value' => SmartCard::whereNotNull('user_id')->count()],
-            ['label' => 'Unassigned', 'value' => SmartCard::whereNull('user_id')->count()],
+            ['label' => 'Active', 'value' => SmartCard::where('inventory_status', SmartCard::STATUS_ACTIVE)->count()],
+            ['label' => 'Assigned', 'value' => SmartCard::where('inventory_status', SmartCard::STATUS_ASSIGNED)->count()],
+            ['label' => 'Available', 'value' => SmartCard::where('inventory_status', SmartCard::STATUS_AVAILABLE)->count()],
         ];
 
         return response()->json([

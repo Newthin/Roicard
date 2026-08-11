@@ -14,11 +14,14 @@ import type {
   UserStatus,
 } from "@/lib/admin/types";
 import {
+  activateSmartCard,
   assignSmartCard,
   createAdminUser,
+  deactivateSmartCard,
   getAdminSmartCards,
   getAdminStats,
   getAdminUsers,
+  registerSmartCard,
   unassignSmartCard,
   updateAdminUser,
 } from "@/lib/api/admin";
@@ -52,6 +55,8 @@ type AdminContextValue = {
   }) => Promise<{ ok: true } | { ok: false; error: string }>;
   assignNfc: (nfcId: string, userId: string) => void;
   unassignNfc: (nfcId: string) => void;
+  activateNfc: (nfcId: string) => void;
+  deactivateNfc: (nfcId: string) => void;
   registerNfcCard: (
     cardId: string
   ) => Promise<{ ok: true } | { ok: false; error: string }>;
@@ -121,8 +126,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
               assignedUserName: c.user
                 ? `${c.user.first_name} ${c.user.last_name}`
                 : null,
-              status: (c.user_id ? "assigned" : "unassigned") as "assigned" | "unassigned",
-              assignedAt: c.dispatched_at ?? c.created_at ?? null,
+              status: (c.inventory_status ?? (c.user_id ? "assigned" : "available")) as NFCCard["status"],
+              assignedAt: c.assigned_at ?? c.dispatched_at ?? c.created_at ?? null,
             }))
           )
         )
@@ -214,11 +219,45 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     [refresh]
   );
 
+  const activateNfc = useCallback(
+    async (nfcId: string) => {
+      try {
+        await activateSmartCard(Number(nfcId));
+        await refresh();
+      } catch {
+        // silently fail
+      }
+    },
+    [refresh]
+  );
+
+  const deactivateNfc = useCallback(
+    async (nfcId: string) => {
+      try {
+        await deactivateSmartCard(Number(nfcId));
+        await refresh();
+      } catch {
+        // silently fail
+      }
+    },
+    [refresh]
+  );
+
   const registerNfcCard = useCallback(
     async (cardId: string): Promise<{ ok: true } | { ok: false; error: string }> => {
-      return { ok: false, error: "Card registration via API is not yet implemented." };
+      try {
+        await registerSmartCard({ card_id: cardId });
+        await refresh();
+        return { ok: true };
+      } catch (e) {
+        const msg =
+          e && typeof e === "object" && "response" in e
+            ? String((e as { response?: { data?: { message?: string } } }).response?.data?.message ?? "Failed to register card")
+            : "Failed to register card";
+        return { ok: false, error: msg };
+      }
     },
-    []
+    [refresh]
   );
 
   const value = useMemo(
@@ -233,6 +272,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       registerUser,
       assignNfc,
       unassignNfc,
+      activateNfc,
+      deactivateNfc,
       registerNfcCard,
     }),
     [
@@ -246,6 +287,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       registerUser,
       assignNfc,
       unassignNfc,
+      activateNfc,
+      deactivateNfc,
       registerNfcCard,
     ]
   );
