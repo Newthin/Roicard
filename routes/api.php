@@ -48,7 +48,12 @@ Route::post('/public/{slug}/event', [PublicProfileController::class, 'trackEvent
 Route::post('/connections', [ConnectionController::class, 'store']);
 
 // QR code (public)
-Route::get('/qr/{slug}', [QRController::class, 'show'])->middleware('cache.get');
+// /qr/image/{slug} serves the SVG for display; /qr/{slug} is the scan entry
+// point that records a qr_scan and redirects to the profile. The scan route
+// must NOT be cached, or repeated scans would be served from cache and never
+// recorded.
+Route::get('/qr/image/{slug}', [QRController::class, 'image'])->middleware('cache.get');
+Route::get('/qr/{slug}', [QRController::class, 'show']);
 
 // Payment webhook (no auth, signature-verified)
 Route::post('/payments/webhook/{provider}', [PaymentController::class, 'webhook']);

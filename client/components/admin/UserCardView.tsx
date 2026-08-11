@@ -32,7 +32,7 @@ export function UserCardView({ userId }: { userId: string }) {
     ? `${user.firstName} ${user.lastName}`.trim().toUpperCase()
     : "";
   const qrUrl = user?.username
-    ? `${apiBase}/qr/${encodeURIComponent(user.username)}`
+    ? `${apiBase}/qr/image/${encodeURIComponent(user.username)}`
     : "";
 
   const triggerDownload = (blob: Blob, name: string) => {

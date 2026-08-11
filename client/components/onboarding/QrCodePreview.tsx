@@ -61,7 +61,7 @@ export function QrCodePreview({
   const profileUrl = getPublicProfileUrl(username);
   const displayUrl = profileUrl.replace(/^https?:\/\//, "");
   const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-  const qrUrl = `${apiBase}/qr/${username}`;
+  const qrUrl = `${apiBase}/qr/image/${username}`;
   const [qrFailed, setQrFailed] = useState(false);
 
   return (

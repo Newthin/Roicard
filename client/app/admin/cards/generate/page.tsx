@@ -44,7 +44,7 @@ export default function AdminGenerateCardPage() {
   const memberName = selectedUser
     ? `${selectedUser.firstName} ${selectedUser.lastName}`.trim()
     : "";
-  const defaultQrUrl = slug ? `${apiBase}/qr/${encodeURIComponent(slug)}` : "";
+  const defaultQrUrl = slug ? `${apiBase}/qr/image/${encodeURIComponent(slug)}` : "";
 
   return (
     <div className="space-y-6">
@@ -138,7 +138,7 @@ export default function AdminGenerateCardPage() {
                 <span>
                   The QR is fetched from the backend at{" "}
                   <code className="break-all text-roicard-text">
-                    {apiBase}/qr/&#123;slug&#125;
+                    {apiBase}/qr/image/&#123;slug&#125;
                   </code>
                   . Leave the URL empty to use the member&apos;s default QR.
                 </span>
