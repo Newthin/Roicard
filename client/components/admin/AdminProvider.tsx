@@ -18,6 +18,7 @@ import {
   assignSmartCard,
   createAdminUser,
   deactivateSmartCard,
+  deleteAdminUser,
   getAdminSmartCards,
   getAdminStats,
   getAdminUsers,
@@ -44,6 +45,7 @@ type AdminContextValue = {
   refresh: () => void;
   updateUserStatus: (userId: string, status: UserStatus) => void;
   updateUser: (userId: string, updates: Partial<AdminUser>) => void;
+  deleteUser: (userId: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   registerUser: (data: {
     first_name: string;
     last_name: string;
@@ -170,8 +172,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     [refresh]
   );
 
-  const registerUser = useCallback(
-    async (data: {
+  const registerUser = useCallback(    async (data: {
       first_name: string;
       last_name: string;
       email: string;
@@ -189,6 +190,23 @@ export function AdminProvider({ children }: { children: ReactNode }) {
           e && typeof e === "object" && "response" in e
             ? String((e as { response?: { data?: { message?: string } } }).response?.data?.message ?? "Failed to create user")
             : "Failed to create user";
+        return { ok: false, error: msg };
+      }
+    },
+    [refresh]
+  );
+
+  const deleteUser = useCallback(
+    async (userId: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+      try {
+        await deleteAdminUser(Number(userId));
+        await refresh();
+        return { ok: true };
+      } catch (e) {
+        const msg =
+          e && typeof e === "object" && "response" in e
+            ? String((e as { response?: { data?: { message?: string } } }).response?.data?.message ?? "Failed to delete user")
+            : "Failed to delete user";
         return { ok: false, error: msg };
       }
     },
@@ -269,6 +287,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       refresh,
       updateUserStatus,
       updateUser,
+      deleteUser,
       registerUser,
       assignNfc,
       unassignNfc,
@@ -284,6 +303,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       refresh,
       updateUserStatus,
       updateUser,
+      deleteUser,
       registerUser,
       assignNfc,
       unassignNfc,

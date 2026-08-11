@@ -488,7 +488,7 @@ function AddUserModal({
 }
 
 export function UserTable() {
-  const { users, isLoading, updateUserStatus, updateUser } = useAdmin();
+  const { users, isLoading, updateUserStatus, updateUser, deleteUser } = useAdmin();
   const { confirm } = useConfirm();
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -522,6 +522,22 @@ export function UserTable() {
 
     if (!confirmed) return;
     updateUserStatus(user.id, "active");
+  };
+
+  /** Permanently delete user after confirmation. */
+  const handleDelete = async (user: AdminUser) => {
+    const confirmed = await confirm({
+      title: "Delete user account?",
+      description: `This permanently deletes ${user.firstName} ${user.lastName}'s account, profile, payments, analytics, and connections. This cannot be undone.`,
+      confirmLabel: "Delete Account",
+      variant: "danger",
+    });
+
+    if (!confirmed) return;
+    const result = await deleteUser(user.id);
+    if (!result.ok) {
+      alert(result.error);
+    }
   };
 
   /** Filter users by search query and status — resets pagination on change. */
@@ -604,6 +620,14 @@ export function UserTable() {
           Activate
         </Button>
       )}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="text-red-500"
+        onClick={() => handleDelete(user)}
+      >
+        Delete
+      </Button>
     </div>
   );
 
@@ -772,6 +796,14 @@ export function UserTable() {
                   Activate
                 </Button>
               )}
+              <Button
+                variant="danger"
+                size="sm"
+                className="border-red-500/40 text-red-400"
+                onClick={() => handleDelete(user)}
+              >
+                Delete
+              </Button>
             </div>
           </div>
         ))}

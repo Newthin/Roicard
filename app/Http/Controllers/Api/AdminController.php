@@ -119,6 +119,36 @@ class AdminController extends Controller
         ], 201);
     }
 
+    /** Permanently deletes a user account and all cascade-owned data. */
+    public function deleteUser(string $id): JsonResponse
+    {
+        $user = User::findOrFail($id);
+
+        if ($user->id === auth()->id()) {
+            return response()->json(['message' => 'You cannot delete your own account'], 422);
+        }
+
+        $user->profile?->bustPublicCache();
+
+        // Release the physical card back to inventory rather than losing it.
+        if ($user->smartCard) {
+            $user->smartCard->update([
+                'user_id' => null,
+                'inventory_status' => SmartCard::STATUS_AVAILABLE,
+                'assigned_at' => null,
+            ]);
+        }
+
+        $this->logAdminAction('delete_user', (int) $user->id);
+
+        // Payments, analytics, connections (member_id), social accounts and the
+        // profile all cascade on delete. Revoke tokens first so nothing survives.
+        $user->tokens()->delete();
+        $user->delete();
+
+        return response()->json(['message' => 'User account permanently deleted']);
+    }
+
     public function dispatchCard(string $id): JsonResponse
     {
         $smartCard = SmartCard::findOrFail($id);

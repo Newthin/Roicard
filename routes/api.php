@@ -132,6 +132,7 @@ Route::middleware(['auth:sanctum', 'prevent_leak'])->group(function () {
         Route::get('/users', [AdminController::class, 'users']);
         Route::post('/users', [AdminController::class, 'storeUser']);
         Route::patch('/users/{id}', [AdminController::class, 'updateUser']);
+    Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);
         Route::get('/smart-cards', [AdminController::class, 'smartCards']);
         Route::post('/smart-cards', [AdminController::class, 'registerCard']);
         Route::patch('/smart-cards/{id}/assign', [AdminController::class, 'assignCard']);

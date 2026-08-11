@@ -145,6 +145,11 @@ export async function updateAdminUser(
   return data;
 }
 
+export async function deleteAdminUser(id: number): Promise<{ message: string }> {
+  const { data } = await apiClient.delete(`/admin/users/${id}`);
+  return data;
+}
+
 export async function getAdminSmartCards(params?: {
   page?: number;
   per_page?: number;
