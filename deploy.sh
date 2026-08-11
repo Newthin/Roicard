@@ -23,6 +23,9 @@ sudo php artisan migrate --force
 echo "==> Restarting PHP-FPM"
 sudo systemctl restart php8.3-fpm
 
+echo "==> Restarting queue worker"
+sudo systemctl restart roicard-worker
+
 echo "==> Deploying frontend"
 cd "$FRONTEND_DIR"
 sudo git pull origin main

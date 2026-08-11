@@ -46,7 +46,9 @@ class AnalyticsService
                 : ($e->type === 'qr_scan' ? 'qr_scans'
                 : ($e->type === 'connection_request' ? 'connection_requests' : null));
             if ($metric && $daily->has($date)) {
-                $daily[$date][$metric]++;
+                $entry = $daily->get($date);
+                $entry[$metric]++;
+                $daily->put($date, $entry);
             }
         }
 

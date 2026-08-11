@@ -12,7 +12,7 @@ User=www-data
 Group=www-data
 WorkingDirectory=/var/www/roicard
 ExecStart=/usr/bin/php artisan queue:work database --sleep=3 --tries=3 --max-time=3600
-Restart=on-failure
+Restart=always
 RestartSec=5
 Environment="QUEUE_CONNECTION=database"
 
