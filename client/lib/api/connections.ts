@@ -11,6 +11,7 @@ export interface ConnectionUser {
     slug: string | null;
     title: string | null;
     organisation: string | null;
+    avatar_url?: string | null;
   } | null;
 }
 
