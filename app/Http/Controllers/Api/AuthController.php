@@ -369,7 +369,12 @@ class AuthController extends Controller
         return response()->json(['message' => 'Account reactivated. You can now sign in.']);
     }
 
-    /** Permanently deletes the account and all cascade-owned data. */
+    /**
+     * Deletes the account. The user row (and cascade-owned profile, payments,
+     * analytics and connections) is soft-deleted and retained for the data
+     * retention window so it can be recovered for investigations; a scheduled
+     * purge permanently removes it afterwards.
+     */
     public function deleteAccount(Request $request): JsonResponse
     {
         $request->validate([
@@ -384,12 +389,21 @@ class AuthController extends Controller
 
         $user->profile?->bustPublicCache();
 
-        // Payments, analytics, connections (member_id) and the profile all
-        // cascade on delete. Revoke tokens first so nothing survives.
+        // Release any assigned smart card back to inventory — the physical
+        // card outlives the account.
+        if ($user->smartCard) {
+            $user->smartCard->update([
+                'user_id' => null,
+                'inventory_status' => \App\Models\SmartCard::STATUS_AVAILABLE,
+                'assigned_at' => null,
+            ]);
+        }
+
+        // Revoke tokens so the account cannot sign in while retained.
         $user->tokens()->delete();
         $user->delete();
 
-        return response()->json(['message' => 'Account permanently deleted']);
+        return response()->json(['message' => 'Account deleted. Your data is retained for the retention period then permanently removed.']);
     }
 
     public function me(Request $request): JsonResponse

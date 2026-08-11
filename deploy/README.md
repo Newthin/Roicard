@@ -109,10 +109,21 @@ sudo systemctl enable --now roicard-worker roicard-frontend
 sudo systemctl status roicard-worker roicard-frontend
 ```
 
+Enable the **scheduler cron** so the daily `users:purge` (data retention) runs:
+
+```bash
+sudo crontab -u www-data -l 2>/dev/null | grep -q 'artisan schedule:run' || \
+  (sudo crontab -u www-data -l 2>/dev/null; echo "* * * * * cd /var/www/roicard && /usr/bin/php artisan schedule:run >> /dev/null 2>&1") | sudo crontab -u www-data -
+```
+
+> Data retention: deleted accounts (self or admin) are soft-deleted and kept
+> for `DATA_RETENTION_DAYS` (default 30) before `users:purge` permanently
+> removes them. Run `sudo -u www-data php artisan users:purge` to trigger a
+> purge immediately, or `--days=N` to override the window.
+
 > The Next.js server listens on `127.0.0.1:3000`; Nginx proxies to it.
 
 ## 9. Configure Nginx + HTTPS
-
 ```bash
 sudo cp /var/www/roicard/deploy/nginx.conf /etc/nginx/sites-available/roicard
 sudo nano /etc/nginx/sites-available/roicard    # replace every DOMAIN with your domain

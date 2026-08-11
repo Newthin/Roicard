@@ -52,6 +52,11 @@ apt-get install -y nginx
 echo "==> Setting timezone to UTC"
 timedatectl set-timezone UTC
 
+echo "==> Installing Laravel scheduler cron (runs schedule:run every minute)"
+if ! crontab -u www-data -l 2>/dev/null | grep -q 'artisan schedule:run'; then
+    (crontab -u www-data -l 2>/dev/null; echo "* * * * * cd /var/www/roicard && /usr/bin/php artisan schedule:run >> /dev/null 2>&1") | crontab -u www-data -
+fi
+
 echo ""
 echo "Provisioning complete. Next steps:"
 echo "  1) Secure MySQL:  sudo mysql_secure_installation"

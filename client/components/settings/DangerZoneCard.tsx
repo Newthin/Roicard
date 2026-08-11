@@ -39,8 +39,8 @@ export function DangerZoneCard() {
     const confirmed = await confirm({
       title: "Delete your account?",
       description:
-        "This action is permanent and cannot be undone. All your profile data, connections, and analytics will be removed. You will be signed out immediately.",
-      confirmLabel: "Delete Forever",
+        "Your account will be deactivated and retained for the data retention period before being permanently removed. You will be signed out immediately and cannot sign back in during this period.",
+      confirmLabel: "Delete Account",
       variant: "danger",
     });
 
@@ -49,7 +49,7 @@ export function DangerZoneCard() {
     setIsDeleting(true);
     try {
       await deleteAccount(deletePassword);
-      setMessage("Account permanently deleted.");
+      setMessage("Account deleted. Your data is retained for the retention period then permanently removed.");
       logout();
     } catch (err: unknown) {
       const data =
@@ -111,8 +111,8 @@ export function DangerZoneCard() {
         <div className="flex items-start gap-3 rounded-xl border border-red-500/30 bg-red-500/5 p-4">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
           <p className="text-sm text-roicard-text-muted">
-            This action is permanent and cannot be undone. Deleting your account
-            will remove your profile, connections, and all associated data.
+            Deleting your account deactivates it immediately and retains your
+            data for the retention period before permanent removal.
           </p>
         </div>
 
@@ -120,7 +120,7 @@ export function DangerZoneCard() {
           <div className="flex-1">
             <p className="text-sm font-medium text-roicard-text">Delete Account</p>
             <p className="text-xs text-roicard-text-muted">
-              Permanently remove your ROICARD account
+              Permanently remove your ROICARD account after the retention period
             </p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">

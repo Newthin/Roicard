@@ -9,6 +9,10 @@ return [
     'logo_url' => env('LOGO_URL', rtrim(env('FRONTEND_URL', 'http://localhost:3000'), '/') . '/images/logo.png'),
     'payment_provider' => env('PAYMENT_PROVIDER', 'mock'),
 
+    // How long a deleted account (and its cascade-owned data) is retained
+    // before the users:purge command permanently removes it.
+    'data_retention_days' => (int) env('DATA_RETENTION_DAYS', 30),
+
     'timezone' => 'Africa/Accra',
     'locale' => 'en',
     'fallback_locale' => 'en',

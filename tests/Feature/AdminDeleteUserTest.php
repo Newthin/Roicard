@@ -21,7 +21,7 @@ class AdminDeleteUserTest extends TestCase
         Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
     }
 
-    public function test_admin_can_delete_a_user_and_cascade_data(): void
+    public function test_admin_can_delete_a_user_and_retain_data(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $token = $admin->createToken('test')->plainTextToken;
@@ -47,12 +47,14 @@ class AdminDeleteUserTest extends TestCase
         $response = $this->withToken($token)->deleteJson('/api/admin/users/' . $target->id);
 
         $response->assertOk()
-            ->assertJson(['message' => 'User account permanently deleted']);
+            ->assertJson(['message' => 'User account deleted and retained for the retention period']);
 
-        $this->assertDatabaseMissing('users', ['id' => $target->id]);
-        $this->assertDatabaseMissing('profiles', ['user_id' => $target->id]);
-        $this->assertDatabaseMissing('payments', ['user_id' => $target->id]);
-        $this->assertDatabaseMissing('connections', ['member_id' => $target->id]);
+        // Soft-deleted: the user row and cascade-owned data are retained.
+        $this->assertSoftDeleted('users', ['id' => $target->id]);
+        $this->assertDatabaseHas('profiles', ['user_id' => $target->id]);
+        $this->assertDatabaseHas('payments', ['user_id' => $target->id]);
+        $this->assertDatabaseHas('connections', ['member_id' => $target->id]);
+        // Sessions are revoked immediately.
         $this->assertDatabaseMissing('personal_access_tokens', ['tokenable_id' => $target->id]);
     }
 

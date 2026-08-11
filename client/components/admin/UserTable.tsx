@@ -524,11 +524,11 @@ export function UserTable() {
     updateUserStatus(user.id, "active");
   };
 
-  /** Permanently delete user after confirmation. */
+  /** Delete user (soft-delete, retained for the data retention window). */
   const handleDelete = async (user: AdminUser) => {
     const confirmed = await confirm({
       title: "Delete user account?",
-      description: `This permanently deletes ${user.firstName} ${user.lastName}'s account, profile, payments, analytics, and connections. This cannot be undone.`,
+      description: `${user.firstName} ${user.lastName}'s account will be deactivated immediately and retained for the data retention period before being permanently removed.`,
       confirmLabel: "Delete Account",
       variant: "danger",
     });

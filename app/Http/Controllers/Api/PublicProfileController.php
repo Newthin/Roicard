@@ -36,9 +36,11 @@ class PublicProfileController extends Controller
                 return null;
             }
 
-            // Draft profiles are not publicly visible — only activated
-            // (paid) members can be viewed via their share link.
-            if ($profile->user->status !== 'active') {
+            // Draft or deleted profiles are not publicly visible — only
+            // activated (paid) members can be viewed via their share link.
+            // A deleted account's user row is soft-deleted, so it may be
+            // missing entirely from the eager load.
+            if (!$profile->user || $profile->user->trashed() || $profile->user->status !== 'active') {
                 return ['_draft' => true, 'slug' => $slug];
             }
 

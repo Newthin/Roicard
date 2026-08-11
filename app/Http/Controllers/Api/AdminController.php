@@ -119,7 +119,12 @@ class AdminController extends Controller
         ], 201);
     }
 
-    /** Permanently deletes a user account and all cascade-owned data. */
+    /**
+     * Deletes a user account. Soft-deletes the user row (cascade-owned
+     * profile, payments, analytics and connections are retained) so the data
+     * survives the retention window for investigations; a scheduled purge
+     * permanently removes it afterwards.
+     */
     public function deleteUser(string $id): JsonResponse
     {
         $user = User::findOrFail($id);
@@ -141,12 +146,11 @@ class AdminController extends Controller
 
         $this->logAdminAction('delete_user', (int) $user->id);
 
-        // Payments, analytics, connections (member_id), social accounts and the
-        // profile all cascade on delete. Revoke tokens first so nothing survives.
+        // Revoke tokens so the retained account cannot sign in.
         $user->tokens()->delete();
         $user->delete();
 
-        return response()->json(['message' => 'User account permanently deleted']);
+        return response()->json(['message' => 'User account deleted and retained for the retention period']);
     }
 
     public function dispatchCard(string $id): JsonResponse

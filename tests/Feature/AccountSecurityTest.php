@@ -234,7 +234,7 @@ class AccountSecurityTest extends TestCase
             ->assertJsonStructure(['token']);
     }
 
-    public function test_delete_account_removes_user(): void
+    public function test_delete_account_soft_deletes_and_retains_user(): void
     {
         $user = $this->makeUser(['password' => bcrypt('Pass123')]);
         $token = $user->createToken('auth-token')->plainTextToken;
@@ -247,6 +247,9 @@ class AccountSecurityTest extends TestCase
             ->deleteJson('/api/auth/account', ['current_password' => 'Pass123'])
             ->assertOk();
 
-        $this->assertDatabaseMissing('users', ['id' => $user->id]);
+        // Soft-deleted for the retention window — the row survives.
+        $this->assertSoftDeleted('users', ['id' => $user->id]);
+        // Sessions are revoked so the retained account cannot sign in.
+        $this->assertDatabaseMissing('personal_access_tokens', ['tokenable_id' => $user->id]);
     }
 }
