@@ -32,6 +32,10 @@ class ProfileEnrichmentController extends Controller
             ->withCustomProperties(['visible' => $request->boolean('visible', false)])
             ->toMediaCollection('cv');
 
+        // Media writes don't save the profile row, so the observer doesn't
+        // fire — bust the public cache so the CV is visible immediately.
+        $profile->bustPublicCache();
+
         return response()->json([
             'message' => 'CV uploaded successfully',
             'cv' => $profile->getMedia('cv')->last(),
@@ -52,6 +56,8 @@ class ProfileEnrichmentController extends Controller
         }
 
         $media->delete();
+
+        $profile->bustPublicCache();
 
         return response()->json(['message' => 'CV deleted']);
     }

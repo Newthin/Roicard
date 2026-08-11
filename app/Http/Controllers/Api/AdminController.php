@@ -70,11 +70,7 @@ class AdminController extends Controller
         $user->save();
 
         // Bust public profile cache when status changes (affects draft privacy)
-        if ($profile = $user->profile) {
-            if ($profile->slug) {
-                \Illuminate\Support\Facades\Cache::forget("public_profile:{$profile->slug}");
-            }
-        }
+        $user->profile?->bustPublicCache();
 
         $this->logAdminAction('update_user', $user->id);
 

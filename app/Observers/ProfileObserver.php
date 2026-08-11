@@ -8,7 +8,6 @@ use App\Models\AchievementEntry;
 use App\Models\Profile;
 use App\Models\SocialLink;
 use App\Services\SlugService;
-use Illuminate\Support\Facades\Cache;
 
 class ProfileObserver
 {
@@ -50,8 +49,6 @@ class ProfileObserver
 
     protected function clearCache(Profile $profile): void
     {
-        if ($profile->slug) {
-            Cache::forget("public_profile:{$profile->slug}");
-        }
+        $profile->bustPublicCache();
     }
 }

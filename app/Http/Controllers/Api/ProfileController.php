@@ -9,7 +9,6 @@ use App\Models\Profile;
 use App\Models\SocialLink;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
 
 class ProfileController extends Controller
@@ -56,6 +55,11 @@ class ProfileController extends Controller
         $profile->addMedia($file)
             ->usingFileName($filename)
             ->toMediaCollection('avatar');
+
+        // Media writes don't save the profile row, so the observer doesn't
+        // fire — bust the public cache here so the new avatar appears
+        // immediately on the public profile.
+        $profile->bustPublicCache();
 
         $url = $profile->getFirstMediaUrl('avatar');
         $versionedUrl = $url . '?v=' . now()->timestamp;
@@ -141,9 +145,7 @@ class ProfileController extends Controller
         $profile->recalculateCompletion();
 
         // Bust the public profile cache so changes are visible immediately
-        if ($profile->slug) {
-            Cache::forget("public_profile:{$profile->slug}");
-        }
+        $profile->bustPublicCache();
 
         // Send the welcome email exactly once — the first successful profile
         // save after a user begins onboarding. Variant depends on whether they

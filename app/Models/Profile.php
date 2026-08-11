@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -44,6 +45,19 @@ class Profile extends Model implements HasMedia
     public function getAvatarUrlAttribute(): ?string
     {
         return $this->getFirstMediaUrl('avatar') ?: null;
+    }
+
+    /**
+     * Bust the shared public-profile response cache for this profile. Media
+     * and related-record writes (avatar, CV, social links, education, etc.)
+     * never touch the profile row itself, so the observer's saved() hook does
+     * not fire for them — every such mutation must call this explicitly.
+     */
+    public function bustPublicCache(): void
+    {
+        if ($this->slug) {
+            Cache::forget("public_profile:{$this->slug}");
+        }
     }
 
     public function user()

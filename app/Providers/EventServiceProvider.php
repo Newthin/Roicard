@@ -2,11 +2,16 @@
 
 namespace App\Providers;
 
+use App\Models\AchievementEntry;
+use App\Models\EducationEntry;
+use App\Models\ExperienceEntry;
 use App\Models\Payment;
 use App\Models\Profile;
 use App\Models\SmartCard;
+use App\Models\SocialLink;
 use App\Models\User;
 use App\Observers\PaymentObserver;
+use App\Observers\ProfileContentObserver;
 use App\Observers\ProfileObserver;
 use App\Observers\SmartCardObserver;
 use App\Observers\UserObserver;
@@ -28,5 +33,9 @@ class EventServiceProvider extends ServiceProvider
         Profile::observe(ProfileObserver::class);
         Payment::observe(PaymentObserver::class);
         SmartCard::observe(SmartCardObserver::class);
+        SocialLink::observe(ProfileContentObserver::class);
+        EducationEntry::observe(ProfileContentObserver::class);
+        ExperienceEntry::observe(ProfileContentObserver::class);
+        AchievementEntry::observe(ProfileContentObserver::class);
     }
 }
