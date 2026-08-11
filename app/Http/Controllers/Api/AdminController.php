@@ -308,10 +308,16 @@ class AdminController extends Controller
         return response()->json($logs);
     }
 
-    public function trends(): JsonResponse
+    public function trends(Request $request): JsonResponse
     {
-        $days = 30;
-        $start = now()->subDays($days);
+        $period = $request->input('period', '30d');
+        $days = match ($period) {
+            '7d' => 7,
+            '90d' => 90,
+            'all' => null,
+            default => 30,
+        };
+        $start = $days ? now()->subDays($days) : now()->subYears(10);
 
         $users = User::where('created_at', '>=', $start)
             ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
@@ -328,7 +334,8 @@ class AdminController extends Controller
             ->groupBy('date')
             ->pluck('count', 'date');
 
-        $dates = collect(range(0, $days - 1))->map(fn ($i) => now()->subDays($i)->format('Y-m-d'))->reverse()->values();
+        $windowDays = $days ?? 30;
+        $dates = collect(range(0, $windowDays - 1))->map(fn ($i) => now()->subDays($i)->format('Y-m-d'))->reverse()->values();
 
         $chart = fn ($data) => $dates->map(fn ($date) => [
             'label' => Carbon::parse($date)->format('M d'),

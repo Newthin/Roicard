@@ -35,14 +35,14 @@ export function AdminStatisticsView() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const trends = await getAdminTrends();
+      const trends = await getAdminTrends(range);
       setData(trends);
     } catch {
       setData(null);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [range]);
 
   useEffect(() => {
     fetchData();
@@ -83,13 +83,13 @@ export function AdminStatisticsView() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <AnalyticsChart
-          title="Total Users Growth (30d)"
+          title="User Signups"
           data={toAnalyticsPoints(data.usersGrowth)}
           color="#E63946"
           gradientId="admin-users-growth"
         />
         <AnalyticsChart
-          title="Total Connections Growth (30d)"
+          title="Connections Created"
           data={toAnalyticsPoints(data.connectionsGrowth)}
           color="#EF6B35"
           gradientId="admin-connections-growth"
@@ -100,7 +100,7 @@ export function AdminStatisticsView() {
           color="#FF8C42"
         />
         <AnalyticsChart
-          title="Profile View Trends (30d)"
+          title="Analytics Events"
           data={toAnalyticsPoints(data.profileViewTrends)}
           color="#FF8C42"
           gradientId="admin-profile-views"

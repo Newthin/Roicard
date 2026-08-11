@@ -1,4 +1,5 @@
 import apiClient from "./client";
+import type { AdminDateRange } from "@/lib/admin/types";
 
 export interface AdminStats {
   total_users: number;
@@ -202,7 +203,11 @@ export async function getAdminActivityLog(): Promise<AdminActivityLogEntry[]> {
   return data;
 }
 
-export async function getAdminTrends(): Promise<AdminTrends> {
-  const { data } = await apiClient.get("/admin/stats/trends");
+export async function getAdminTrends(
+  period: AdminDateRange = "30d"
+): Promise<AdminTrends> {
+  const { data } = await apiClient.get("/admin/stats/trends", {
+    params: { period },
+  });
   return data;
 }

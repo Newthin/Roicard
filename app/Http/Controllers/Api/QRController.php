@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\RecordAnalyticsJob;
 use App\Models\Profile;
 use App\Services\QRService;
 use Illuminate\Http\Response;
@@ -20,6 +21,9 @@ class QRController extends Controller
         $url = config('app.frontend_url', config('app.url')) . '/' . $profile->slug;
 
         $qrSvg = $this->qrService->generate($url);
+
+        // Record a real qr_scan event so the member's analytics reflects scans.
+        RecordAnalyticsJob::dispatch($profile->user_id, 'qr_scan');
 
         return response($qrSvg, 200)
             ->header('Content-Type', 'image/svg+xml')

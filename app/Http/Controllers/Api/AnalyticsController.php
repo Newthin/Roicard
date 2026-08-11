@@ -24,7 +24,7 @@ class AnalyticsController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'type' => ['required', 'string', 'in:profile_view,card_tap,qr_scan,connection_request,contact_save,whatsapp_tap'],
+            'type' => ['required', 'string', 'in:profile_view,card_tap,qr_scan,connection_request,connection_accepted,contact_save,whatsapp_tap'],
             'metadata' => ['nullable', 'array'],
         ]);
 
