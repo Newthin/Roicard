@@ -13,6 +13,7 @@ import {
   getConnectionSummary,
   getConnections,
   getIncomingRequests,
+  getSentRequests,
 } from "@/lib/connections/storage";
 import type {
   Connection,
@@ -31,6 +32,7 @@ import {
 
 type ConnectionsContextValue = {
   requests: IncomingConnectionRequest[];
+  sentRequests: IncomingConnectionRequest[];
   connections: Connection[];
   summary: ConnectionSummary;
   isLoading: boolean;
@@ -55,6 +57,9 @@ type ConnectionsProviderProps = {
 
 export function ConnectionsProvider({ children }: ConnectionsProviderProps) {
   const [requests, setRequests] = useState<IncomingConnectionRequest[]>([]);
+  const [sentRequests, setSentRequests] = useState<IncomingConnectionRequest[]>(
+    []
+  );
   const [connections, setConnections] = useState<Connection[]>([]);
   const [summary, setSummary] = useState<ConnectionSummary>({
     pendingCount: 0,
@@ -65,12 +70,14 @@ export function ConnectionsProvider({ children }: ConnectionsProviderProps) {
 
   /** Reloads all connection data from the backend. */
   const refresh = useCallback(async () => {
-    const [requests, connections, summary] = await Promise.all([
+    const [requests, sentRequests, connections, summary] = await Promise.all([
       getIncomingRequests(),
+      getSentRequests(),
       getConnections(),
       getConnectionSummary(),
     ]);
     setRequests(requests);
+    setSentRequests(sentRequests);
     setConnections(connections);
     setSummary(summary);
     setIsLoading(false);
@@ -101,6 +108,7 @@ export function ConnectionsProvider({ children }: ConnectionsProviderProps) {
   const value = useMemo(
     () => ({
       requests,
+      sentRequests,
       connections,
       summary,
       isLoading,
@@ -110,6 +118,7 @@ export function ConnectionsProvider({ children }: ConnectionsProviderProps) {
     }),
     [
       requests,
+      sentRequests,
       connections,
       summary,
       isLoading,

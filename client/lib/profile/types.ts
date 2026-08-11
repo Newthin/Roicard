@@ -20,7 +20,7 @@ export type SocialLinks = {
 /** UI-only connection state for the public profile Connect button. */
 export type ConnectionState = "none" | "pending" | "connected";
 
-/** Guest connection request form payload (UI only until backend). */
+/** Guest connection request form payload (wired to the connections API). */
 export type ConnectionRequestData = {
   name: string;
   email: string;
@@ -31,6 +31,10 @@ export type ConnectionRequestData = {
    * Optional context that makes the connection easier to remember later.
    */
   meetingContext?: string;
+  /** Short introduction — "tell [name] a little about yourself". */
+  introduction?: string;
+  /** Connection intent — why the guest is connecting with this member. */
+  intent?: string;
 };
 
 /** Profile engagement stats shown on public profiles (mock until analytics API). */

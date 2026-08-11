@@ -23,7 +23,7 @@ import { SecondaryActionButtons } from "@/components/profile/public/SecondaryAct
 import { Button } from "@/components/ui/Button";
 import { addGuestConnectionRequest } from "@/lib/connections/storage";
 import type { PublicProfile } from "@/lib/api/profile";
-import { getPublicProfile } from "@/lib/api/profile";
+import { getPublicProfile, trackProfileEvent } from "@/lib/api/profile";
 import type {
   ConnectionRequestData,
   ConnectionState,
@@ -194,14 +194,10 @@ export function PublicProfileView({ username }: PublicProfileViewProps) {
     [username]
   );
 
-  /** Demo-only: pending → connected on the next tap. */
-  const handleConnectStateAdvance = () => {
-    if (connectionState === "pending") setConnectionState("connected");
-  };
-
   /** Downloads the profile as a .vcf contact card (photo embedded). */
   const handleSaveContact = useCallback(async () => {
     if (!profile) return;
+    trackProfileEvent(profile.slug, "contact_save").catch(() => {});
     const vcard = await buildVCard(profile, profileUrl);
     const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -217,6 +213,7 @@ export function PublicProfileView({ username }: PublicProfileViewProps) {
   /** Opens a pre-filled WhatsApp chat with the member (falls back to phone). */
   const handleWhatsApp = useCallback(() => {
     if (!profile) return;
+    trackProfileEvent(profile.slug, "whatsapp_tap").catch(() => {});
     const number = (profile.whatsapp_phone || "").replace(/\D/g, "");
     if (!number) return;
     const text = encodeURIComponent(
@@ -323,12 +320,11 @@ export function PublicProfileView({ username }: PublicProfileViewProps) {
                   ) : connectionState === "pending" ? (
                     <Button
                       fullWidth
-                      variant="secondary"
-                      onClick={handleConnectStateAdvance}
+                      disabled
                       className="h-14 rounded-2xl border-roicard-accent/30 text-base"
                     >
                       <Clock className="h-5 w-5 text-roicard-accent" />
-                      Pending
+                      Request Pending
                     </Button>
                   ) : (
                     <GradientActionButton

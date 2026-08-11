@@ -5,6 +5,9 @@
  * and future API integration.
  */
 
+/** Direction of a connection row from the viewer's perspective. */
+export type ConnectionDirection = "received" | "sent";
+
 /** Person summary shown on connection and request cards. */
 export type ConnectionPerson = {
   id: string;
@@ -20,6 +23,10 @@ export type ConnectionPerson = {
   guestUserId?: string;
   /** Where the guest said they met the profile owner. */
   meetingContext?: string;
+  /** Guest introduction — "tell them a little about yourself". */
+  introduction?: string;
+  /** Guest connection intent — why they are connecting. */
+  intent?: string;
 };
 
 /** Incoming connection request awaiting accept/decline. */
@@ -29,6 +36,8 @@ export type IncomingConnectionRequest = {
   requestedAt: string;
   /** Optional note about where the requester met the profile owner. */
   meetingContext?: string;
+  introduction?: string;
+  intent?: string;
 };
 
 /** Established connection between the user and another professional. */

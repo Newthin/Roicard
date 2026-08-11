@@ -20,6 +20,8 @@ class ConnectionRequest extends FormRequest
             'guest_phone' => ['nullable', 'string', 'max:20'],
             'guest_org' => ['nullable', 'string', 'max:255'],
             'guest_meeting_context' => ['nullable', 'string', 'max:255'],
+            'guest_introduction' => ['nullable', 'string', 'max:1000'],
+            'guest_intent' => ['nullable', 'string', 'max:1000'],
         ];
     }
 }

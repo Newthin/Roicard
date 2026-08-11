@@ -101,6 +101,28 @@ export function GuestProfileModal({
             />
           </div>
 
+          {person.introduction && (
+            <div className="rounded-xl border border-roicard-border bg-roicard-primary/5 p-4">
+              <p className="text-xs font-medium text-roicard-text-muted">
+                About {person.firstName}
+              </p>
+              <p className="mt-1.5 text-sm leading-relaxed text-roicard-text whitespace-pre-line">
+                {person.introduction}
+              </p>
+            </div>
+          )}
+
+          {person.intent && (
+            <div className="rounded-xl border border-roicard-accent/30 bg-roicard-accent/5 p-4">
+              <p className="text-xs font-medium text-roicard-text-muted">
+                Why they want to connect
+              </p>
+              <p className="mt-1.5 text-sm leading-relaxed text-roicard-text whitespace-pre-line">
+                {person.intent}
+              </p>
+            </div>
+          )}
+
           {person.guestUserId && (
             <p className="rounded-lg bg-roicard-primary/10 px-3 py-2.5 text-xs text-roicard-accent">
               This guest now has a ROICARD account — you can view their full

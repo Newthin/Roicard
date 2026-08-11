@@ -20,8 +20,40 @@ import type {
   IncomingConnectionRequest,
 } from "@/lib/connections/types";
 
-/** Map an API guest connection into the shared person shape. */
+function fullName(first?: string, last?: string): string {
+  return [first, last].filter(Boolean).join(" ") || "Member";
+}
+
+/**
+ * Resolve the "other party" for a connection row relative to the viewer.
+ *
+ * A row is created once (direction "received" for the profile owner, "sent"
+ * for the requester). After acceptance both sides see the same record, and
+ * each side should render — and link through to — the *other* person's real
+ * profile.
+ */
 function toConnectionPerson(api: ApiConnection): ConnectionPerson {
+  const direction = api.direction ?? "received";
+
+  if (direction === "sent" && api.member) {
+    const member = api.member;
+    return {
+      id: String(api.id),
+      username: member.profile?.slug ?? undefined,
+      firstName: member.first_name,
+      lastName: member.last_name,
+      profilePhotoUrl: null,
+      professionalTitle: member.profile?.title ?? "",
+      organization: member.profile?.organisation ?? "",
+      email: member.email,
+      guestUserId: String(api.member_id),
+      meetingContext: api.guest_meeting_context || undefined,
+      introduction: api.guest_introduction || undefined,
+      intent: api.guest_intent || undefined,
+    };
+  }
+
+  // "received" (or fallback): the other party is the requesting guest.
   const [firstName, ...rest] = api.guest_name.trim().split(" ");
   const lastName = rest.join(" ") || "";
   return {
@@ -30,32 +62,49 @@ function toConnectionPerson(api: ApiConnection): ConnectionPerson {
     firstName,
     lastName,
     profilePhotoUrl: null,
-    professionalTitle: "",
-    organization: api.guest_org || "",
+    professionalTitle: api.guest_user?.profile?.title ?? "",
+    organization: api.guest_org || api.guest_user?.profile?.organisation || "",
     email: api.guest_email,
     phone: api.guest_phone || undefined,
     guestUserId: api.guest_user_id ? String(api.guest_user_id) : undefined,
     meetingContext: api.guest_meeting_context || undefined,
+    introduction: api.guest_introduction || undefined,
+    intent: api.guest_intent || undefined,
   };
 }
 
-/** Pending guest requests awaiting accept/decline. */
+function toRequest(api: ApiConnection): IncomingConnectionRequest {
+  return {
+    id: String(api.id),
+    person: toConnectionPerson(api),
+    meetingContext: api.guest_meeting_context || undefined,
+    introduction: api.guest_introduction || undefined,
+    intent: api.guest_intent || undefined,
+    requestedAt: api.created_at,
+  };
+}
+
+/** Pending requests addressed to the current user (awaiting accept/decline). */
 export async function getIncomingRequests(): Promise<
   IncomingConnectionRequest[]
 > {
   const { connections } = await fetchApiConnections();
   const list = Array.isArray(connections) ? connections : connections.data;
   return list
-    .filter((c) => c.status === "pending")
-    .map((c) => ({
-      id: String(c.id),
-      person: toConnectionPerson(c),
-      meetingContext: c.guest_meeting_context || undefined,
-      requestedAt: c.created_at,
-    }));
+    .filter((c) => c.status === "pending" && c.direction === "received")
+    .map(toRequest);
 }
 
-/** Established (approved) connections for the current user. */
+/** Connection requests the current user has sent that are still pending. */
+export async function getSentRequests(): Promise<IncomingConnectionRequest[]> {
+  const { connections } = await fetchApiConnections();
+  const list = Array.isArray(connections) ? connections : connections.data;
+  return list
+    .filter((c) => c.status === "pending" && c.direction === "sent")
+    .map(toRequest);
+}
+
+/** Established (approved) connections for the current user, both directions. */
 export async function getConnections(): Promise<Connection[]> {
   const { connections } = await fetchApiConnections();
   const list = Array.isArray(connections) ? connections : connections.data;
@@ -93,6 +142,8 @@ export async function addGuestConnectionRequest(
     guest_phone: data.phone || undefined,
     guest_org: data.organization || undefined,
     guest_meeting_context: data.meetingContext || undefined,
+    guest_introduction: data.introduction || undefined,
+    guest_intent: data.intent || undefined,
   });
 }
 

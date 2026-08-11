@@ -1,16 +1,15 @@
 /**
  * ConnectionRequestModal
  *
- * Guest user flow for sending a connection request to a profile owner.
- * Collects name, email, phone, and organization — UI only until backend.
+ * Premium multi-step connect flow for a guest viewing a public profile:
+ *   1. Contact details
+ *   2. Introduce yourself
+ *   3. Connection intent
+ *   4. Submit → success
+ *   5. Dismissible "Join Roicard" invitation
  *
- * Props:
- * - isOpen: controls modal visibility
- * - onClose: cancel / dismiss handler
- * - onSubmit: called with form data on successful submit
- * - profileName: name of the profile being connected to (for context)
- *
- * States: form → success message after submit.
+ * Each step is optional-feeling: only name/email are required, intro and intent
+ * are encouraged for context. Posts to the real connections API.
  */
 
 "use client";
@@ -18,8 +17,9 @@
 import { FormField } from "@/components/onboarding/FormField";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
+import { GuestInviteCard } from "@/components/profile/public/GuestInviteCard";
 import type { ConnectionRequestData } from "@/lib/profile/types";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, HandHeart, Sparkles } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 
 type ConnectionRequestModalProps = {
@@ -35,12 +35,10 @@ const EMPTY_FORM: ConnectionRequestData = {
   phone: "",
   organization: "",
   meetingContext: "",
+  introduction: "",
+  intent: "",
 };
 
-/**
- * URL params that may carry meeting context from an NFC tap or QR scan,
- * e.g. /jane?met=DevFest%20Accra or /jane?event=NFC%20tap%20at%20booth%2012.
- */
 const MEETING_PARAM_KEYS = [
   "met",
   "meetingContext",
@@ -70,14 +68,10 @@ export function ConnectionRequestModal({
 }: ConnectionRequestModalProps) {
   const [form, setForm] = useState<ConnectionRequestData>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<ConnectionRequestData>>({});
+  const [step, setStep] = useState(1);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  /**
-   * Smart pre-fill: when the modal opens, seed "Where did you meet?" from any
-   * NFC/QR URL params — but only if the user hasn't already typed something,
-   * so their edits are never overwritten.
-   */
   useEffect(() => {
     if (!isOpen) return;
     const context = readMeetingContextFromUrl();
@@ -91,34 +85,41 @@ export function ConnectionRequestModal({
   const handleClose = () => {
     setForm(EMPTY_FORM);
     setErrors({});
+    setStep(1);
     setIsSuccess(false);
     onClose();
   };
 
-  /** Basic frontend validation before mock submit. */
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  /** Validates the current step and advances. */
+  const handleContinue = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const nextErrors: Partial<ConnectionRequestData> = {};
-    if (!form.name.trim()) nextErrors.name = "Name is required";
-    if (!form.email.trim()) nextErrors.email = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      nextErrors.email = "Enter a valid email";
-    }
-
-    if (Object.keys(nextErrors).length > 0) {
-      setErrors(nextErrors);
+    if (step === 1) {
+      const nextErrors: Partial<ConnectionRequestData> = {};
+      if (!form.name.trim()) nextErrors.name = "Your name is required";
+      if (!form.email.trim()) nextErrors.email = "Email is required";
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+        nextErrors.email = "Enter a valid email";
+      }
+      if (Object.keys(nextErrors).length > 0) {
+        setErrors(nextErrors);
+        return;
+      }
+      setErrors({});
+      setStep(2);
       return;
     }
 
-    setIsLoading(true);
+    if (step === 2) {
+      setStep(3);
+      return;
+    }
 
-    // Mock API delay — replace with real endpoint
-    setTimeout(() => {
-      setIsLoading(false);
-      setIsSuccess(true);
-      onSubmit(form);
-    }, 600);
+    // Final submit
+    setIsLoading(true);
+    onSubmit(form);
+    setIsLoading(false);
+    setIsSuccess(true);
   };
 
   if (isSuccess) {
@@ -134,9 +135,14 @@ export function ConnectionRequestModal({
             <CheckCircle2 className="h-8 w-8 text-emerald-400" />
           </div>
           <p className="text-sm leading-relaxed text-roicard-text-muted">
-            Connection request sent successfully. {profileName} will be notified
-            of your request.
+            Request sent successfully. {profileName} will be notified of your
+            request along with your introduction.
           </p>
+
+          <div className="space-y-3 pt-3 text-left">
+            <GuestInviteCard name={profileName} onDismiss={handleClose} />
+          </div>
+
           <Button fullWidth className="rounded-xl" onClick={handleClose}>
             Done
           </Button>
@@ -150,70 +156,136 @@ export function ConnectionRequestModal({
       isOpen={isOpen}
       onClose={handleClose}
       title={`Connect with ${profileName}`}
-      description="Send a connection request to start building your professional network."
+      description="Introduce yourself, state why you're connecting, and send your request."
       className="max-w-md"
     >
-      <form className="space-y-4" onSubmit={handleSubmit} noValidate>
-        <FormField
-          label="Your Name"
-          name="name"
-          placeholder="Jane Smith"
-          value={form.name}
-          onChange={(e) => {
-            setForm((prev) => ({ ...prev, name: e.target.value }));
-            setErrors((prev) => ({ ...prev, name: undefined }));
-          }}
-          error={errors.name}
-        />
+      <div className="mb-4 flex items-center gap-2" role="tablist" aria-label="Connect steps">
+        {[1, 2, 3].map((n) => (
+          <span
+            key={n}
+            role="tab"
+            aria-selected={step === n}
+            className={
+              "h-1.5 flex-1 rounded-full transition-colors " +
+              (step >= n ? "roicard-gradient" : "bg-roicard-bg-muted")
+            }
+          />
+        ))}
+      </div>
 
-        <FormField
-          label="Email"
-          type="email"
-          name="email"
-          placeholder="you@example.com"
-          value={form.email}
-          onChange={(e) => {
-            setForm((prev) => ({ ...prev, email: e.target.value }));
-            setErrors((prev) => ({ ...prev, email: undefined }));
-          }}
-          error={errors.email}
-        />
+      <form className="space-y-4" onSubmit={handleContinue} noValidate>
+        {step === 1 && (
+          <>
+            <div className="flex items-center gap-2 text-sm font-semibold text-roicard-text">
+              <Sparkles className="h-4 w-4 text-roicard-accent" aria-hidden />
+              Your details
+            </div>
+            <FormField
+              label="Your Name"
+              name="name"
+              placeholder="Jane Smith"
+              value={form.name}
+              onChange={(e) => {
+                setForm((prev) => ({ ...prev, name: e.target.value }));
+                setErrors((prev) => ({ ...prev, name: undefined }));
+              }}
+              error={errors.name}
+            />
+            <FormField
+              label="Email"
+              type="email"
+              name="email"
+              placeholder="you@example.com"
+              value={form.email}
+              onChange={(e) => {
+                setForm((prev) => ({ ...prev, email: e.target.value }));
+                setErrors((prev) => ({ ...prev, email: undefined }));
+              }}
+              error={errors.email}
+            />
+            <FormField
+              label="Phone"
+              type="tel"
+              name="phone"
+              placeholder="+1 (555) 000-0000"
+              hint="Optional"
+              value={form.phone}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, phone: e.target.value }))
+              }
+            />
+            <FormField
+              label="Organization"
+              name="organization"
+              placeholder="Your company"
+              hint="Optional"
+              value={form.organization}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, organization: e.target.value }))
+              }
+            />
+            <FormField
+              label="Where did you meet? (Optional)"
+              name="meetingContext"
+              placeholder="e.g., Tech Conference, Roicard tap, Coffee shop, Mutual friend..."
+              value={form.meetingContext ?? ""}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, meetingContext: e.target.value }))
+              }
+            />
+          </>
+        )}
 
-        <FormField
-          label="Phone"
-          type="tel"
-          name="phone"
-          placeholder="+1 (555) 000-0000"
-          hint="Optional"
-          value={form.phone}
-          onChange={(e) =>
-            setForm((prev) => ({ ...prev, phone: e.target.value }))
-          }
-        />
+        {step === 2 && (
+          <>
+            <FormField
+              label={`Tell ${profileName} a little about yourself`}
+              name="introduction"
+              variant="textarea"
+              placeholder="Your role, what you're currently working on, or anything that gives context about who you are."
+              hint="Optional, but a short intro helps them remember you."
+              rows={4}
+              value={form.introduction ?? ""}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, introduction: e.target.value }))
+              }
+            />
+          </>
+        )}
 
-        <FormField
-          label="Organization"
-          name="organization"
-          placeholder="Your company"
-          hint="Optional"
-          value={form.organization}
-          onChange={(e) =>
-            setForm((prev) => ({ ...prev, organization: e.target.value }))
-          }
-        />
-
-        <FormField
-          label="Where did you meet? (Optional)"
-          name="meetingContext"
-          placeholder="e.g., Tech Conference, Roicard tap, Coffee shop, Mutual friend..."
-          hint="Helps you both remember this connection later."
-          value={form.meetingContext ?? ""}
-          onChange={(e) =>
-            setForm((prev) => ({ ...prev, meetingContext: e.target.value }))
-          }
-        />
+        {step === 3 && (
+          <>
+            <div className="flex items-center gap-2 text-sm font-semibold text-roicard-text">
+              <HandHeart className="h-4 w-4 text-roicard-accent" aria-hidden />
+              Why are you connecting?
+            </div>
+            <FormField
+              label={`Why are you connecting with ${profileName}?`}
+              name="intent"
+              variant="textarea"
+              placeholder="e.g., mutual opportunities, collaboration ideas, growing my network in Ghana..."
+              hint="Optional — share your genuine reason for reaching out."
+              rows={4}
+              value={form.intent ?? ""}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, intent: e.target.value }))
+              }
+            />
+          </>
+        )}
 
         <div className="flex gap-3 pt-2">
+          {step > 1 && (
+            <Button
+              type="button"
+              variant="secondary"
+              fullWidth
+              className="rounded-xl"
+              onClick={() => setStep((s) => s - 1)}
+            >
+              Back
+            </Button>
+          )}
           <Button
             type="button"
             variant="secondary"
@@ -229,7 +301,7 @@ export function ConnectionRequestModal({
             isLoading={isLoading}
             className="rounded-xl"
           >
-            Submit Request
+            {step < 3 ? "Continue" : "Submit Request"}
           </Button>
         </div>
       </form>

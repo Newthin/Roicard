@@ -14,6 +14,8 @@ class Connection extends Model
         'guest_phone',
         'guest_org',
         'guest_meeting_context',
+        'guest_introduction',
+        'guest_intent',
         'status',
     ];
 

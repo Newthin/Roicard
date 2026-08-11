@@ -1,23 +1,25 @@
 /**
  * GuestInviteCard
  *
- * A gentle invitation shown at the bottom of a public profile encouraging the
- * viewing guest to create their own ROICARD. Reuses the shared ProfileCard
- * shell and links to the registration flow.
+ * A gentle invitation encouraging the viewing guest to create their own
+ * ROICARD. Reuses the shared ProfileCard shell and links to the registration
+ * flow. Includes an optional dismiss control so the invite never feels forced.
  *
  * Props:
  * - name: profile owner's first name, used to personalize the invite
+ * - onDismiss: when provided, renders a subtle "Not now" dismiss button
  */
 
 import { ProfileCard } from "@/components/profile/public/ProfileCard";
-import { Sparkles } from "lucide-react";
+import { Sparkles, X } from "lucide-react";
 import Link from "next/link";
 
 type GuestInviteCardProps = {
   name: string;
+  onDismiss?: () => void;
 };
 
-export function GuestInviteCard({ name }: GuestInviteCardProps) {
+export function GuestInviteCard({ name, onDismiss }: GuestInviteCardProps) {
   return (
     <ProfileCard interactive className="relative overflow-hidden">
       {/* Subtle brand watermark */}
@@ -46,6 +48,17 @@ export function GuestInviteCard({ name }: GuestInviteCardProps) {
         >
           Create
         </Link>
+
+        {onDismiss && (
+          <button
+            type="button"
+            onClick={onDismiss}
+            aria-label="Dismiss invite"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-roicard-text-muted/70 transition-colors hover:bg-roicard-bg-muted hover:text-roicard-text"
+          >
+            <X className="h-4 w-4" aria-hidden />
+          </button>
+        )}
       </div>
     </ProfileCard>
   );

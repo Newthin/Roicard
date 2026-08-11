@@ -9,6 +9,7 @@
 
 import { ConnectionRequestCard } from "@/components/connections/ConnectionRequestCard";
 import { GuestProfileModal } from "@/components/connections/GuestProfileModal";
+import { SentRequestCard } from "@/components/connections/SentRequestCard";
 import { useConnections } from "@/components/connections/ConnectionsProvider";
 import { ConnectionsEmptyState } from "@/components/connections/ConnectionsEmptyState";
 import { ConnectionsLoadingState } from "@/components/connections/ConnectionsLoadingState";
@@ -19,7 +20,7 @@ import type { ConnectionPerson } from "@/lib/connections/types";
 import { useMemo, useState } from "react";
 
 export function ConnectionRequestsView() {
-  const { requests, isLoading, acceptRequest, declineRequest } =
+  const { requests, sentRequests, isLoading, acceptRequest, declineRequest } =
     useConnections();
   const { confirm } = useConfirm();
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -88,7 +89,7 @@ export function ConnectionRequestsView() {
 
       {isLoading ? (
         <ConnectionsLoadingState />
-      ) : sortedRequests.length === 0 ? (
+      ) : sortedRequests.length === 0 && sentRequests.length === 0 ? (
         <ConnectionsEmptyState
           title="No pending requests"
           description="When someone sends you a connection request, it will appear here for you to accept or decline."
@@ -96,17 +97,35 @@ export function ConnectionRequestsView() {
           actionHref="/dashboard/connections"
         />
       ) : (
-        <div className="space-y-4">
-          {sortedRequests.map((request) => (
-            <ConnectionRequestCard
-              key={request.id}
-              request={request}
-              onAccept={handleAccept}
-              onDecline={handleDecline}
-              onViewGuest={setGuestPerson}
-              isProcessing={processingId === request.id}
-            />
-          ))}
+        <div className="space-y-6">
+          {sortedRequests.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-roicard-text-muted">
+                Received
+              </h2>
+              {sortedRequests.map((request) => (
+                <ConnectionRequestCard
+                  key={request.id}
+                  request={request}
+                  onAccept={handleAccept}
+                  onDecline={handleDecline}
+                  onViewGuest={setGuestPerson}
+                  isProcessing={processingId === request.id}
+                />
+              ))}
+            </div>
+          )}
+
+          {sentRequests.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-roicard-text-muted">
+                Sent — waiting for response
+              </h2>
+              {sentRequests.map((request) => (
+                <SentRequestCard key={request.id} request={request} />
+              ))}
+            </div>
+          )}
         </div>
       )}
 

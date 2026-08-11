@@ -83,6 +83,17 @@ export function ConnectionRequestCard({
                 <span className="truncate">Met at {request.meetingContext}</span>
               </p>
             )}
+            {request.introduction && (
+              <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-roicard-text-muted">
+                “{request.introduction}”
+              </p>
+            )}
+            {request.intent && (
+              <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-roicard-text-muted/80">
+                <span className="font-medium text-roicard-accent">Wants to connect: </span>
+                {request.intent}
+              </p>
+            )}
             <p className="mt-2 text-xs text-roicard-text-muted">
               Requested {formatConnectionDate(request.requestedAt)}
             </p>
