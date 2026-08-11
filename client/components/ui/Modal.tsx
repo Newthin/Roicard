@@ -43,7 +43,7 @@ export function Modal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-start justify-center p-4 sm:items-center sm:p-6">
       <button
         type="button"
         aria-label="Close modal overlay"
@@ -55,7 +55,8 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={title ? "modal-title" : undefined}
         className={cn(
-          "relative z-10 w-full max-w-lg rounded-xl border border-roicard-border bg-roicard-bg-elevated p-6 shadow-2xl theme-transition",
+          "relative z-10 w-full max-w-lg overflow-y-auto rounded-xl border border-roicard-border bg-roicard-bg-elevated p-6 shadow-2xl theme-transition",
+          "max-h-[calc(100dvh-3.5rem)] sm:max-h-[calc(100dvh-4rem)]",
           className
         )}
       >

@@ -47,7 +47,7 @@ export function OpportunitiesCard({ variant, content }: OpportunitiesCardProps) 
         </span>
       </div>
 
-      <p className="px-5 pb-5 pt-3 text-sm leading-relaxed text-roicard-text-muted">
+      <p className="px-5 pb-5 pt-3 text-sm leading-relaxed text-roicard-text-muted whitespace-pre-line text-justify">
         {content}
       </p>
     </ProfileCard>

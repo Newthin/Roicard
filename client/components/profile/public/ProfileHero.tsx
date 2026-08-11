@@ -26,7 +26,7 @@ export function ProfileHero({
   const isVerified = profile.membershipStatus === "active";
 
   return (
-    <header className="relative overflow-hidden rounded-3xl border border-roicard-border/70 bg-roicard-bg-elevated/80 shadow-[0_10px_30px_-12px_var(--rc-shadow)] backdrop-blur-sm theme-transition">
+    <header className="relative overflow-hidden rounded-3xl border border-roicard-border/40 theme-transition">
       {/* Transparent spacer keeps the avatar overlap placement */}
       <div aria-hidden className="relative h-24 sm:h-28" />
 
@@ -34,7 +34,7 @@ export function ProfileHero({
       <div className="flex flex-col items-center px-5 pb-6 pt-0 text-center">
         {/* Avatar + verification badge */}
         <div className="relative -mt-14 sm:-mt-16">
-          <div className="h-28 w-28 overflow-hidden rounded-full bg-roicard-bg-muted shadow-xl ring-4 ring-roicard-bg-elevated sm:h-32 sm:w-32">
+          <div className="h-28 w-28 overflow-hidden rounded-full bg-roicard-bg-muted/60 shadow-xl ring-4 ring-roicard-bg/70 sm:h-32 sm:w-32">
             {profile.profilePhotoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
