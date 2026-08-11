@@ -35,6 +35,7 @@ Route::get('/auth/verify-email/{id}/{hash}', [AuthController::class, 'verifyEmai
 Route::post('/auth/email/resend', [AuthController::class, 'resendVerification'])->middleware('throttle:forgot-password');
 Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:forgot-password');
 Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+Route::post('/auth/reactivate', [AuthController::class, 'reactivate']);
 
 // Interest options (public)
 Route::get('/interests', [InterestOptionController::class, 'index'])->middleware('cache.get');
@@ -60,6 +61,18 @@ Route::post('/payments/webhook/{provider}', [PaymentController::class, 'webhook'
 Route::middleware(['auth:sanctum', 'prevent_leak'])->group(function () {
     // Current authenticated user (used to validate the cached session on boot)
     Route::get('/me', [AuthController::class, 'me']);
+
+    // Account & security
+    Route::post('/auth/logout', [AuthController::class, 'logout']);
+    Route::post('/auth/two-factor/verify', [AuthController::class, 'verifyTwoFactor']);
+    Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
+    Route::put('/auth/account', [AuthController::class, 'updateAccount']);
+    Route::get('/auth/two-factor/status', [AuthController::class, 'twoFactorStatus']);
+    Route::post('/auth/two-factor/setup', [AuthController::class, 'twoFactorSetup']);
+    Route::post('/auth/two-factor/confirm', [AuthController::class, 'twoFactorConfirm']);
+    Route::post('/auth/two-factor/disable', [AuthController::class, 'twoFactorDisable']);
+    Route::post('/auth/deactivate', [AuthController::class, 'deactivate']);
+    Route::delete('/auth/account', [AuthController::class, 'deleteAccount']);
 
     // Profile
     Route::post('/profile', [ProfileController::class, 'store']);

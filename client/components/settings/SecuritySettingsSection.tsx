@@ -1,7 +1,8 @@
 /**
  * SecuritySettingsSection
  *
- * Password change form, 2FA toggle, and mock login sessions.
+ * Real password change, two-factor authentication setup/teardown.
+ * No mock controls — everything talks to the backend.
  */
 
 "use client";
@@ -11,13 +12,16 @@ import { SettingsSection } from "@/components/settings/SettingsSection";
 import { Button } from "@/components/ui/Button";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import {
-  getMockLoginSessions,
-  getSecurityPreferences,
-  saveSecurityPreferences,
-} from "@/lib/settings/storage";
+  changePassword,
+  getTwoFactorStatus,
+  twoFactorConfirm,
+  twoFactorDisable,
+  twoFactorSetup,
+  type TwoFactorStatus,
+} from "@/lib/api/auth";
 import { cn } from "@/lib/cn";
-import { Monitor, Shield } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { Check, Shield } from "lucide-react";
+import { FormEvent, useEffect, useState } from "react";
 
 export function SecuritySettingsSection() {
   const { confirm } = useConfirm();
@@ -28,13 +32,35 @@ export function SecuritySettingsSection() {
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
 
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(
-    () => getSecurityPreferences().twoFactorEnabled
-  );
+  const [status, setStatus] = useState<TwoFactorStatus>({
+    enabled: false,
+    has_pending_secret: false,
+  });
+  const [statusLoaded, setStatusLoaded] = useState(false);
+  const [setupPending, setSetupPending] = useState(false);
+  const [setupSecret, setSetupSecret] = useState("");
+  const [setupUrl, setSetupUrl] = useState("");
+  const [setupPassword, setSetupPassword] = useState("");
+  const [code, setCode] = useState("");
+  const [twoFactorMessage, setTwoFactorMessage] = useState<string | null>(null);
+  const [twoFactorError, setTwoFactorError] = useState<string | null>(null);
+  const [isTwoFactorBusy, setIsTwoFactorBusy] = useState(false);
 
-  const sessions = getMockLoginSessions();
+  const refreshStatus = async () => {
+    try {
+      setStatus(await getTwoFactorStatus());
+    } catch {
+      // status panel remains in its initial "unknown" state
+    } finally {
+      setStatusLoaded(true);
+    }
+  };
 
-  /** Mock password change with confirmation and basic validation. */
+  useEffect(() => {
+    refreshStatus();
+  }, []);
+
+  /** Real password change with confirm dialog. */
   const handlePasswordSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setPasswordError(null);
@@ -55,45 +81,130 @@ export function SecuritySettingsSection() {
 
     const confirmed = await confirm({
       title: "Update password?",
-      description: "You will need to use your new password on next sign in (demo).",
+      description:
+        "You will be signed out of every other device. You'll use the new password on your next sign-in.",
       confirmLabel: "Update Password",
     });
 
     if (!confirmed) return;
 
     setIsSavingPassword(true);
-    setTimeout(() => {
-      setIsSavingPassword(false);
+    try {
+      await changePassword({
+        current_password: currentPassword,
+        new_password: newPassword,
+        new_password_confirmation: confirmPassword,
+      });
       setPasswordSuccess(true);
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-    }, 600);
+    } catch (err: unknown) {
+      const data =
+        err && typeof err === "object" && "response" in err
+          ? (err as { response: { data: { message?: string } } }).response?.data
+          : null;
+      setPasswordError(data?.message || "Unable to update password.");
+    } finally {
+      setIsSavingPassword(false);
+    }
   };
 
-  /** Toggles 2FA preference — confirms when disabling. */
-  const handleToggle2FA = async () => {
-    if (twoFactorEnabled) {
-      const confirmed = await confirm({
-        title: "Disable two-factor authentication?",
-        description:
-          "Your account will be less secure without 2FA enabled (demo).",
-        confirmLabel: "Disable 2FA",
-        variant: "danger",
-      });
-      if (!confirmed) return;
-    } else {
-      const confirmed = await confirm({
-        title: "Enable two-factor authentication?",
-        description: "Add an extra layer of security to your account (demo).",
-        confirmLabel: "Enable 2FA",
-      });
-      if (!confirmed) return;
+  /** Starts 2FA setup (requires current password). */
+  const handleSetupStart = async () => {
+    setTwoFactorError(null);
+    setTwoFactorMessage(null);
+    if (!setupPassword) {
+      setTwoFactorError("Enter your current password to begin setup.");
+      return;
     }
 
-    const next = !twoFactorEnabled;
-    setTwoFactorEnabled(next);
-    saveSecurityPreferences({ twoFactorEnabled: next });
+    setIsTwoFactorBusy(true);
+    try {
+      const { secret, otpauth_url } = await twoFactorSetup(setupPassword);
+      setSetupSecret(secret);
+      setSetupUrl(otpauth_url);
+      setSetupPending(true);
+    } catch (err: unknown) {
+      const data =
+        err && typeof err === "object" && "response" in err
+          ? (err as { response: { data: { message?: string } } }).response?.data
+          : null;
+      setTwoFactorError(data?.message || "Unable to start two-factor setup.");
+    } finally {
+      setIsTwoFactorBusy(false);
+    }
+  };
+
+  const [twoFactorSetupUrl, setTwoFactorSetupUrl] = useState("");
+
+  /** Confirms setup with a valid code. */
+  const handleSetupConfirm = async () => {
+    setTwoFactorError(null);
+    setTwoFactorMessage(null);
+    if (!code) {
+      setTwoFactorError("Enter the 6-digit code from your authenticator app.");
+      return;
+    }
+
+    setIsTwoFactorBusy(true);
+    try {
+      const result = await twoFactorConfirm(code);
+      setSetupPending(false);
+      setSetupSecret("");
+      setSetupUrl("");
+      setSetupPassword("");
+      setCode("");
+      setTwoFactorMessage(result.message);
+      await refreshStatus();
+    } catch (err: unknown) {
+      const data =
+        err && typeof err === "object" && "response" in err
+          ? (err as { response: { data: { message?: string } } }).response?.data
+          : null;
+      setTwoFactorError(data?.message || "Invalid verification code.");
+    } finally {
+      setIsTwoFactorBusy(false);
+    }
+  };
+
+  /** Disables 2FA after confirming. */
+  const handleDisable = async () => {
+    const confirmed = await confirm({
+      title: "Disable two-factor authentication?",
+      description:
+        "Your account will be less secure without 2FA enabled. Enter a current code or your password to confirm.",
+      confirmLabel: "Disable 2FA",
+      variant: "danger",
+    });
+
+    if (!confirmed) return;
+
+    setIsTwoFactorBusy(true);
+    setTwoFactorMessage(null);
+    setTwoFactorError(null);
+    try {
+      const result = await twoFactorDisable(
+        code
+          ? { code }
+          : { current_password: setupPassword || undefined }
+      );
+      setTwoFactorMessage(result.message);
+      setCode("");
+      setSetupPassword("");
+      await refreshStatus();
+    } catch (err: unknown) {
+      const data =
+        err && typeof err === "object" && "response" in err
+          ? (err as { response: { data: { message?: string } } }).response
+              ?.data
+          : null;
+      setTwoFactorError(
+        data?.message || "Unable to disable two-factor authentication."
+      );
+} finally {
+      setIsTwoFactorBusy(false);
+    }
   };
 
   return (
@@ -129,7 +240,8 @@ export function SecuritySettingsSection() {
           )}
           {passwordSuccess && (
             <p className="text-sm text-emerald-400" role="status">
-              Password updated successfully (demo).
+              Password updated successfully. You'll be signed out of other
+              devices.
             </p>
           )}
 
@@ -155,57 +267,128 @@ export function SecuritySettingsSection() {
                 Two-factor authentication
               </p>
               <p className="text-xs text-roicard-text-muted">
-                {twoFactorEnabled ? "Enabled" : "Disabled"} — UI only
+                {!statusLoaded
+                  ? "Checking status…"
+                  : status.enabled
+                    ? "Enabled"
+                    : "Disabled"}
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={twoFactorEnabled}
-            onClick={handleToggle2FA}
+          <span
             className={cn(
-              "relative h-7 w-12 rounded-full transition-colors",
-              twoFactorEnabled ? "bg-roicard-primary" : "bg-roicard-bg-muted"
+              "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium",
+              status.enabled
+                ? "bg-emerald-500/10 text-emerald-400"
+                : "bg-roicard-bg-muted text-roicard-text-muted"
             )}
           >
-            <span
-              className={cn(
-                "absolute top-0.5 h-6 w-6 rounded-full bg-white transition-transform",
-                twoFactorEnabled ? "left-5" : "left-0.5"
-              )}
-            />
-          </button>
+            {status.enabled && <Check className="h-3 w-3" aria-hidden />}
+            {status.enabled ? "Enabled" : "Off"}
+          </span>
         </div>
-      </SettingsSection>
 
-      <SettingsSection
-        title="Login Sessions"
-        description="Devices where you're currently signed in."
-      >
-        <ul className="space-y-3">
-          {sessions.map((session) => (
-            <li
-              key={session.id}
-              className="flex items-start gap-3 rounded-xl border border-roicard-border bg-roicard-bg-muted/30 p-4"
+        {twoFactorError && (
+          <p className="mt-3 text-sm text-red-400" role="alert">
+            {twoFactorError}
+          </p>
+        )}
+        {twoFactorMessage && (
+          <p className="mt-3 text-sm text-emerald-400" role="status">
+            {twoFactorMessage}
+          </p>
+        )}
+
+        {!status.enabled && !setupPending && (
+          <div className="mt-4 space-y-4">
+            <FormField
+              label="Confirm with current password"
+              type="password"
+              value={setupPassword}
+              onChange={(e) => {
+                setSetupPassword(e.target.value);
+                setTwoFactorError(null);
+              }}
+            />
+            <Button
+              onClick={handleSetupStart}
+              isLoading={isTwoFactorBusy}
+              className="rounded-xl"
             >
-              <Monitor className="mt-0.5 h-5 w-5 shrink-0 text-roicard-accent" />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-roicard-text">
-                  {session.device}
-                  {session.current && (
-                    <span className="ml-2 text-xs text-emerald-400">
-                      (This device)
-                    </span>
-                  )}
-                </p>
-                <p className="text-xs text-roicard-text-muted">
-                  {session.location} · {session.lastActive}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
+              Enable Two-Factor Authentication
+            </Button>
+          </div>
+        )}
+
+        {setupPending && (
+          <div className="mt-4 space-y-4 rounded-xl border border-roicard-border bg-roicard-bg-muted/20 p-4">
+            <p className="text-sm text-roicard-text-muted">
+              Scan this code in your authenticator app (Google Authenticator,
+              Authy, 1Password) or enter the secret manually:
+            </p>
+            <div>
+              <p className="mb-1 text-xs font-medium text-roicard-text-muted">
+                Setup key
+              </p>
+              {setupUrl && (
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                    setupUrl
+                  )}`}
+                  alt="QR code for two-factor authentication"
+                  width={180}
+                  height={180}
+                  className="rounded-lg border border-roicard-border"
+                />
+              )}
+              <p className="mt-2 break-all font-mono text-sm text-roicard-text">
+                {setupSecret}
+              </p>
+            </div>
+            <FormField
+              label="Enter the 6-digit code"
+              value={code}
+              inputMode="numeric"
+              maxLength={6}
+              onChange={(e) => setCode(e.target.value)}
+            />
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                onClick={handleSetupConfirm}
+                isLoading={isTwoFactorBusy}
+                className="rounded-xl"
+              >
+                Confirm & Enable
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setSetupPending(false);
+                  setSetupSecret("");
+                  setSetupUrl("");
+                  setSetupPassword("");
+                  setCode("");
+                }}
+                className="rounded-xl"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {status.enabled && (
+          <div className="mt-4">
+            <Button
+              variant="secondary"
+              onClick={handleDisable}
+              isLoading={isTwoFactorBusy}
+              className="rounded-xl"
+            >
+              Disable Two-Factor Authentication
+            </Button>
+          </div>
+        )}
       </SettingsSection>
     </div>
   );

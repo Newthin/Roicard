@@ -111,6 +111,7 @@ export async function updateCurrentUserProfile(updates: Partial<UserProfile>): P
     if (updates.gender !== undefined) payload.gender = updates.gender;
     if (updates.interests !== undefined) payload.interests = JSON.stringify(updates.interests);
     if (updates.social !== undefined) payload.social_links = JSON.stringify(updates.social);
+    if (updates.username !== undefined) payload.slug = updates.username;
 
     const res = await apiUpdateProfile(payload);
     const profile = mapApiProfileToUserProfile(res.profile as unknown as Record<string, unknown>);

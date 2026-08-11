@@ -25,11 +25,15 @@ class User extends Authenticatable
         'role',
         'email_verified_at',
         'onboarding_completed_at',
+        'two_factor_secret',
+        'two_factor_enabled',
+        'deactivated_at',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
     ];
 
     protected function casts(): array
@@ -37,6 +41,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'onboarding_completed_at' => 'datetime',
+            'deactivated_at' => 'datetime',
+            'two_factor_enabled' => 'boolean',
             'password' => 'hashed',
         ];
     }
@@ -79,6 +85,11 @@ class User extends Authenticatable
     public function isActive(): bool
     {
         return $this->status === 'active';
+    }
+
+    public function isDeactivated(): bool
+    {
+        return $this->deactivated_at !== null;
     }
 
     public function getFullNameAttribute(): string

@@ -10,7 +10,9 @@ export interface LoginResponse {
     role: string;
     email_verified?: boolean;
   };
-  token: string;
+  token?: string;
+  two_factor_required?: boolean;
+  pending_token?: string;
 }
 
 export interface RegisterResponse {
@@ -81,4 +83,87 @@ export async function resetPassword(payload: {
   password_confirmation: string;
 }): Promise<void> {
   await apiClient.post("/auth/reset-password", payload);
+}
+
+export async function logout(): Promise<void> {
+  await apiClient.post("/auth/logout");
+}
+
+export async function changePassword(payload: {
+  current_password: string;
+  new_password: string;
+  new_password_confirmation: string;
+}): Promise<void> {
+  await apiClient.post("/auth/change-password", payload);
+}
+
+export async function updateAccount(payload: {
+  email?: string;
+  username?: string;
+}): Promise<{
+  user: LoginResponse["user"];
+  email_changed: boolean;
+  message: string;
+}> {
+  const { data } = await apiClient.put("/auth/account", payload);
+  return data;
+}
+
+export async function verifyTwoFactor(code: string): Promise<LoginResponse> {
+  const { data } = await apiClient.post("/auth/two-factor/verify", { code });
+  return data;
+}
+
+export interface TwoFactorStatus {
+  enabled: boolean;
+  has_pending_secret: boolean;
+}
+
+export async function getTwoFactorStatus(): Promise<TwoFactorStatus> {
+  const { data } = await apiClient.get("/auth/two-factor/status");
+  return data;
+}
+
+export async function twoFactorSetup(
+  current_password: string
+): Promise<{ secret: string; otpauth_url: string }> {
+  const { data } = await apiClient.post("/auth/two-factor/setup", {
+    current_password,
+  });
+  return data;
+}
+
+export async function twoFactorConfirm(code: string): Promise<{
+  enabled: boolean;
+  message: string;
+}> {
+  const { data } = await apiClient.post("/auth/two-factor/confirm", { code });
+  return data;
+}
+
+export async function twoFactorDisable(payload: {
+  code?: string;
+  current_password?: string;
+}): Promise<{ enabled: boolean; message: string }> {
+  const { data } = await apiClient.post("/auth/two-factor/disable", payload);
+  return data;
+}
+
+export async function deactivateAccount(
+  current_password: string
+): Promise<void> {
+  await apiClient.post("/auth/deactivate", { current_password });
+}
+
+export async function reactivateAccount(
+  email: string,
+  current_password: string
+): Promise<void> {
+  await apiClient.post("/auth/reactivate", { email, current_password });
+}
+
+export async function deleteAccount(current_password: string): Promise<void> {
+  await apiClient.delete("/auth/account", {
+    data: { current_password },
+  });
 }

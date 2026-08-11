@@ -29,9 +29,3 @@ export const DASHBOARD_NAV: NavItem[] = [
   { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
-
-export const PLACEHOLDER_USER = {
-  name: "Alex Morgan",
-  email: "alex@roicard.com",
-  avatarInitials: "AM",
-};

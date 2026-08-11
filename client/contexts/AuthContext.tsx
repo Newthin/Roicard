@@ -6,6 +6,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
@@ -31,6 +32,9 @@ interface AuthContextValue {
   register: (payload: authApi.RegisterPayload) => Promise<void>;
   logout: () => void;
   setSession: (token: string, user: User) => void;
+  twoFactorPending: boolean;
+  submitTwoFactor: (code: string) => Promise<void>;
+  cancelTwoFactor: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -65,6 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [twoFactorPending, setTwoFactorPending] = useState(false);
+  const pendingTokenRef = useRef<string | null>(null);
   const router = useRouter();
 
   const clearState = useCallback(() => {
@@ -81,12 +87,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(newToken);
     setUser(newUser);
   }, []);
-
-  const logout = useCallback(() => {
-    clearStoredSession();
-    clearState();
-    router.push("/auth/login");
-  }, [router, clearState]);
 
   // Boot: restore the cached session, then validate it against GET /me so a
   // token left behind by a previous account never bleeds into the new one.
@@ -170,10 +170,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(
     async (email: string, password: string) => {
       const response = await authApi.login({ email, password });
-      setSession(response.token, response.user);
+
+      if (response.two_factor_required && response.pending_token) {
+        // Persist the pending token so the code-verify request can use it.
+        pendingTokenRef.current = response.pending_token;
+        localStorage.setItem(TOKEN_KEY, response.pending_token);
+        localStorage.setItem(USER_KEY, JSON.stringify(response.user));
+        setTwoFactorPending(true);
+        return;
+      }
+
+      if (response.token) {
+        setSession(response.token, response.user);
+      }
     },
     [setSession]
   );
+
+  const submitTwoFactor = useCallback(
+    async (code: string) => {
+      if (!pendingTokenRef.current) {
+        throw new Error("No pending two-factor session");
+      }
+      // The pending token is already in storage, so the request interceptor
+      // will attach it automatically.
+      try {
+        const response = await authApi.verifyTwoFactor(code);
+        pendingTokenRef.current = null;
+        setTwoFactorPending(false);
+        setSession(response.token!, response.user);
+      } catch (error) {
+        throw error;
+      }
+    },
+    [setSession]
+  );
+
+  const cancelTwoFactor = useCallback(() => {
+    pendingTokenRef.current = null;
+    setTwoFactorPending(false);
+    clearStoredSession();
+  }, []);
+
+  const logout = useCallback(() => {
+    clearStoredSession();
+    clearState();
+    router.push("/auth/login");
+  }, [router, clearState]);
 
   const register = useCallback(
     async (payload: authApi.RegisterPayload) => {
@@ -203,6 +246,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         setSession,
+        twoFactorPending,
+        submitTwoFactor,
+        cancelTwoFactor,
       }}
     >
       {children}

@@ -18,7 +18,6 @@ import { SettingsTabs } from "@/components/settings/SettingsTabs";
 import { getCurrentUserProfile } from "@/lib/profile/storage";
 import type { OnboardingFormData } from "@/lib/profile/types";
 import type { SettingsTab } from "@/lib/settings/types";
-import { PLACEHOLDER_USER } from "@/lib/constants";
 import { useCallback, useEffect, useState } from "react";
 
 export function SettingsView() {
@@ -34,18 +33,13 @@ export function SettingsView() {
       const profile = await getCurrentUserProfile();
       if (profile) {
         const { username, createdAt, membershipStatus, ...formData } = profile;
-        setProfileData(formData);
+        setProfileData({
+          ...getDefaultProfileFormData(),
+          ...formData,
+        });
       }
     } catch {
-      const [firstName, ...rest] = PLACEHOLDER_USER.name.split(" ");
-      setProfileData({
-        ...getDefaultProfileFormData(),
-        firstName,
-        lastName: rest.join(" ") || "",
-        email: PLACEHOLDER_USER.email,
-        professionalTitle: "Product Designer",
-        organization: "Acme Inc.",
-      });
+      // No real profile loaded — keep the default empty form state.
     } finally {
       setIsLoaded(true);
     }

@@ -6,7 +6,6 @@ import { BrandLogo } from "@/components/ui/BrandLogo";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCurrentUserProfile, getCurrentUserProfileSync } from "@/lib/profile/storage";
-import { PLACEHOLDER_USER } from "@/lib/constants";
 import { LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
@@ -81,11 +80,9 @@ export function Navbar({ onMenuOpen }: NavbarProps) {
         <div className="flex items-center gap-3">
           <div className="hidden text-right sm:block">
             <p className="text-sm font-medium text-roicard-text">
-              {user ? `${user.first_name} ${user.last_name}` : PLACEHOLDER_USER.name}
+              {user ? `${user.first_name} ${user.last_name}` : ""}
             </p>
-            <p className="text-xs text-roicard-text-muted">
-              {user?.email || PLACEHOLDER_USER.email}
-            </p>
+            <p className="text-xs text-roicard-text-muted">{user?.email ?? ""}</p>
           </div>
           <div
             className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full roicard-gradient text-sm font-semibold text-roicard-on-primary"
@@ -94,7 +91,7 @@ export function Navbar({ onMenuOpen }: NavbarProps) {
             {photoUrl ? (
               <img src={photoUrl} alt="" className="h-full w-full object-cover" />
             ) : (
-              user ? `${user.first_name[0]}${user.last_name[0]}` : PLACEHOLDER_USER.avatarInitials
+              user && `${user.first_name[0]}${user.last_name[0]}`
             )}
           </div>
         </div>
