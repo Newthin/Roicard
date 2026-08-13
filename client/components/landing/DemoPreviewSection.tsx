@@ -1,8 +1,9 @@
 /**
  * DemoPreviewSection
  *
- * Showcases a live-feeling ROICARD profile preview to build trust and desire.
- * Wraps DemoProfileCard with supporting copy and decorative elements.
+ * "This Is What It Looks Like." live-preview block showcasing a demo identity
+ * card alongside the marketing copy. The "See a Full Profile" link points at a
+ * real public profile route (demo).
  */
 
 import { DemoProfileCard } from "@/components/landing/DemoProfileCard";
@@ -10,52 +11,38 @@ import Link from "next/link";
 
 export function DemoPreviewSection() {
   return (
-    <section id="demo" className="relative py-24 sm:py-32">
-      <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(255,140,66,0.06),_transparent_70%)]"
-        aria-hidden
-      />
+    <section id="demo" className="border-t border-white/[0.08] px-8 py-[100px]">
+      <div className="mx-auto grid max-w-[1180px] items-center gap-14 lg:grid-cols-[1.15fr_0.85fr]">
+        <div>
+          <p className="mb-[26px] inline-flex items-center gap-[9px] font-display text-[12.5px] font-bold uppercase tracking-[0.1em] text-[#A8A29A]">
+            <span className="inline-block h-[6px] w-[6px] rounded-full bg-[linear-gradient(120deg,#FF7A3D,#C0272D)]" />
+            Live preview
+          </p>
+          <h2 className="font-display text-[34px] font-extrabold leading-[1.12] tracking-[-0.02em] text-[#F5F3F0] sm:text-[42px]">
+            This Is What It Looks Like.
+          </h2>
+          <p className="mt-5 max-w-[460px] text-[18px] leading-[1.55] text-[#A8A29A]">
+            A real profile. A real presence. This is Roicard, live.
+          </p>
 
-      <div className="relative mx-auto max-w-7xl px-4 lg:px-8">
-        <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
-          <div className="text-center lg:text-left">
-            <p className="text-sm font-medium uppercase tracking-wider text-roicard-accent">
-              Live preview
-            </p>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-roicard-text sm:text-4xl">
-            More Than a Profile.{" "}
-              <span className="roicard-gradient-text">A Professional Presence.</span>
-            </h2>
-            <p className="mt-4 text-base leading-relaxed text-roicard-text-muted sm:text-lg">
-            Every Roicard profile is a professional identity
-             hub designed to showcase who you are,
-             what you do, what you seek, and the opportunities you can create for others.
-            </p>
-
-            <ul className="mt-8 space-y-3 text-left text-sm text-roicard-text-muted">
-              {[
-                "Build credibility with a verified professional identity",
-                "Make your opportunities and expertise visible",
-                "Turn introductions into meaningful relationships",
-                "Clearly communicate what you’re seeking and what you can offer",
-              ].map((item) => (
-                <li key={item} className="flex items-center gap-3">
-                  <span className="h-1.5 w-1.5 shrink-0 rounded-full roicard-gradient" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-
-            <Link
-              href="/alex-morgan"
-              className="mt-8 inline-block text-sm font-medium text-roicard-accent transition-colors hover:text-roicard-text"
-            >
-              See the Complete Experience →
-            </Link>
-          </div>
-
-          <DemoProfileCard />
+          <Link
+            href="/alex-morgan"
+            className="mt-8 inline-block text-[15px] font-bold text-[#FF7A3D] transition-colors hover:text-[#F5F3F0]"
+          >
+            See a Full Profile →
+          </Link>
         </div>
+
+        <DemoProfileCard
+          profile={{
+            initials: "SJ",
+            name: "Sarah Johnson",
+            role: "VP of Partnerships",
+            organization: "Nexus Ventures",
+            location: "New York, NY",
+          }}
+          className="w-full max-w-sm justify-self-center lg:justify-self-end"
+        />
       </div>
     </section>
   );
