@@ -73,22 +73,26 @@ export function StepMembership() {
           ))}
         </ul>
 
-        <div className="mt-6 flex items-end justify-between border-t border-roicard-border pt-5">
-          <div>
-            <p className="text-xs uppercase tracking-wider text-roicard-text-muted">
-              One-time activation fee
-            </p>
-            <p className="mt-1 text-2xl font-bold text-roicard-text">
-              GHS {MEMBERSHIP_FEE_GHS}
-            </p>
+          <p className="mt-6 border-t border-roicard-border pt-5 font-medium italic leading-relaxed text-roicard-text-muted">
+            &ldquo;Reserved for professionals building something worth being known for.&rdquo;
+          </p>
+
+          <div className="mt-6 flex items-end justify-between border-t border-roicard-border pt-5">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-roicard-text-muted">
+                One-time activation fee
+              </p>
+              <p className="mt-1 text-2xl font-bold text-roicard-text">
+                GHS {MEMBERSHIP_FEE_GHS}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="flex flex-col gap-3">
-        <Button onClick={activateMembership} className="w-full rounded-xl">
-          Activate Membership
-        </Button>
+        <div className="flex flex-col gap-3">
+          <Button onClick={activateMembership} className="w-full rounded-xl">
+            Activate Membership
+          </Button>
         <Button
           variant="secondary"
           onClick={skipMembership}
