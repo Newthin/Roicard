@@ -5,8 +5,7 @@
  * Uses a clean numbered step layout with connecting visual flow.
  */
 
-import { cn } from "@/lib/cn";
-import { Link2, QrCode, UserPlus } from "lucide-react";
+import { Compass, Link2, QrCode, UserPlus } from "lucide-react";
 
 const STEPS = [
   {
@@ -29,6 +28,13 @@ const STEPS = [
     title: "Turn Connections Into Opportunities",
     description:
       "Grow your network, discover mentors and collaborators, and unlock opportunities aligned with your goals.",
+  },
+  {
+    number: "04",
+    icon: Compass,
+    title: "Discover Opportunities",
+    description:
+      "Every profile, every connection, every conversation feeds into one thing: real opportunity.",
   },
 ] as const;
 
@@ -53,21 +59,15 @@ export function StepsSection() {
           </h2>
         </div>
 
-        <div className="relative mt-16 grid gap-8 md:grid-cols-3 md:gap-6">
+        <div className="relative mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
           {/* Connecting line — desktop only */}
           <div
-            className="pointer-events-none absolute left-[16.67%] right-[16.67%] top-14 hidden h-px bg-gradient-to-r from-roicard-primary/40 via-roicard-accent/40 to-roicard-primary/40 md:block"
+            className="pointer-events-none absolute left-[12.5%] right-[12.5%] top-14 hidden h-px bg-gradient-to-r from-roicard-primary/40 via-roicard-accent/40 to-roicard-primary/40 lg:block"
             aria-hidden
           />
 
-          {STEPS.map((step, index) => (
-            <div
-              key={step.number}
-              className={cn(
-                "relative flex flex-col items-center text-center",
-                index === 1 && "md:mt-0"
-              )}
-            >
+          {STEPS.map((step) => (
+            <div key={step.number} className="relative flex flex-col items-center text-center">
               <div className="relative z-10 mb-6 flex h-16 w-16 items-center justify-center rounded-2xl glass-card ring-1 ring-roicard-primary/20">
                 <step.icon className="h-7 w-7 text-roicard-accent" aria-hidden />
                 <span className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full roicard-gradient text-xs font-bold text-roicard-text">
@@ -82,6 +82,14 @@ export function StepsSection() {
             </div>
           ))}
         </div>
+
+        <p className="mx-auto mt-16 max-w-2xl text-center text-base italic leading-relaxed text-roicard-text-muted">
+          <strong className="font-semibold not-italic text-roicard-text">
+            Meaningful relationships create meaningful opportunities.
+          </strong>
+          <br />
+          This is how Roicard makes that real, one connection at a time.
+        </p>
       </div>
     </section>
   );
