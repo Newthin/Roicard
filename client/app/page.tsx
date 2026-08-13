@@ -8,9 +8,9 @@ import { LandingPage } from "@/components/landing";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "ROICARD — You Belong Here.",
+  title: "ROICARD — Your Identity. One Link. Endless Opportunities.",
   description:
-    "Africa's professional identity network. An identity that opens doors — shared through your Smart Card, QR code, or profile link.",
+    "Create your professional identity, share it instantly via QR and NFC, and grow your network with ROICARD.",
 };
 
 export default function HomePage() {

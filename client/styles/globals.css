@@ -61,9 +61,7 @@
   --color-roicard-text: var(--rc-text);
   --color-roicard-text-muted: var(--rc-text-muted);
   --color-roicard-on-primary: var(--rc-on-primary);
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {

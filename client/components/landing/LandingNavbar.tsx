@@ -1,46 +1,75 @@
 /**
  * LandingNavbar
  *
- * Top navigation for the public landing page — warm marketing palette.
- * Links are static destinations in the mockup, wired here to real routes:
- * Features / How it works / Demo are in-page anchors, Sign in and Become a
- * Member point at the real auth routes.
+ * Fixed top navigation for the public landing page.
+ * Provides brand presence and quick access to auth routes.
  */
 
+"use client";
+
+import { BrandLogo } from "@/components/ui/BrandLogo";
+import { Button } from "@/components/ui/Button";
+import { ThemeToggle } from "@/components/theme";
+import { cn } from "@/lib/cn";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export function LandingNavbar() {
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <header className="relative z-50">
-      <div className="mx-auto flex max-w-[1180px] items-center justify-between border-b border-white/[0.08] px-8 py-7">
-        <Link href="/" className="font-display text-[22px] font-extrabold tracking-tight text-[#F5F3F0]">
-          ROI<span className="bg-[linear-gradient(120deg,#FF7A3D,#C0272D)] bg-clip-text text-transparent">A</span>RD
+    <header
+      className={cn(
+        "fixed inset-x-0 top-0 z-50 transition-all duration-300",
+        isScrolled
+          ? "border-b border-roicard-border/60 header-surface backdrop-blur-xl"
+          : "bg-transparent"
+      )}
+    >
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 lg:px-8">
+        <Link href="/" className="inline-flex items-center">
+          <BrandLogo height={26} />
         </Link>
 
-        <nav className="hidden items-center gap-10 text-[15px] text-[#A8A29A] md:flex">
-          <Link href="#features" className="transition-colors hover:text-[#F5F3F0]">
+        <nav className="hidden items-center gap-8 md:flex">
+          <Link
+            href="#features"
+            className="text-sm text-roicard-text-muted transition-colors hover:text-roicard-text"
+          >
             Features
           </Link>
-          <Link href="#how" className="transition-colors hover:text-[#F5F3F0]">
+          <Link
+            href="#how-it-works"
+            className="text-sm text-roicard-text-muted transition-colors hover:text-roicard-text"
+          >
             How it works
           </Link>
-          <Link href="#demo" className="transition-colors hover:text-[#F5F3F0]">
+          <Link
+            href="#demo"
+            className="text-sm text-roicard-text-muted transition-colors hover:text-roicard-text"
+          >
             Demo
           </Link>
         </nav>
 
-        <div className="flex items-center gap-5 text-[15px]">
-          <Link
-            href="/auth/login"
-            className="hidden text-[#A8A29A] transition-colors hover:text-[#F5F3F0] sm:block"
-          >
-            Sign in
+        <div className="flex items-center gap-3">
+          <ThemeToggle compact />
+          <Link href="/auth/login" className="hidden sm:block">
+            <Button variant="ghost" size="sm" className="text-roicard-text-muted">
+              Sign in
+            </Button>
           </Link>
-          <Link
-            href="/auth/register"
-            className="inline-flex items-center rounded-[10px] bg-[linear-gradient(120deg,#FF7A3D,#C0272D)] px-[22px] py-[11px] text-[14.5px] font-semibold text-white shadow-[0_4px_18px_rgba(255,90,40,0.25)] transition-opacity hover:opacity-90"
-          >
-            Become a Member
+          <Link href="/auth/register">
+            <Button size="sm" className="rounded-lg">
+              Get Started
+            </Button>
           </Link>
         </div>
       </div>

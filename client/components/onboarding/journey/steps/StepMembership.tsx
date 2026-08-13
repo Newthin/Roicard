@@ -3,48 +3,16 @@
  *
  * Explains the value of membership before any payment. Payment is OPTIONAL:
  * members can activate now or skip and pay later from their dashboard.
- *
- * Premium "exclusivity" layout: eyebrow, Fraunces heading, feature checklist,
- * positioning quote, and a one-time activation price — with the cooler flat
- * accent palette used across the in-app welcome/membership screens.
  */
 
 "use client";
 
 import { useJourney } from "@/components/onboarding/journey/JourneyContext";
+import { StepHeading } from "@/components/onboarding/journey/StepHeading";
+import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/contexts/AuthContext";
 import { MEMBERSHIP_BENEFITS, MEMBERSHIP_FEE_GHS } from "@/lib/profile/types";
-
-/** Membership screen accent — flat orange, distinct from the landing gradient. */
-const ACCENT = "#E8622C";
-
-function Eyebrow({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="mb-[18px] flex items-center gap-[10px] text-[12px] font-bold uppercase tracking-[0.16em] text-[#E8622C]">
-      <span aria-hidden className="h-[2px] w-7 bg-[#E8622C]" />
-      {children}
-    </p>
-  );
-}
-
-function BenefitItem({ label }: { label: string }) {
-  return (
-    <li className="flex items-start gap-3 py-[11px] text-[16px] font-medium text-[#F5F3EF]">
-      <span className="mt-[2px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[rgba(232,98,44,0.14)]">
-        <svg viewBox="0 0 12 12" fill="none" className="h-[11px] w-[11px]">
-          <path
-            d="M2 6L4.5 8.5L10 3"
-            stroke={ACCENT}
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </span>
-      <span>{label}</span>
-    </li>
-  );
-}
+import { Check } from "lucide-react";
 
 export function StepMembership() {
   const { user } = useAuth();
@@ -53,99 +21,82 @@ export function StepMembership() {
   if (user?.status === "active") {
     return (
       <div className="space-y-7">
-        <Eyebrow>Membership</Eyebrow>
-        <h1 className="font-serif text-[34px] font-semibold leading-[1.1] tracking-[-0.01em] text-[#F5F3EF] sm:text-[40px]">
-          Your Roicard membership
-        </h1>
-        <p className="max-w-[480px] text-[15.5px] leading-[1.6] text-[#A8AAAE]">
-          Your membership is already active — there&apos;s nothing more to do
-          here. Continue to complete your profile.
-        </p>
+        <StepHeading
+          eyebrow="Membership"
+          title="Your Roicard membership"
+          description="Your membership is already active — there's nothing more to do here. Continue to complete your profile."
+        />
 
-        <div className="rounded-[14px] border border-[#2A2C30] bg-[#16181B] px-8 py-7">
-          <p className="mb-[10px] text-[13px] font-semibold uppercase tracking-[0.08em] text-[#9A9CA2]">
+        <div className="rounded-2xl border border-roicard-border bg-roicard-bg-elevated/70 p-6 theme-transition">
+          <p className="text-sm font-semibold text-roicard-text">
             Membership includes
           </p>
-          <ul className="list-none divide-y divide-[#2A2C30]">
+          <ul className="mt-4 space-y-3">
             {MEMBERSHIP_BENEFITS.map((benefit) => (
-              <BenefitItem key={benefit} label={benefit} />
+              <li key={benefit} className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-roicard-primary/15 text-roicard-accent">
+                  <Check className="h-3.5 w-3.5" />
+                </span>
+                <span className="text-sm text-roicard-text">{benefit}</span>
+              </li>
             ))}
           </ul>
         </div>
 
-        <button
-          type="button"
-          onClick={next}
-          className="w-full rounded-[10px] bg-[#E8622C] px-4 py-4 text-[15.5px] font-semibold text-white transition-colors hover:bg-[#E8622C]/90"
-        >
+        <Button onClick={next} className="w-full rounded-xl">
           Already Paid — Continue
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="space-y-7">
-      <Eyebrow>Membership</Eyebrow>
-      <h1 className="font-serif text-[34px] font-semibold leading-[1.1] tracking-[-0.01em] text-[#F5F3EF] sm:text-[40px]">
-        Your Roicard membership
-      </h1>
-      <p className="max-w-[480px] text-[15.5px] leading-[1.6] text-[#A8AAAE]">
-        A one-time activation unlocks everything Roicard has to offer. You can
-        activate now or anytime later — it&apos;s completely optional to
-        continue.
-      </p>
+      <StepHeading
+        eyebrow="Membership"
+        title="Your Roicard membership"
+        description="A one-time activation unlocks everything Roicard has to offer. You can activate now or anytime later — it's completely optional to continue."
+      />
 
-      <div className="rounded-[14px] border border-[#2A2C30] bg-[#16181B] px-8 py-7">
-        <p className="mb-[10px] text-[13px] font-semibold uppercase tracking-[0.08em] text-[#9A9CA2]">
+      <div className="rounded-2xl border border-roicard-border bg-roicard-bg-elevated/70 p-6 theme-transition">
+        <p className="text-sm font-semibold text-roicard-text">
           Membership includes
         </p>
-        <ul className="list-none divide-y divide-[#2A2C30]">
+        <ul className="mt-4 space-y-3">
           {MEMBERSHIP_BENEFITS.map((benefit) => (
-            <BenefitItem key={benefit} label={benefit} />
+            <li key={benefit} className="flex items-start gap-3">
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-roicard-primary/15 text-roicard-accent">
+                <Check className="h-3.5 w-3.5" />
+              </span>
+              <span className="text-sm text-roicard-text">{benefit}</span>
+            </li>
           ))}
         </ul>
 
-        <p className="mt-5 border-t border-[#2A2C30] pt-5 font-serif text-[17px] font-medium italic leading-[1.5] text-[#D9CFC4]">
-          &ldquo;Reserved for professionals building something worth being known
-          for.&rdquo;
-        </p>
-
-        <div className="mt-6 flex items-baseline justify-between border-t border-[#2A2C30] pt-5">
-          <span className="text-[11.5px] font-bold uppercase tracking-[0.1em] text-[#9A9CA2]">
-            One-time activation fee
-          </span>
-          <span className="font-serif text-[26px] font-semibold text-[#F5F3EF]">
-            GHS {MEMBERSHIP_FEE_GHS}
-          </span>
+        <div className="mt-6 flex items-end justify-between border-t border-roicard-border pt-5">
+          <div>
+            <p className="text-xs uppercase tracking-wider text-roicard-text-muted">
+              One-time activation fee
+            </p>
+            <p className="mt-1 text-2xl font-bold text-roicard-text">
+              GHS {MEMBERSHIP_FEE_GHS}
+            </p>
+          </div>
         </div>
       </div>
 
-      {user?.status === "active" ? (
-        <button
-          type="button"
-          onClick={next}
-          className="w-full rounded-[10px] bg-[#E8622C] px-4 py-4 text-[15.5px] font-semibold text-white transition-colors hover:bg-[#E8622C]/90"
-        >
-          Already Paid — Continue
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={activateMembership}
-          className="w-full rounded-[10px] bg-[#E8622C] px-4 py-4 text-[15.5px] font-semibold text-white transition-colors hover:bg-[#E8622C]/90"
-        >
+      <div className="flex flex-col gap-3">
+        <Button onClick={activateMembership} className="w-full rounded-xl">
           Activate Membership
-        </button>
-      )}
-
-      <button
-        type="button"
-        onClick={skipMembership}
-        className="block w-full text-center text-[13.5px] text-[#A8AAAE] underline underline-offset-[3px] transition-colors hover:text-[#F5F3EF]"
-      >
-        Skip for now — I&apos;ll pay later
-      </button>
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={skipMembership}
+          className="w-full rounded-xl"
+        >
+          Skip for now — I&apos;ll pay later
+        </Button>
+      </div>
     </div>
   );
 }

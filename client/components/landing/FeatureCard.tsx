@@ -1,8 +1,8 @@
 /**
  * FeatureCard
  *
- * Card for the landing features grid — warm marketing palette with an icon row
- * and a highlight variant for the flagship capability.
+ * Reusable glassmorphism card for the landing page features grid.
+ * Displays an icon, title, and short description for a single product capability.
  */
 
 import { cn } from "@/lib/cn";
@@ -15,8 +15,6 @@ export type FeatureCardProps = {
   title: string;
   /** One-line feature description */
   description: string;
-  /** Draw attention to the flagship feature */
-  highlight?: boolean;
   /** Optional class names for grid layout overrides */
   className?: string;
 };
@@ -25,30 +23,21 @@ export function FeatureCard({
   icon: Icon,
   title,
   description,
-  highlight = false,
   className,
 }: FeatureCardProps) {
   return (
     <article
       className={cn(
-        "group rounded-[18px] border border-white/[0.08] bg-[#16130F] p-7",
-        highlight &&
-          "border-[rgba(255,122,61,0.4)] bg-[linear-gradient(160deg,rgba(255,122,61,0.07),rgba(192,39,45,0.03))]",
+        "glass-card group rounded-2xl p-6 transition-all duration-300",
+        "hover:border-roicard-accent/25 hover:bg-roicard-bg-elevated/70 hover:shadow-xl hover:shadow-roicard-primary/5",
         className
       )}
     >
-      <div
-        aria-hidden
-        className={cn(
-          "mb-[18px] flex h-[46px] w-[46px] items-center justify-center rounded-xl border border-[rgba(255,122,61,0.25)] bg-[rgba(255,122,61,0.12)] text-[#FF7A3D]"
-        )}
-      >
-        <Icon className="h-5 w-5" />
+      <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-roicard-primary/10 ring-1 ring-roicard-primary/20 transition-colors group-hover:bg-roicard-primary/20">
+        <Icon className="h-6 w-6 text-roicard-accent" aria-hidden />
       </div>
-      <h3 className="font-display text-[17.5px] font-bold text-[#F5F3F0]">
-        {title}
-      </h3>
-      <p className="mt-[10px] text-[14.5px] leading-[1.6] text-[#A8A29A]">
+      <h3 className="text-lg font-semibold text-roicard-text">{title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-roicard-text-muted">
         {description}
       </p>
     </article>

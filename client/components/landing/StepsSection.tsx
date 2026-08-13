@@ -1,85 +1,87 @@
 /**
  * StepsSection
  *
- * "Four Steps From First Tap to Real Opportunity" explainer for the ROICARD
- * journey in the warm marketing palette.
+ * "How it works" three-step explainer for the ROICARD user journey.
+ * Uses a clean numbered step layout with connecting visual flow.
  */
+
+import { cn } from "@/lib/cn";
+import { Link2, QrCode, UserPlus } from "lucide-react";
 
 const STEPS = [
   {
     number: "01",
-    label: "CREATE",
-    title: "Create",
+    icon: UserPlus,
+    title: "Create Your Professional Identity",
     description:
-      "Build your professional identity profile — who you are, what you do, and what you're seeking or offering.",
+      "Build a professional profile that showcases your experience, achievements, aspirations, and opportunities.",
   },
   {
     number: "02",
-    label: "CONNECT",
-    title: "Connect",
+    icon: QrCode,
+    title: "Share Your Identity Anywhere",
     description:
-      "Share it instantly through your Smart Card, a tap, a QR code, or your profile link. No app. No fumbling.",
+      "Use your Roicard profile, QR code, or Smart Card to instantly introduce yourself wherever opportunities happen.",
   },
   {
     number: "03",
-    label: "ENGAGE",
-    title: "Engage",
+    icon: Link2,
+    title: "Turn Connections Into Opportunities",
     description:
-      "The connection doesn't end at the tap. Message, follow up, and build the relationship over time.",
-  },
-  {
-    number: "04",
-    label: "DISCOVER",
-    title: "Discover Opportunities",
-    description:
-      "Every profile, every connection, every conversation feeds into one thing: real opportunity.",
+      "Grow your network, discover mentors and collaborators, and unlock opportunities aligned with your goals.",
   },
 ] as const;
 
 export function StepsSection() {
   return (
-    <section id="how" className="border-t border-white/[0.08] px-8 py-[100px]">
-      <div className="mx-auto max-w-[1180px]">
-        <div className="mx-auto mb-14 max-w-[640px] text-center">
-          <p className="mb-7 inline-flex items-center gap-2 rounded-full border border-[rgba(255,122,61,0.4)] bg-[rgba(255,122,61,0.08)] px-[14px] py-[7px] font-display text-[12.5px] font-bold uppercase tracking-[0.08em] text-[#FF7A3D]">
+    <section id="how-it-works" className="relative py-24 sm:py-32">
+      {/* Subtle section divider glow */}
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-roicard-border to-transparent"
+        aria-hidden
+      />
+
+      <div className="mx-auto max-w-7xl px-4 lg:px-8">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="text-sm font-medium uppercase tracking-wider text-roicard-accent">
             How it works
           </p>
-          <h2 className="font-display text-[32px] font-extrabold tracking-[-0.02em] text-[#F5F3F0] sm:text-[40px]">
-            Four Steps From First Tap to Real Opportunity
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-roicard-text sm:text-4xl">  
+            Build Your Identity. {" "}
+            <span className="roicard-gradient-text">Expand Your Network. </span>
+            Unlock Opportunities.
           </h2>
-          <p className="mt-4 text-[17px] leading-relaxed text-[#A8A29A]">
-            Roicard isn&apos;t a one-time exchange. It&apos;s a journey — from
-            the moment someone taps your card to the relationships and
-            opportunities that follow.
-          </p>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-          {STEPS.map((step) => (
+        <div className="relative mt-16 grid gap-8 md:grid-cols-3 md:gap-6">
+          {/* Connecting line — desktop only */}
+          <div
+            className="pointer-events-none absolute left-[16.67%] right-[16.67%] top-14 hidden h-px bg-gradient-to-r from-roicard-primary/40 via-roicard-accent/40 to-roicard-primary/40 md:block"
+            aria-hidden
+          />
+
+          {STEPS.map((step, index) => (
             <div
               key={step.number}
-              className="relative rounded-[18px] border border-white/[0.08] bg-[#16130F] px-6 py-7"
+              className={cn(
+                "relative flex flex-col items-center text-center",
+                index === 1 && "md:mt-0"
+              )}
             >
-              <p className="mb-4 font-display text-[13px] font-extrabold tracking-[0.05em] text-[#FF7A3D]">
-                {step.number} — {step.label}
-              </p>
-              <h3 className="font-display text-[17px] font-bold text-[#F5F3F0]">
-                {step.title}
-              </h3>
-              <p className="mt-[10px] text-[14px] leading-[1.6] text-[#A8A29A]">
+              <div className="relative z-10 mb-6 flex h-16 w-16 items-center justify-center rounded-2xl glass-card ring-1 ring-roicard-primary/20">
+                <step.icon className="h-7 w-7 text-roicard-accent" aria-hidden />
+                <span className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full roicard-gradient text-xs font-bold text-roicard-text">
+                  {step.number}
+                </span>
+              </div>
+
+              <h3 className="text-xl font-semibold text-roicard-text">{step.title}</h3>
+              <p className="mt-3 max-w-xs text-sm leading-relaxed text-roicard-text-muted">
                 {step.description}
               </p>
             </div>
           ))}
         </div>
-
-        <p className="mt-12 text-center text-[16px] italic text-[#A8A29A]">
-          <strong className="font-semibold not-italic text-[#F5F3F0]">
-            Meaningful relationships create meaningful opportunities.
-          </strong>
-          <br />
-          This is how Roicard makes that real, one connection at a time.
-        </p>
       </div>
     </section>
   );

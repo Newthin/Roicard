@@ -28,7 +28,7 @@ export function StepSeeking() {
         variant="textarea"
         label="What you're seeking"
         name="seeking"
-        placeholder="I'm looking to connect with CEOs, executives, and business leaders — strategic partnerships, board opportunities, and collaboration on high-impact projects."
+        placeholder="I'm looking for internship opportunities in technology, mentorship from experienced entrepreneurs, and opportunities to collaborate on meaningful projects."
         value={data.seeking}
         onChange={(e) => updateField("seeking", e.target.value)}
       />
