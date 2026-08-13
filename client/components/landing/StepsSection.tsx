@@ -1,7 +1,7 @@
 /**
  * StepsSection
  *
- * "How it works" three-step explainer for the ROICARD user journey.
+ * "How it works" four-step explainer for the ROICARD user journey.
  * Uses a clean numbered step layout with connecting visual flow.
  */
 
@@ -57,6 +57,10 @@ export function StepsSection() {
             <span className="roicard-gradient-text">Expand Your Network. </span>
             Unlock Opportunities.
           </h2>
+          <p className="mt-4 text-base leading-relaxed text-roicard-text-muted">
+            Roicard isn&rsquo;t a one-time exchange. It&rsquo;s a journey &mdash; from the moment someone taps
+            your card to the relationships and opportunities that follow.
+          </p>
         </div>
 
         <div className="relative mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
