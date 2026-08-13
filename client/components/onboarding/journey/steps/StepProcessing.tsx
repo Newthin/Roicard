@@ -1,5 +1,5 @@
 /**
- * Step 07 — Processing
+ * Step 11 — Processing
  *
  * Simulates payment confirmation, then automatically advances to Success and
  * marks the membership as active. Mock-only — replace with a real callback.

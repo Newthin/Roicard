@@ -1,5 +1,5 @@
 /**
- * Step 08 — Success
+ * Step 12 — Success
  *
  * Celebrates account creation. Adapts its checklist to whether the member
  * activated membership now or chose to pay later.

@@ -57,19 +57,20 @@ export type JourneyStepId =
 /**
  * Linear order for generic next/back navigation. Payment + processing are
  * NOT included here — they are only reached when a member chooses to activate
- * membership, keeping payment fully optional.
+ * membership, keeping payment fully optional. Payment/Success come last so the
+ * member builds and reviews their profile before completing checkout.
  */
 const LINEAR_STEPS: JourneyStepId[] = [
   "about",
   "identity",
   "contact",
   "interests",
-  "membership",
-  "success",
   "seeking",
   "offering",
   "experiences",
   "review",
+  "membership",
+  "success",
   "complete",
 ];
 

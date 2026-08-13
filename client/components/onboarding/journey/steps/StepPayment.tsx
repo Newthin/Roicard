@@ -1,5 +1,5 @@
 /**
- * Step 06 — Payment
+ * Step 10 — Payment
  *
  * Real payment method selection for members who chose to activate now.
  * Submits a payment to the backend, persists the journey snapshot, and

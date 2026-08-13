@@ -1,5 +1,5 @@
 /**
- * Step 09 — Seeking
+ * Step 05 — Seeking
  *
  * Lets members express what opportunities they're looking for so the community
  * understands how to support them. Optional — can be updated later.

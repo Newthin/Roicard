@@ -1,5 +1,5 @@
 /**
- * Step 12 — Review Profile
+ * Step 08 — Review Profile
  *
  * Final review before going live. Uses the shared PublicProfileCardStack so
  * the layout matches the live /[username] page — hero and detail cards only.

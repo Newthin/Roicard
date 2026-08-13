@@ -1,5 +1,5 @@
 /**
- * Step 11 — Add Experiences Later
+ * Step 07 — Add Experiences Later
  *
  * Reassures members they can grow their profile over time. CV uploads are out
  * of MVP1; members add experiences/achievements/projects later.

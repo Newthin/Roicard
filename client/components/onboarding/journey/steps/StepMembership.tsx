@@ -1,5 +1,5 @@
 /**
- * Step 05 — Membership
+ * Step 09 — Membership
  *
  * Explains the value of membership before any payment. Payment is OPTIONAL:
  * members can activate now or skip and pay later from their dashboard.

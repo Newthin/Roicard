@@ -1,5 +1,5 @@
 /**
- * Step 10 — Offering
+ * Step 06 — Offering
  *
  * Lets members share the value, skills, or opportunities they can offer others.
  * Optional — can be updated later.

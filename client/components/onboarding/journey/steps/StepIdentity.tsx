@@ -1,5 +1,5 @@
 /**
- * Step 03 — Professional Identity
+ * Step 02 — Professional Identity
  *
  * Foundation of the member's public profile: photo, headline, short bio,
  * university/company, and location. Shows a live profile URL preview.
