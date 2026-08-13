@@ -7,7 +7,7 @@
 
 import { FeatureCard } from "@/components/landing/FeatureCard";
 import {
-  BarChart3,
+  BadgeCheck,
   Link2,
   QrCode,
   Shield,
@@ -17,40 +17,40 @@ import {
 
 const FEATURES = [
   {
-    icon: UserCircle,
-    title: "Professional Identity",
-    description:
-      "Create a professional profile that showcases who you are, what you do, and the opportunities you seek and offer.",
-  },
-  {
     icon: QrCode,
-    title: "Instant Identity Sharing",
+    title: "One Tap. Instantly Shared.",
     description:
-      "Share your professional identity in seconds through your Roicard profile, QR code, or Smart Card experience."
-  },
-  {
-    icon: Link2,
-    title: "Meaningful Connections",
-    description:
-      "Connect with professionals, students, founders, mentors, and opportunities that align with your goals.",
-  },
-  {
-    icon: Users,
-    title: "Community & Opportunity Network",
-    description:
-      "Discover people who can help you grow and make it easier for others to discover what you seek and offer.",
-  },
-  {
-    icon: BarChart3,
-    title: "Seeking & Offering",
-    description:
-      "Let others know the opportunities you’re seeking and the value you can offer, making every connection more intentional.",
+      "Your identity, shared through your Smart Card, QR code, or profile link. No app. No fumbling for a card that gets lost.",
   },
   {
     icon: Shield,
-    title: "Verified Professional Presence",
+    title: "This Isn't a Card. It's an Identity.",
     description:
-      "Build trust with a professional profile designed to present your achievements, experience, and aspirations credibly.",
+      "The infrastructure behind every connection you make — built to last past the first hello.",
+  },
+  {
+    icon: Users,
+    title: "A Network Built for Opportunity.",
+    description:
+      "Professionals, students, founders, mentors — the people and opportunities that move you forward.",
+  },
+  {
+    icon: UserCircle,
+    title: "Who You Are. In One Place.",
+    description:
+      "A professional profile that shows what you do, and the opportunities you seek and offer.",
+  },
+  {
+    icon: Link2,
+    title: "Say What You Need.",
+    description:
+      "The opportunities you're seeking. The value you offer. Every connection, intentional from the start.",
+  },
+  {
+    icon: BadgeCheck,
+    title: "Trust, Built In.",
+    description:
+      "Your achievements and experience, presented credibly. Trust before the first word.",
   },
 ] as const;
 
@@ -60,15 +60,14 @@ export function FeaturesSection() {
       <div className="mx-auto max-w-7xl px-4 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-medium uppercase tracking-wider text-roicard-accent">
-            Features
+            Identity
           </p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-roicard-text sm:text-4xl">
-          Build Your Professional Identity.{" "}
-            <span className="roicard-gradient-text">Expand Your Opportunities.</span>
+          One Identity.{" "}
+            <span className="roicard-gradient-text">Every Opportunity.</span>
           </h2>
           <p className="mt-4 text-base text-roicard-text-muted sm:text-lg">
-          Roicard helps you build a credible professional presence, create meaningful connections, 
-          and unlock opportunities through one professional identity network.
+          Roicard isn't a card you carry. It's an identity that carries you.
           </p>
         </div>
 

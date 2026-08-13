@@ -9,7 +9,7 @@ import { LandingProfilePreview } from "@/components/landing/LandingProfilePrevie
 import { Button } from "@/components/ui/Button";
 import { EMPTY_ONBOARDING_DATA, type UserProfile } from "@/lib/profile/types";
 import Link from "next/link";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 /** Mock identity used purely for the decorative hero visual. */
 const HERO_PROFILE: UserProfile = {
@@ -43,21 +43,19 @@ export function HeroSection() {
       <div className="relative mx-auto grid max-w-7xl items-center gap-16 px-4 lg:grid-cols-2 lg:gap-12 lg:px-8">
         {/* Copy column */}
         <div className="text-center lg:text-left">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-roicard-border/80 bg-roicard-bg-elevated/60 px-4 py-1.5 text-xs font-medium uppercase tracking-wider text-roicard-accent backdrop-blur-sm">
-            <Sparkles className="h-3.5 w-3.5" />
-            You are welcome to Roicard
+          <div className="mb-6 inline-flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.1em] text-roicard-text-muted">
+            <span className="h-1.5 w-1.5 rounded-full roicard-gradient" aria-hidden />
+            Africa&rsquo;s Professional Identity Network
           </div>
 
           <h1 className="text-4xl font-bold leading-[1.1] tracking-tight text-roicard-text sm:text-5xl lg:text-6xl xl:text-[3.5rem]">
-          Africa's Professional Identity{" "}
-            <span className="roicard-gradient-text">And</span>
-            <br />
-            Smart Network Community.
+            You{" "}
+            <span className="roicard-gradient-text">Belong</span>{" "}
+            Here.
           </h1>
 
           <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-roicard-text-muted sm:text-lg lg:mx-0">
-          Build your professional identity, Grow meaningful connections, 
-          and access opportunities that move your life forward.
+            Built for Africa&rsquo;s most ambitious professionals &mdash; an identity that opens doors.
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row lg:justify-start">
@@ -66,7 +64,7 @@ export function HeroSection() {
                 size="lg"
                 className="group h-12 min-w-[180px] rounded-xl px-8 text-base shadow-lg shadow-roicard-primary/25 transition-all hover:shadow-roicard-primary/40 sm:h-14"
               >
-                Become a member
+                Become a Member
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Button>
             </Link>

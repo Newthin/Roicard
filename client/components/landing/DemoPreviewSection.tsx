@@ -23,34 +23,18 @@ export function DemoPreviewSection() {
               Live preview
             </p>
             <h2 className="mt-3 text-3xl font-bold tracking-tight text-roicard-text sm:text-4xl">
-            More Than a Profile.{" "}
-              <span className="roicard-gradient-text">A Professional Presence.</span>
+              This Is What{" "}
+              <span className="roicard-gradient-text">It Looks Like.</span>
             </h2>
             <p className="mt-4 text-base leading-relaxed text-roicard-text-muted sm:text-lg">
-            Every Roicard profile is a professional identity
-             hub designed to showcase who you are,
-             what you do, what you seek, and the opportunities you can create for others.
+              A real profile. A real presence. This is Roicard, live.
             </p>
-
-            <ul className="mt-8 space-y-3 text-left text-sm text-roicard-text-muted">
-              {[
-                "Build credibility with a verified professional identity",
-                "Make your opportunities and expertise visible",
-                "Turn introductions into meaningful relationships",
-                "Clearly communicate what you’re seeking and what you can offer",
-              ].map((item) => (
-                <li key={item} className="flex items-center gap-3">
-                  <span className="h-1.5 w-1.5 shrink-0 rounded-full roicard-gradient" />
-                  {item}
-                </li>
-              ))}
-            </ul>
 
             <Link
               href="/alex-morgan"
               className="mt-8 inline-block text-sm font-medium text-roicard-accent transition-colors hover:text-roicard-text"
             >
-              See the Complete Experience →
+              See a Full Profile →
             </Link>
           </div>
 

@@ -11,23 +11,23 @@ const STEPS = [
   {
     number: "01",
     icon: UserPlus,
-    title: "Create Your Professional Identity",
+    title: "Create",
     description:
-      "Build a professional profile that showcases your experience, achievements, aspirations, and opportunities.",
+      "Build your professional identity profile — who you are, what you do, and what you're seeking or offering.",
   },
   {
     number: "02",
     icon: QrCode,
-    title: "Share Your Identity Anywhere",
+    title: "Connect",
     description:
-      "Use your Roicard profile, QR code, or Smart Card to instantly introduce yourself wherever opportunities happen.",
+      "Share it instantly through your Smart Card, a tap, a QR code, or your profile link. No app. No fumbling.",
   },
   {
     number: "03",
     icon: Link2,
-    title: "Turn Connections Into Opportunities",
+    title: "Engage",
     description:
-      "Grow your network, discover mentors and collaborators, and unlock opportunities aligned with your goals.",
+      "The connection doesn't end at the tap. Message, follow up, and build the relationship over time.",
   },
   {
     number: "04",
@@ -53,9 +53,8 @@ export function StepsSection() {
             How it works
           </p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-roicard-text sm:text-4xl">  
-            Build Your Identity. {" "}
-            <span className="roicard-gradient-text">Expand Your Network. </span>
-            Unlock Opportunities.
+            Four Steps From{" "}
+            <span className="roicard-gradient-text">First Tap</span> to Real Opportunity.
           </h2>
           <p className="mt-4 text-base leading-relaxed text-roicard-text-muted">
             Roicard isn&rsquo;t a one-time exchange. It&rsquo;s a journey &mdash; from the moment someone taps
