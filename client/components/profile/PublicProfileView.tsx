@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/Button";
 import { addGuestConnectionRequest } from "@/lib/connections/storage";
 import type { PublicProfile } from "@/lib/api/profile";
 import { getPublicProfile, trackProfileEvent } from "@/lib/api/profile";
+import { DEMO_PUBLIC_PROFILE, DEMO_SLUG } from "@/lib/profile/demo";
 import type {
   ConnectionRequestData,
   ConnectionState,
@@ -158,6 +159,7 @@ export function PublicProfileView({ username }: PublicProfileViewProps) {
   const [connectionState, setConnectionState] =
     useState<ConnectionState>("none");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDemo, setIsDemo] = useState(false);
 
   useEffect(() => {
     getPublicProfile(username.toLowerCase())
@@ -167,7 +169,17 @@ export function PublicProfileView({ username }: PublicProfileViewProps) {
       })
       .catch((err) => {
         const status = err?.response?.status;
-        setProfileStatus(status === 403 ? "draft" : "not_found");
+        if (status === 403) {
+          setProfileStatus("draft");
+        } else if (username.toLowerCase() === DEMO_SLUG) {
+          // No real member owns this slug yet — show the demo profile so
+          // visitors can see exactly what they get after signing up.
+          setProfile(DEMO_PUBLIC_PROFILE);
+          setProfileStatus("active");
+          setIsDemo(true);
+        } else {
+          setProfileStatus("not_found");
+        }
       })
       .finally(() => setIsLoaded(true));
   }, [username]);
@@ -301,6 +313,25 @@ export function PublicProfileView({ username }: PublicProfileViewProps) {
       <ProfileAmbientBackdrop />
 
       <main className="relative mx-auto w-full max-w-[480px] px-4 pb-16 pt-6 sm:px-6">
+        {isDemo && (
+          <div className="mb-5 rounded-2xl border border-roicard-accent/30 bg-roicard-accent/10 p-4 text-center">
+            <p className="text-sm font-semibold text-roicard-text">
+              This is a sample profile
+            </p>
+            <p className="mt-1 text-xs text-roicard-text-muted">
+              See exactly what your ROICARD looks like after you sign up and
+              complete onboarding.
+            </p>
+            <Link href="/auth/register" className="mt-3 inline-block">
+              <Button
+                className="h-10 rounded-xl px-5 text-sm"
+              >
+                Create your ROICARD
+              </Button>
+            </Link>
+          </div>
+        )}
+
         <div className="onboarding-step-enter">
           <PublicProfileCardStack
             profile={cardProfile!}

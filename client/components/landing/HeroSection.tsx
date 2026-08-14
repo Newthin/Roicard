@@ -7,24 +7,9 @@
 
 import { LandingProfilePreview } from "@/components/landing/LandingProfilePreview";
 import { Button } from "@/components/ui/Button";
-import { EMPTY_ONBOARDING_DATA, type UserProfile } from "@/lib/profile/types";
+import { DEMO_USER_PROFILE } from "@/lib/profile/demo";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-
-/** Mock identity used purely for the decorative hero visual. */
-const HERO_PROFILE: UserProfile = {
-  ...EMPTY_ONBOARDING_DATA,
-  firstName: "Alex",
-  lastName: "Morgan",
-  profilePhotoUrl: "/images/demo-avatar-male.png",
-  professionalTitle: "Product Designer",
-  organization: "Acme Inc.",
-  location: "Accra, Ghana",
-  bio: "Designing intuitive digital experiences that create meaningful impact.",
-  username: "alex-morgan",
-  createdAt: new Date().toISOString(),
-  membershipStatus: "active",
-};
 
 export function HeroSection() {
   return (
@@ -88,7 +73,7 @@ export function HeroSection() {
             inert
           >
             <LandingProfilePreview
-              profile={HERO_PROFILE}
+              profile={DEMO_USER_PROFILE}
               className="shadow-2xl shadow-black/50 ring-1 ring-white/10"
             />
           </div>
