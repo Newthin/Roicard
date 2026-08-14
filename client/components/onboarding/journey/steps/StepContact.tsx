@@ -11,9 +11,25 @@ import { FormField } from "@/components/onboarding/FormField";
 import { useJourney } from "@/components/onboarding/journey/JourneyContext";
 import { StepHeading } from "@/components/onboarding/journey/StepHeading";
 import { Button } from "@/components/ui/Button";
+import { Plus } from "lucide-react";
+import { useState } from "react";
+
+const DEFAULT_SOCIALS = [
+  { key: "linkedin", label: "LinkedIn", placeholder: "linkedin.com/in/username" },
+  { key: "instagram", label: "Instagram", placeholder: "instagram.com/username" },
+  { key: "twitter", label: "X / Twitter", placeholder: "x.com/username" },
+  { key: "website", label: "Website", placeholder: "yourwebsite.com" },
+] as const;
+
+const MORE_SOCIALS = [
+  { key: "facebook", label: "Facebook", placeholder: "facebook.com/username" },
+  { key: "tiktok", label: "TikTok", placeholder: "tiktok.com/@username" },
+  { key: "snapchat", label: "Snapchat", placeholder: "snapchat.com/add/username" },
+] as const;
 
 export function StepContact() {
   const { data, updateField, updateSocial, next } = useJourney();
+  const [showMore, setShowMore] = useState(false);
 
   return (
     <div className="space-y-7">
@@ -59,56 +75,43 @@ export function StepContact() {
           Social links
         </p>
         <div className="grid gap-5 sm:grid-cols-2">
-          <FormField
-            label="LinkedIn"
-            name="linkedin"
-            placeholder="linkedin.com/in/username"
-            value={data.social.linkedin}
-            onChange={(e) => updateSocial("linkedin", e.target.value)}
-          />
-          <FormField
-            label="Instagram"
-            name="instagram"
-            placeholder="instagram.com/username"
-            value={data.social.instagram}
-            onChange={(e) => updateSocial("instagram", e.target.value)}
-          />
-          <FormField
-            label="X / Twitter"
-            name="twitter"
-            placeholder="x.com/username"
-            value={data.social.twitter}
-            onChange={(e) => updateSocial("twitter", e.target.value)}
-          />
-          <FormField
-            label="Facebook"
-            name="facebook"
-            placeholder="facebook.com/username"
-            value={data.social.facebook}
-            onChange={(e) => updateSocial("facebook", e.target.value)}
-          />
-          <FormField
-            label="TikTok"
-            name="tiktok"
-            placeholder="tiktok.com/@username"
-            value={data.social.tiktok}
-            onChange={(e) => updateSocial("tiktok", e.target.value)}
-          />
-          <FormField
-            label="Snapchat"
-            name="snapchat"
-            placeholder="snapchat.com/add/username"
-            value={data.social.snapchat}
-            onChange={(e) => updateSocial("snapchat", e.target.value)}
-          />
+          {DEFAULT_SOCIALS.map(({ key, label, placeholder }) => (
+            <FormField
+              key={key}
+              label={label}
+              name={key}
+              placeholder={placeholder}
+              value={data.social[key]}
+              onChange={(e) => updateSocial(key, e.target.value)}
+            />
+          ))}
+          {showMore &&
+            MORE_SOCIALS.map(({ key, label, placeholder }) => (
+              <FormField
+                key={key}
+                label={label}
+                name={key}
+                placeholder={placeholder}
+                value={data.social[key]}
+                onChange={(e) => updateSocial(key, e.target.value)}
+              />
+            ))}
         </div>
-        <FormField
-          label="Website"
-          name="website"
-          placeholder="yourwebsite.com"
-          value={data.social.website}
-          onChange={(e) => updateSocial("website", e.target.value)}
-        />
+
+        <button
+          type="button"
+          onClick={() => setShowMore((prev) => !prev)}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-roicard-accent transition-colors hover:text-roicard-text"
+        >
+          {showMore ? (
+            "Show fewer"
+          ) : (
+            <>
+              <Plus className="h-4 w-4" />
+              Add more
+            </>
+          )}
+        </button>
       </div>
 
       <Button onClick={next} className="w-full rounded-xl">
