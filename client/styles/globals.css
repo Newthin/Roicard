@@ -135,10 +135,24 @@
     );
   }
 
-  .landing-profile-card-bg {
+.landing-profile-card-bg {
+    /* The pseudo-element fade below sits on top of the photo but behind the
+       card content — isolation guarantees a stacking context for that. */
+    isolation: isolate;
     background-image: var(--rc-landing-card-bg);
     background-position: center;
     background-size: cover;
+  }
+
+  .landing-profile-card-bg::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 40%;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(to top, var(--rc-bg), transparent);
   }
 
   .header-surface {
