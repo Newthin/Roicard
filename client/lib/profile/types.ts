@@ -138,7 +138,6 @@ export const MEMBERSHIP_BENEFITS = [
   "Professional Identity Profile",
   "Personalized Profile Link",
   "Smart Networking Features",
-  "Community Access",
   "Roicard Smart Card",
 ] as const;
 
