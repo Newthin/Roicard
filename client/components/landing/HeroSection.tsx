@@ -33,7 +33,7 @@ export function HeroSection() {
             Africa&rsquo;s Professional Identity Network
           </div>
 
-          <h1 className="text-4xl font-bold leading-[1.1] tracking-tight text-roicard-text sm:text-5xl lg:text-6xl xl:text-[3.5rem]">
+          <h1 className="text-5xl font-bold leading-[1.1] tracking-tight text-roicard-text sm:text-6xl lg:text-7xl xl:text-[4.5rem]">
             You{" "}
             <span className="roicard-gradient-text">Belong</span>{" "}
             Here.
