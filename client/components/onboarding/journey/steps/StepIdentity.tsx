@@ -37,8 +37,8 @@ export function StepIdentity() {
     <div className="space-y-7">
       <StepHeading
         eyebrow="Professional identity"
-        title="Build your professional identity"
-        description="This is the foundation of your public profile. You can refine everything later from your dashboard."
+        title="Build Your Professional Identity."
+        description="The foundation of your public profile — refine it anytime from your dashboard."
       />
 
       {/* Profile photo */}

@@ -17,13 +17,13 @@ export function StepSuccess() {
   const isActive = membershipStatus === "active";
 
   const items = [
-    {
-      label: isActive ? "Membership Activated" : "Membership reserved (pay later)",
-      done: isActive,
-    },
     { label: "Profile Created", done: true },
     { label: "Profile Link Generated", done: true },
     { label: "Roicard Smart Card Reserved", done: true },
+    {
+      label: isActive ? "Membership Activated" : "Membership — Pending Activation",
+      done: isActive,
+    },
   ];
 
   return (
@@ -38,8 +38,8 @@ export function StepSuccess() {
           title="Welcome to Roicard!"
           description={
             isActive
-              ? "Your membership is active and your professional identity is taking shape."
-              : "Your account is ready. You can activate your membership anytime from your dashboard."
+              ? "Your membership is active. Your profile is live and your professional identity is taking shape."
+              : "Your profile is created — saved privately as a draft. Activate anytime from your dashboard to go live."
           }
         />
       </div>
@@ -48,13 +48,17 @@ export function StepSuccess() {
         {items.map((item) => (
           <li
             key={item.label}
-            className="flex items-center gap-3 rounded-xl border border-roicard-border bg-roicard-bg-elevated/70 px-4 py-3"
+            className={
+              item.done
+                ? "flex items-center gap-3 rounded-xl border border-roicard-border bg-roicard-bg-elevated/70 px-4 py-3"
+                : "flex items-center gap-3 rounded-xl border border-dashed border-roicard-border px-4 py-3 opacity-75"
+            }
           >
             <span
               className={
                 item.done
                   ? "flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400"
-                  : "flex h-6 w-6 items-center justify-center rounded-full bg-roicard-bg-muted text-roicard-text-muted"
+                  : "flex h-6 w-6 items-center justify-center rounded-full border-[1.5px] border-roicard-text-muted text-roicard-text-muted"
               }
             >
               {item.done ? (
@@ -63,7 +67,13 @@ export function StepSuccess() {
                 <Clock className="h-4 w-4" />
               )}
             </span>
-            <span className="text-sm font-medium text-roicard-text">
+            <span
+              className={
+                item.done
+                  ? "text-sm font-medium text-roicard-text"
+                  : "text-sm font-medium text-roicard-text-muted"
+              }
+            >
               {item.label}
             </span>
           </li>

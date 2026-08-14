@@ -21,7 +21,7 @@ export function StepOffering() {
       <StepHeading
         eyebrow="Offering"
         title="What can you offer others?"
-        description="Share the value, skills, knowledge, or opportunities you can provide."
+        description="Share what you can offer the community."
       />
 
       <FormField

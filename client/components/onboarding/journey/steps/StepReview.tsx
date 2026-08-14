@@ -43,7 +43,7 @@ export function StepReview() {
         <StepHeading
           eyebrow="Review"
           title="Review your profile"
-          description="This is how visitors will see your ROICARD. Take a final look before your professional identity goes live."
+          description="This is how visitors will see your Roicard. Take a final look before your professional identity goes live."
         />
       </div>
 

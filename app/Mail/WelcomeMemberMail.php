@@ -27,7 +27,7 @@ class WelcomeMemberMail extends Mailable implements ShouldQueue
         return new Envelope(
             subject: $this->variant === 'member'
                 ? 'Welcome to Roicard — your membership is active!'
-                : 'Welcome to Roicard — your profile is live!',
+                : 'Welcome to Roicard!',
         );
     }
 

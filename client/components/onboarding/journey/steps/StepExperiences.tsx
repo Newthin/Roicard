@@ -27,8 +27,8 @@ export function StepExperiences() {
       <StepHeading
         centered
         eyebrow="Your profile grows with you"
-        title="Build your profile over time"
-        description="You can always add experiences, achievements, projects, and professional highlights later from your dashboard."
+        title="Build Your Profile Over Time."
+        description="Add experiences, achievements, and more — anytime, from your dashboard."
       />
 
       <div className="grid grid-cols-2 gap-4">

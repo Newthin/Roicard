@@ -23,7 +23,7 @@ export function StepMembership() {
       <div className="space-y-7">
         <StepHeading
           eyebrow="Membership"
-          title="Your Roicard membership"
+          title="Your Roicard Membership."
           description="Your membership is already active — there's nothing more to do here. Continue to complete your profile."
         />
 
@@ -54,8 +54,8 @@ export function StepMembership() {
     <div className="space-y-7">
       <StepHeading
         eyebrow="Membership"
-        title="Your Roicard membership"
-        description="A one-time activation unlocks everything Roicard has to offer. You can activate now or anytime later — it's completely optional to continue."
+        title="Your Roicard Membership."
+        description="One activation. Full access to everything Roicard offers."
       />
 
       <div className="rounded-2xl border border-roicard-border bg-roicard-bg-elevated/70 p-6 theme-transition">
@@ -98,7 +98,7 @@ export function StepMembership() {
           onClick={skipMembership}
           className="w-full rounded-xl"
         >
-          Skip for now — I&apos;ll pay later
+          Not ready yet? Skip for now — your profile stays private as a draft until you activate.
         </Button>
       </div>
     </div>

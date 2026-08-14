@@ -2,9 +2,9 @@
 # @if($variant === 'member') Welcome aboard, {{ $user->first_name }}! @else Welcome to Roicard, {{ $user->first_name }}! @endif
 
 @if($variant === 'member')
-Your ROICARD membership is now **active**. Your professional card is live and ready to be shared — start connecting with the community today.
+Your Roicard membership is now **active**. Your professional card is live and ready to be shared — start connecting with the community today.
 @else
-Your ROICARD profile is now live and shareable. Upgrade to an active membership at any time to unlock the full ROICARD experience.
+Your Roicard profile has been created and saved privately as a draft. Activate your membership anytime to make it live and start sharing your identity with the community.
 @endif
 
 <x-mail::button :url="config('app.frontend_url') . '/dashboard'">
