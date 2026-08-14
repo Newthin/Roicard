@@ -38,6 +38,7 @@ export function LandingProfilePreview({
     <div
       className={cn(
         "relative w-full max-w-sm overflow-hidden rounded-3xl border border-roicard-border/70 bg-roicard-bg-elevated/80 shadow-[0_10px_30px_-12px_var(--rc-shadow)] backdrop-blur-sm theme-transition",
+        "landing-profile-card-bg",
         className
       )}
     >

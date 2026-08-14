@@ -26,6 +26,7 @@
   --rc-chart-grid: #2a2a2a;
   --rc-selection-bg: rgba(230, 57, 70, 0.3);
   --rc-header-bg: rgba(17, 17, 17, 0.95);
+  --rc-landing-card-bg: url('/images/card%20bg%20dark.jpg');
 }
 
 [data-theme="light"] {
@@ -48,6 +49,7 @@
   --rc-chart-grid: #e2e5eb;
   --rc-selection-bg: rgba(230, 57, 70, 0.2);
   --rc-header-bg: rgba(247, 248, 250, 0.95);
+  --rc-landing-card-bg: url('/images/card%20bg%20light.jpg');
 }
 
 @theme {
@@ -131,6 +133,12 @@
       var(--rc-profile-glow),
       transparent 50%
     );
+  }
+
+  .landing-profile-card-bg {
+    background-image: var(--rc-landing-card-bg);
+    background-position: center;
+    background-size: cover;
   }
 
   .header-surface {
