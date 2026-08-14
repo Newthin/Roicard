@@ -12,7 +12,7 @@ import { useJourney } from "@/components/onboarding/journey/JourneyContext";
 import { StepHeading } from "@/components/onboarding/journey/StepHeading";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
-import { PUBLIC_PROFILE_DOMAIN } from "@/lib/profile/types";
+import { getPublicProfileUrl } from "@/lib/profile/username";
 import { Camera, Upload } from "lucide-react";
 import { ChangeEvent } from "react";
 
@@ -120,7 +120,7 @@ export function StepIdentity() {
           Your profile link
         </p>
         <p className="mt-1 break-all text-sm font-medium text-roicard-accent">
-          {PUBLIC_PROFILE_DOMAIN}/{username}
+          {getPublicProfileUrl(username).replace(/^https?:\/\//, "")}
         </p>
       </div>
 

@@ -114,9 +114,6 @@ export const EMPTY_ONBOARDING_DATA: OnboardingFormData = {
   offering: "",
 };
 
-/** Public profile domain used for the profile URL preview during onboarding. */
-export const PUBLIC_PROFILE_DOMAIN = "roicard.africa";
-
 /** Gender options a member can select during onboarding. */
 export const GENDER_OPTIONS = [
   { value: "male", label: "Male" },
