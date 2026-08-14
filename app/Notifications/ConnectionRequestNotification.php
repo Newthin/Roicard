@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\Connection;
 use Illuminate\Bus\Queueable;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class ConnectionRequestNotification extends Notification
@@ -16,7 +17,18 @@ class ConnectionRequestNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'mail'];
+    }
+
+    public function toMail(object $notifiable): MailMessage
+    {
+        $connection = $this->connectionData;
+
+        return (new MailMessage)
+            ->subject('New connection request on Roicard')
+            ->markdown('emails.notifications.connection-request', [
+                'connection' => $connection,
+            ]);
     }
 
     public function toArray(object $notifiable): array
