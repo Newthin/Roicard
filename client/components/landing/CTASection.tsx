@@ -23,7 +23,7 @@ export function CTASection() {
           <div className="absolute inset-0 bg-roicard-bg/20 backdrop-blur-[2px]" aria-hidden />
 
           <div className="relative px-6 py-16 text-center sm:px-12 sm:py-20">
-            <h2 className="text-3xl font-bold tracking-tight text-roicard-on-primary sm:text-4xl lg:text-5xl">
+            <h2 className="text-4xl font-bold tracking-tight text-roicard-on-primary sm:text-5xl lg:text-6xl">
             You Belong Here.
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-base text-roicard-on-primary/80 sm:text-lg">
