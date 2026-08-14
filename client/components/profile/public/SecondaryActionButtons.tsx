@@ -1,9 +1,9 @@
 /**
  * SecondaryActionButtons
  *
- * Secondary actions shown beneath the primary CTA: "Save Contact" (downloads a
+ * Secondary actions shown beneath the primary CTA: "Add Contact" (downloads a
  * vCard) and "WhatsApp" (opens a chat). When no WhatsApp handler is provided
- * (the member shared no number), "Save Contact" spans the full width.
+ * (the member shared no number), "Add Contact" spans the full width.
  * Built on the shared Button component so styling stays consistent.
  */
 
@@ -31,7 +31,7 @@ export function SecondaryActionButtons({
         onClick={onSaveContact}
       >
         <Download className="h-4 w-4 text-roicard-accent" aria-hidden />
-        Save Contact
+        Add Contact
       </Button>
 
       {onWhatsApp && (

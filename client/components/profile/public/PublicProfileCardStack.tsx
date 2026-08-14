@@ -3,7 +3,7 @@
  *
  * Shared card stack for the public /[username] profile and owner previews
  * (onboarding review, dashboard hub). Renders ProfileHero, an optional
- * actions slot for visitor CTAs (Connect, Save Contact, WhatsApp), then the
+ * actions slot for visitor CTAs (Connect, Add Contact, WhatsApp), then the
  * detail cards. Omit `actions` when the member is previewing their own card.
  *
  * Layout is always a single vertical column — mobile-first, centered on larger

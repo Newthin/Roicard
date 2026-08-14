@@ -3,7 +3,7 @@
  *
  * Live preview of the member's public ROICARD card for the dashboard hub.
  * Delegates to PublicProfileCardStack — hero and detail cards only. Visitor
- * actions (Connect, Save Contact, WhatsApp) are omitted when previewing
+ * actions (Connect, Add Contact, WhatsApp) are omitted when previewing
  * your own profile.
  */
 
