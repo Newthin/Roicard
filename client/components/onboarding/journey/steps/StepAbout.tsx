@@ -27,7 +27,7 @@ export function StepAbout() {
         <FormField
           label="First Name"
           name="firstName"
-          placeholder="Moses"
+          placeholder="Emmanuel"
           autoComplete="given-name"
           value={data.firstName}
           onChange={(e) => updateField("firstName", e.target.value)}
@@ -36,7 +36,7 @@ export function StepAbout() {
         <FormField
           label="Last Name"
           name="lastName"
-          placeholder="Godsword"
+          placeholder="Winso"
           autoComplete="family-name"
           value={data.lastName}
           onChange={(e) => updateField("lastName", e.target.value)}
