@@ -3,7 +3,7 @@
 
 Your Roicard QR code was just scanned! 🎉
 
-Someone scanned your QR code to view your profile. Your card is being shared in the real world.
+Someone scanned your QR code to view your profile.
 
 <x-mail::button :url="config('app.frontend_url') . '/dashboard/analytics'">
 View Your Analytics
