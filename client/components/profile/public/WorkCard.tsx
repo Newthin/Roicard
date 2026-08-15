@@ -31,7 +31,7 @@ export function WorkCard({
   return (
     <ProfileCard>
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 px-5 pt-4">
+      <div className="flex items-center justify-between gap-3 border-b border-roicard-border/60 px-5 pb-3 pt-4">
         <span className="flex items-center gap-2.5">
           <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-roicard-primary/10 text-roicard-accent">
             <Briefcase className="h-4 w-4" aria-hidden />
@@ -47,7 +47,7 @@ export function WorkCard({
       </div>
 
       {/* Body */}
-      <div className="flex items-start gap-3 px-5 pb-5 pt-3">
+      <div className="flex items-start gap-3 px-5 pb-5 pt-4">
         <OrgAvatar name={organization} logoUrl={logoUrl} size="md" />
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-roicard-text">

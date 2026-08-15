@@ -36,7 +36,7 @@ export function OpportunitiesCard({ variant, content }: OpportunitiesCardProps) 
 
   return (
     <ProfileCard>
-      <div className="px-5 pt-4">
+      <div className="border-b border-roicard-border/60 px-5 pb-3 pt-4">
         <span className="flex items-center gap-2.5">
           <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-roicard-primary/10 text-roicard-accent">
             <Icon className="h-4 w-4" aria-hidden />
@@ -47,7 +47,7 @@ export function OpportunitiesCard({ variant, content }: OpportunitiesCardProps) 
         </span>
       </div>
 
-      <p className="px-5 pb-5 pt-3 text-sm leading-relaxed text-roicard-text-muted whitespace-pre-line text-justify">
+      <p className="px-5 pb-5 pt-4 text-sm leading-relaxed text-roicard-text-muted whitespace-pre-line text-justify">
         {content}
       </p>
     </ProfileCard>

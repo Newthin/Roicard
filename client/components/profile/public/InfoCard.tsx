@@ -59,12 +59,12 @@ export function InfoCard({
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
           aria-controls={bodyId}
-          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
+          className="flex w-full items-center justify-between gap-3 border-b border-roicard-border/60 px-5 py-4 text-left"
         >
           {header}
         </button>
       ) : (
-        <div className="flex items-center justify-between gap-3 px-5 py-4">
+        <div className="flex items-center justify-between gap-3 border-b border-roicard-border/60 px-5 py-4">
           {header}
         </div>
       )}
@@ -72,7 +72,7 @@ export function InfoCard({
       {open && (
         <div
           id={bodyId}
-          className="px-5 pb-5 text-sm leading-relaxed text-roicard-text-muted whitespace-pre-line text-justify"
+          className="px-5 pb-5 pt-4 text-sm leading-relaxed text-roicard-text-muted whitespace-pre-line text-justify"
         >
           {children}
         </div>
