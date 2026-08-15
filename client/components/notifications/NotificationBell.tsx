@@ -139,8 +139,9 @@ export function NotificationBell({ className }: NotificationBellProps) {
         <div
           role="menu"
           className={cn(
-            "absolute right-0 top-12 z-50 w-80 overflow-hidden rounded-2xl",
-            "border border-roicard-border bg-roicard-bg-elevated shadow-xl"
+            "fixed inset-x-4 top-[4.5rem] z-50 overflow-hidden rounded-2xl",
+            "border border-roicard-border bg-roicard-bg-elevated shadow-xl",
+            "sm:absolute sm:inset-x-auto sm:right-0 sm:top-12 sm:w-80"
           )}
         >
           <div className="flex items-center justify-between border-b border-roicard-border px-4 py-3">
