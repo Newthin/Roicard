@@ -6,7 +6,7 @@ export type SocialProvider = "google" | "facebook" | "linkedin" | "x" | "instagr
 export type SocialAuthMode = "signin" | "signup";
 
 /** Providers that are live; others are shown as "coming soon". */
-const ENABLED_PROVIDERS: SocialProvider[] = ["google", "facebook", "instagram"];
+const ENABLED_PROVIDERS: SocialProvider[] = ["google"];
 
 type SocialAuthButtonProps = {
   provider: SocialProvider;
@@ -93,10 +93,6 @@ export function SocialAuthRow({ mode }: { mode: SocialAuthMode }) {
   const [comingSoon, setComingSoon] = useState<string | null>(null);
   const providers: SocialProvider[] = [
     "google",
-    "facebook",
-    "instagram",
-    "linkedin",
-    "x",
   ];
 
   return (
