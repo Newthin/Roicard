@@ -22,6 +22,10 @@ const GRADIENT_CLASS = "roicard-gradient-text";
 /**
  * Types each word one character at a time with a blinking caret, then leaves a
  * static caret pulsing once complete. Ideal for the hero headline.
+ *
+ * Typing is derived from a running character count over the joined string, so
+ * the render never indexes past the end of `words` (previously the setState
+ * updater closed over mutated loop variables and read `words[t]` out of bounds).
  */
 export function Typewriter({
   words,
@@ -31,56 +35,47 @@ export function Typewriter({
   delay = 300,
   wordSeparator = " ",
 }: TypewriterProps) {
-  const [typed, setTyped] = useState<string[]>(() =>
-    words.map(() => "")
-  );
+  const wordsRef = useRef(words);
+  const fullText = wordsRef.current.join(wordSeparator);
+  const [count, setCount] = useState(0);
   const [done, setDone] = useState(false);
-  const startedRef = useRef(false);
 
   useEffect(() => {
-    if (startedRef.current) return;
-    startedRef.current = true;
+    let current = 0;
 
     const start = setTimeout(() => {
-      let wordIdx = 0;
-      let charIdx = 0;
-
-      const tick = () => {
-        if (wordIdx >= words.length) {
+      const id = setInterval(() => {
+        current += 1;
+        if (current >= fullText.length) {
+          clearInterval(id);
+          setCount(fullText.length);
           setDone(true);
-          return;
+        } else {
+          setCount(current);
         }
-
-        setTyped((prev) => {
-          const next = [...prev];
-          next[wordIdx] = words[wordIdx].slice(0, charIdx + 1);
-          return next;
-        });
-
-        charIdx += 1;
-        if (charIdx > words[wordIdx].length) {
-          wordIdx += 1;
-          charIdx = 0;
-        }
-
-        timer = setTimeout(tick, speed);
-      };
-
-      let timer: ReturnType<typeof setTimeout> = setTimeout(tick, speed);
-      return () => clearTimeout(timer);
+      }, speed);
     }, delay);
 
     return () => clearTimeout(start);
-  }, [words, speed, delay]);
+  }, [speed, delay, fullText]);
+
+  const typedText = fullText.slice(0, count);
+
+  let offset = 0;
+  const perWord = wordsRef.current.map((w) => {
+    const segment = typedText.slice(offset, offset + w.length);
+    offset += w.length + wordSeparator.length;
+    return segment;
+  });
 
   return (
-    <span className={className} aria-label={words.join(wordSeparator)}>
-      {typed.map((text, i) => (
+    <span className={className} aria-label={fullText}>
+      {perWord.map((text, i) => (
         <span key={i}>
           <span className={i === gradientIndex ? GRADIENT_CLASS : undefined}>
             {text}
           </span>
-          {i < words.length - 1 && wordSeparator}
+          {i < wordsRef.current.length - 1 && wordSeparator}
         </span>
       ))}
       <span
