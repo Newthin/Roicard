@@ -18,20 +18,22 @@ export default function DashboardPage() {
     <ConnectionsProvider>
       <div className="space-y-8">
         <div>
-          <span className="inline-flex w-fit items-center gap-2 rounded-full bg-roicard-primary/15 px-3 py-1 text-xs font-medium text-roicard-accent">
-            Dashboard
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex w-fit items-center gap-2 rounded-full bg-roicard-primary/15 px-3 py-1 text-xs font-medium text-roicard-accent">
+              Dashboard
+            </span>
             {effectiveStatus === "draft" ? (
-              <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-400">
+              <span className="inline-flex w-fit items-center rounded bg-amber-500/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-amber-400">
                 Draft
               </span>
             ) : (
-              <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-400">
+              <span className="inline-flex w-fit items-center rounded bg-emerald-500/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-400">
                 Active
               </span>
             )}
-          </span>
+          </div>
           <h1 className="mt-3 text-2xl font-bold text-roicard-text sm:text-3xl">
-            Welcome to ROICARD
+            Welcome{user?.first_name ? `, ${user.first_name}` : " to ROICARD"}
           </h1>
           <p className="mt-2 text-sm text-roicard-text-muted sm:text-base">
             Your command center for managing your
