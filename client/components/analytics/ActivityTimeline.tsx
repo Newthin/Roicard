@@ -6,8 +6,10 @@
 
 import type { ActivityEvent } from "@/lib/analytics/types";
 import {
+  Bookmark,
   CheckCircle2,
   Eye,
+  MessageCircle,
   Nfc,
   QrCode,
   UserPlus,
@@ -23,6 +25,8 @@ const ACTIVITY_ICONS = {
   nfc_tap: Nfc,
   connection_request: UserPlus,
   connection_accepted: CheckCircle2,
+  contact_save: Bookmark,
+  whatsapp_tap: MessageCircle,
 };
 
 function formatTimestamp(iso: string): string {
@@ -48,7 +52,7 @@ export function ActivityTimeline({ activities }: ActivityTimelineProps) {
       <h2 className="mb-4 text-lg font-semibold text-roicard-text">Recent Activity</h2>
       <div className="glass-card divide-y divide-roicard-border/60 rounded-2xl">
         {activities.map((activity) => {
-          const Icon = ACTIVITY_ICONS[activity.type];
+          const Icon = ACTIVITY_ICONS[activity.type] ?? Eye;
 
           return (
             <div
