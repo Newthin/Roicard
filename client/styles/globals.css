@@ -203,6 +203,16 @@
   .landing-float {
     animation: landing-float 6s ease-in-out infinite;
   }
+
+  /* Blinking caret while the headline is typing. */
+  .typewriter-caret-blink {
+    animation: typewriter-caret-blink 0.9s step-end infinite;
+  }
+
+  /* Gentle pulsing caret after typing completes. */
+  .typewriter-caret-steady {
+    animation: typewriter-caret-steady 2.4s ease-in-out infinite;
+  }
 }
 
 @keyframes onboarding-fade-in {
@@ -223,5 +233,25 @@
   }
   50% {
     transform: translateY(-12px);
+  }
+}
+
+@keyframes typewriter-caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes typewriter-caret-steady {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
   }
 }

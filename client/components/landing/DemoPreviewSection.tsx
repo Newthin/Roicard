@@ -6,6 +6,7 @@
  */
 
 import { DemoProfileCard } from "@/components/landing/DemoProfileCard";
+import { Reveal } from "@/components/landing/Reveal";
 import Link from "next/link";
 
 export function DemoPreviewSection() {
@@ -18,7 +19,7 @@ export function DemoPreviewSection() {
 
       <div className="relative mx-auto max-w-7xl px-4 lg:px-8">
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
-          <div className="text-center lg:text-left">
+          <Reveal className="text-center lg:text-left">
             <p className="text-sm font-medium uppercase tracking-wider text-roicard-accent">
               Live preview
             </p>
@@ -36,9 +37,11 @@ export function DemoPreviewSection() {
             >
               See a Full Profile →
             </Link>
-          </div>
+          </Reveal>
 
-          <DemoProfileCard />
+          <Reveal delay={150} direction="left">
+            <DemoProfileCard />
+          </Reveal>
         </div>
       </div>
     </section>

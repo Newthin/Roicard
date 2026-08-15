@@ -6,6 +6,7 @@
  */
 
 import { FeatureCard } from "@/components/landing/FeatureCard";
+import { Reveal } from "@/components/landing/Reveal";
 import {
   BadgeCheck,
   Link2,
@@ -59,21 +60,29 @@ export function FeaturesSection() {
     <section id="features" className="relative py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-4 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-medium uppercase tracking-wider text-roicard-accent">
-            Identity
-          </p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-roicard-text sm:text-4xl">
-          One Identity.{" "}
-            <span className="roicard-gradient-text">Every Opportunity.</span>
-          </h2>
-          <p className="mt-4 text-base text-roicard-text-muted sm:text-lg">
-          Roicard isn't a card you carry. It's an identity that carries you.
-          </p>
+          <Reveal>
+            <p className="text-sm font-medium uppercase tracking-wider text-roicard-accent">
+              Identity
+            </p>
+          </Reveal>
+          <Reveal delay={100}>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-roicard-text sm:text-4xl">
+            One Identity.{" "}
+              <span className="roicard-gradient-text">Every Opportunity.</span>
+            </h2>
+          </Reveal>
+          <Reveal delay={200}>
+            <p className="mt-4 text-base text-roicard-text-muted sm:text-lg">
+            Roicard isn't a card you carry. It's an identity that carries you.
+            </p>
+          </Reveal>
         </div>
 
         <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((feature) => (
-            <FeatureCard key={feature.title} {...feature} />
+          {FEATURES.map((feature, i) => (
+            <Reveal key={feature.title} delay={i * 80}>
+              <FeatureCard {...feature} />
+            </Reveal>
           ))}
         </div>
       </div>
