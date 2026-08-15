@@ -2,8 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { cn } from "@/lib/cn";
-
 type TypewriterProps = {
   words: string[];
   /** Word index whose text is styled with the gradient (e.g. "Belong"). */
@@ -20,8 +18,7 @@ type TypewriterProps = {
 const GRADIENT_CLASS = "roicard-gradient-text";
 
 /**
- * Types each word one character at a time with a blinking caret, then leaves a
- * static caret pulsing once complete. Ideal for the hero headline.
+ * Types each word one character at a time. Ideal for the hero headline.
  *
  * Typing is derived from a running character count over the joined string, so
  * the render never indexes past the end of `words` (previously the setState
@@ -38,7 +35,6 @@ export function Typewriter({
   const wordsRef = useRef(words);
   const fullText = wordsRef.current.join(wordSeparator);
   const [count, setCount] = useState(0);
-  const [done, setDone] = useState(false);
 
   useEffect(() => {
     let current = 0;
@@ -49,7 +45,6 @@ export function Typewriter({
         if (current >= fullText.length) {
           clearInterval(id);
           setCount(fullText.length);
-          setDone(true);
         } else {
           setCount(current);
         }
@@ -78,13 +73,6 @@ export function Typewriter({
           {i < wordsRef.current.length - 1 && wordSeparator}
         </span>
       ))}
-      <span
-        className={cn(
-          "ml-0.5 inline-block h-[0.9em] w-[3px] translate-y-[0.12em] bg-roicard-accent",
-          done ? "typewriter-caret-steady" : "typewriter-caret-blink"
-        )}
-        aria-hidden
-      />
     </span>
   );
 }
