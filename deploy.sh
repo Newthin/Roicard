@@ -7,7 +7,7 @@ set -euo pipefail
 
 BACKEND_DIR=/var/www/roicard
 FRONTEND_DIR=/var/www/roicard/client
-API_URL="${NEXT_PUBLIC_API_URL:-https://app.myroicard.com/api}"
+API_URL="${NEXT_PUBLIC_API_URL:-https://myroicard.com/api}"
 
 echo "==> Deploying backend"
 cd "$BACKEND_DIR"
@@ -32,4 +32,4 @@ sudo git pull origin main
 sudo NEXT_PUBLIC_API_URL="$API_URL" npm run build
 sudo systemctl restart roicard-frontend
 
-echo "==> Done. https://app.myroicard.com is up to date."
+echo "==> Done. https://myroicard.com is up to date."
