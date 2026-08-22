@@ -27,16 +27,23 @@ class PaymentController extends Controller
         }
 
         // Guard against duplicate pending payments for this user within the
-        // last hour (retry storm / double-tap protection).
+        // last hour (retry storm / double-tap protection). Instead of blocking,
+        // resume the existing attempt: re-run the provider handshake so the
+        // member gets a fresh checkout URL for the same reference.
         $recentPending = Payment::where('user_id', $user->id)
             ->where('status', 'pending')
             ->where('created_at', '>=', now()->subHour())
-            ->exists();
+            ->latest()
+            ->first();
 
         if ($recentPending) {
+            $result = $this->paymentService->initiate($recentPending);
+
             return response()->json([
-                'message' => 'A pending payment already exists for this account',
-            ], 409);
+                'payment' => $recentPending,
+                'redirect' => $result,
+                'resumed' => true,
+            ]);
         }
 
         // user_id is hardcoded to the authenticated user — it is never taken

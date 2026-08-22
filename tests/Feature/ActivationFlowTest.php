@@ -4,11 +4,19 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class ActivationFlowTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Role::firstOrCreate(['name' => 'member', 'guard_name' => 'web']);
+    }
 
     public function test_user_can_register(): void
     {
@@ -16,12 +24,12 @@ class ActivationFlowTest extends TestCase
             'first_name' => 'John',
             'last_name' => 'Doe',
             'email' => 'john@example.com',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
         ]);
 
         $response->assertStatus(201)
-            ->assertJsonStructure(['user', 'token']);
+            ->assertJsonStructure(['user', 'requires_email_verification']);
 
         $this->assertDatabaseHas('users', [
             'email' => 'john@example.com',
@@ -85,6 +93,7 @@ class ActivationFlowTest extends TestCase
         $token = $user->createToken('test')->plainTextToken;
 
         $response = $this->withToken($token)
+            ->withHeader('Idempotency-Key', 'test-key-1')
             ->postJson('/api/payments/initiate', [
                 'amount' => 99.99,
                 'currency' => 'GHS',
@@ -94,5 +103,31 @@ class ActivationFlowTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure(['payment', 'redirect']);
+    }
+
+    public function test_initiating_with_a_pending_payment_resumes_it(): void
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('test')->plainTextToken;
+
+        $first = $this->withToken($token)
+            ->withHeader('Idempotency-Key', 'test-key-1')
+            ->postJson('/api/payments/initiate', [
+                'amount' => 99.99,
+                'currency' => 'GHS',
+            ]);
+
+        $reference = $first->json('payment.provider_reference');
+
+        $second = $this->withToken($token)
+            ->withHeader('Idempotency-Key', 'test-key-2')
+            ->postJson('/api/payments/initiate', [
+                'amount' => 99.99,
+                'currency' => 'GHS',
+            ]);
+
+        $second->assertStatus(200)
+            ->assertJsonPath('resumed', true)
+            ->assertJsonPath('payment.provider_reference', $reference);
     }
 }
