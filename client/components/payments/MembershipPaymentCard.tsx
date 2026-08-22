@@ -64,8 +64,12 @@ export function MembershipPaymentCard() {
         setIsSubmitting(false);
       }
     } catch (e) {
+      const serverMessage = (
+        e as { response?: { data?: { message?: string } } } | null
+      )?.response?.data?.message;
       setError(
-        e instanceof Error ? e.message : "Unable to start payment. Try again."
+        serverMessage ??
+          (e instanceof Error ? e.message : "Unable to start payment. Try again.")
       );
       setIsSubmitting(false);
     }

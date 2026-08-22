@@ -42,9 +42,13 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status;
-    // 401 = invalid/expired token; 409 = identity mismatch (token belongs to a
-    // different account). Either way the cached session is untrustworthy.
-    if (status === 401 || status === 409) {
+    // 401 = invalid/expired token. A 409 only means the cached session is
+    // untrustworthy when the backend explicitly marks it as an identity
+    // mismatch; business-logic conflicts (e.g. "a pending payment already
+    // exists") also answer 409 and must NOT purge the session.
+    const isIdentityMismatch =
+      status === 409 && error.response?.data?.error === "identity_mismatch";
+    if (status === 401 || isIdentityMismatch) {
       clearStoredSession();
       if (typeof window !== "undefined" && !window.location.pathname.startsWith("/auth")) {
         window.location.href = "/auth/login";
