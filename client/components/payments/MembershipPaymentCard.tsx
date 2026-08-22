@@ -51,11 +51,20 @@ export function MembershipPaymentCard() {
         method: "card",
       });
 
-      const authorizationUrl = (redirect as { authorization_url?: string })
-        ?.authorization_url;
+      const providerRedirect = redirect as {
+        authorization_url?: string;
+        status?: string;
+      };
 
-      if (authorizationUrl) {
-        window.location.assign(authorizationUrl);
+      // The pending attempt already completed at the provider — reload so the
+      // dashboard reflects the activated membership instead of paying again.
+      if (providerRedirect?.status === "success") {
+        window.location.reload();
+        return;
+      }
+
+      if (providerRedirect?.authorization_url) {
+        window.location.assign(providerRedirect.authorization_url);
       } else {
         // No provider configured (mock mode) — surface a note to the member.
         setError(

@@ -37,13 +37,48 @@ class PaymentController extends Controller
             ->first();
 
         if ($recentPending) {
-            $result = $this->paymentService->initiate($recentPending);
+            $reference = $recentPending->provider_reference;
 
-            return response()->json([
-                'payment' => $recentPending,
-                'redirect' => $result,
-                'resumed' => true,
-            ]);
+            // The abandoned checkout may have quietly completed at the
+            // provider without our webhook firing. Confirm before charging
+            // again so the member is never billed twice for one activation.
+            try {
+                $verified = $this->paymentService->verify($reference);
+            } catch (\Throwable $e) {
+                Log::warning('Payment verification failed during resume', [
+                    'reference' => $reference,
+                    'error' => $e->getMessage(),
+                ]);
+                $verified = null;
+            }
+
+            if ($verified && $verified['status'] === 'success') {
+                $recentPending->update(['status' => 'success']);
+
+                return response()->json([
+                    'payment' => $recentPending,
+                    'redirect' => ['status' => 'success', 'reference' => $reference],
+                    'resumed' => true,
+                ]);
+            }
+
+            // Providers can reject a reused reference. On failure, void the
+            // stale attempt and fall through to create a fresh payment.
+            try {
+                $result = $this->paymentService->initiate($recentPending);
+
+                return response()->json([
+                    'payment' => $recentPending,
+                    'redirect' => $result,
+                    'resumed' => true,
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('Resuming pending payment failed; starting a fresh one', [
+                    'reference' => $reference,
+                    'error' => $e->getMessage(),
+                ]);
+                $recentPending->update(['status' => 'failed']);
+            }
         }
 
         // user_id is hardcoded to the authenticated user — it is never taken
@@ -59,7 +94,20 @@ class PaymentController extends Controller
             'provider' => config('app.payment_provider', 'mock'),
         ]);
 
-        $result = $this->paymentService->initiate($payment);
+        try {
+            $result = $this->paymentService->initiate($payment);
+        } catch (\Throwable $e) {
+            Log::error('Payment initiation failed', [
+                'reference' => $payment->provider_reference,
+                'provider' => $payment->provider,
+                'error' => $e->getMessage(),
+            ]);
+            $payment->update(['status' => 'failed']);
+
+            return response()->json([
+                'message' => 'Payment provider is unavailable right now. Please try again shortly.',
+            ], 502);
+        }
 
         return response()->json([
             'payment' => $payment,
