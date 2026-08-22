@@ -4,6 +4,7 @@ import { clearAllUserStorage } from "@/lib/storageCleanup";
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
   headers: { "Content-Type": "application/json", Accept: "application/json" },
+  timeout: 30000,
 });
 
 apiClient.interceptors.request.use((config) => {

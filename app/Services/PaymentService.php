@@ -42,6 +42,8 @@ class PaymentService
     protected function initiatePaystack(Payment $payment): array
     {
         $response = Http::withToken(config('services.paystack.secret_key'))
+            ->timeout(15)
+            ->connectTimeout(10)
             ->post('https://api.paystack.co/transaction/initialize', [
                 'email' => $payment->user->email,
                 'amount' => (int) ($payment->amount * 100),
@@ -61,12 +63,20 @@ class PaymentService
     protected function verifyPaystack(string $reference): ?array
     {
         $response = Http::withToken(config('services.paystack.secret_key'))
+            ->timeout(15)
+            ->connectTimeout(10)
             ->get("https://api.paystack.co/transaction/verify/{$reference}");
 
         $data = $response->throw()->json();
 
+        // Map Paystack's lifecycle explicitly: an in-progress charge is NOT a
+        // failure, only terminal states are.
         return [
-            'status' => $data['data']['status'] === 'success' ? 'success' : 'failed',
+            'status' => match ($data['data']['status'] ?? '') {
+                'success' => 'success',
+                'failed', 'abandoned', 'reversed' => 'failed',
+                default => 'pending',
+            },
             'reference' => $reference,
         ];
     }

@@ -41,41 +41,59 @@ function PaymentCallbackContent() {
       return;
     }
 
+    let cancelled = false;
+
     (async () => {
-      try {
-        const { status } = await getPaymentStatus(reference);
+      // Poll briefly: right after the redirect the transaction can still read
+      // "pending" at the provider for a few seconds before it settles.
+      const maxAttempts = 10;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        if (cancelled) return;
+        try {
+          const { status } = await getPaymentStatus(reference);
 
-        if (status === "success") {
-          const journey = getJourneyState();
+          if (status === "success") {
+            if (cancelled) return;
+            const journey = getJourneyState();
 
-          // Onboarding flow: the member is mid-journey. Advance to the Success
-          // step (the next step after payment) and resume onboarding — NOT the
-          // dashboard. The profile is only finalized at StepComplete.
-          if (journey) {
-            saveJourneyState({
-              ...journey,
-              step: "success",
-              membershipStatus: "active",
-            });
+            // Onboarding flow: the member is mid-journey. Advance to the
+            // Success step and resume onboarding — NOT the dashboard. The
+            // profile is only finalized at StepComplete.
+            if (journey) {
+              saveJourneyState({
+                ...journey,
+                step: "success",
+                membershipStatus: "active",
+              });
+              clearPaymentSnapshot();
+              router.replace("/onboarding");
+              return;
+            }
+
+            // Dashboard flow: no journey in progress (pay-later activation).
+            const snapshot = getPaymentSnapshot() ?? (await getCurrentProfile());
+            if (snapshot) {
+              createAndSaveProfile(snapshot);
+            }
             clearPaymentSnapshot();
-            router.replace("/onboarding");
+            setState("success");
             return;
           }
 
-          // Dashboard flow: no journey in progress (pay-later activation).
-          const snapshot = getPaymentSnapshot() ?? (await getCurrentProfile());
-          if (snapshot) {
-            createAndSaveProfile(snapshot);
+          if (status === "failed") {
+            break;
           }
-          clearPaymentSnapshot();
-          setState("success");
-        } else {
-          setState("failed");
+        } catch {
+          // Transient network/server errors: keep retrying within the window.
         }
-      } catch {
-        setState("failed");
+        await new Promise((r) => setTimeout(r, 3000));
       }
+      if (!cancelled) setState("failed");
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [reference, router]);
 
   return (
@@ -86,6 +104,11 @@ function PaymentCallbackContent() {
           <h1 className="text-xl font-semibold text-roicard-text">
             Verifying your payment
           </h1>
+          <Link href="/dashboard" className="mt-2">
+            <Button variant="secondary" className="rounded-xl">
+              Cancel and go back
+            </Button>
+          </Link>
         </>
       )}
 
