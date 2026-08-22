@@ -3,6 +3,7 @@
 import { DashboardAnalyticsSummary } from "@/components/analytics/DashboardAnalyticsSummary";
 import { ConnectionsProvider } from "@/components/connections/ConnectionsProvider";
 import { DashboardConnectionSummary } from "@/components/connections/DashboardConnectionSummary";
+import { DraftCountdown } from "@/components/dashboard/DraftCountdown";
 import { MembershipPaymentCard } from "@/components/payments/MembershipPaymentCard";
 import { ViewPublicProfileLink } from "@/components/profile/ViewPublicProfileLink";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,7 +11,7 @@ import { useLiveMemberStatus } from "@/hooks/useLiveMemberStatus";
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { status: liveStatus, isLoading: liveLoading } = useLiveMemberStatus();
+  const { status: liveStatus, draftClosesAt, isLoading: liveLoading } = useLiveMemberStatus();
   const effectiveStatus = liveStatus ?? user?.status;
   const showPayCard = effectiveStatus !== "active";
 
@@ -40,6 +41,10 @@ export default function DashboardPage() {
             professional network.
           </p>
         </div>
+
+        {!liveLoading && effectiveStatus === "draft" && draftClosesAt && (
+          <DraftCountdown closesAt={draftClosesAt} />
+        )}
 
         {!liveLoading && showPayCard && <MembershipPaymentCard />}
 

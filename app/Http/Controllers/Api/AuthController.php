@@ -517,6 +517,7 @@ class AuthController extends Controller
     protected function userPayload(User $user): array
     {
         return $user->only(['id', 'first_name', 'last_name', 'email', 'status', 'role'])
-            + ['email_verified' => (bool) $user->hasVerifiedEmail()];
+            + ['email_verified' => (bool) $user->hasVerifiedEmail()]
+            + ['draft_closes_at' => $user->draftClosesAt()?->toISOString()];
     }
 }

@@ -123,4 +123,25 @@ class DraftExpirationTest extends TestCase
 
         Mail::assertQueued(DraftClosureMail::class, 1);
     }
+
+    public function test_dashboard_exposes_draft_closes_at_only_for_draft_accounts(): void
+    {
+        $draft = $this->draftUser(2);
+        $active = User::factory()->create(['status' => 'active']);
+
+        $draftResponse = $this->actingAs($draft, 'sanctum')
+            ->getJson('/api/dashboard');
+        $draftResponse->assertStatus(200);
+
+        $expected = $draft->created_at->startOfDay()->addDays(8)->toISOString();
+        $this->assertSame(
+            $expected,
+            $draftResponse->json('user.draft_closes_at')
+        );
+
+        $activeResponse = $this->actingAs($active, 'sanctum')
+            ->getJson('/api/dashboard');
+        $activeResponse->assertStatus(200);
+        $this->assertNull($activeResponse->json('user.draft_closes_at'));
+    }
 }

@@ -1,11 +1,3 @@
-/**
- * useLiveMemberStatus
- *
- * Pulls the authenticated user's live membership status from the dashboard
- * API, so UI gating (e.g. showing the pay-later card) reflects the backend
- * instead of a possibly-stale cached session role/status.
- */
-
 "use client";
 
 import { getDashboard } from "@/lib/api/dashboard";
@@ -13,6 +5,7 @@ import { useEffect, useState } from "react";
 
 export function useLiveMemberStatus() {
   const [status, setStatus] = useState<string | null>(null);
+  const [draftClosesAt, setDraftClosesAt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -20,7 +13,10 @@ export function useLiveMemberStatus() {
 
     getDashboard()
       .then((d) => {
-        if (active) setStatus(d.user.status);
+        if (active) {
+          setStatus(d.user.status);
+          setDraftClosesAt(d.user.draft_closes_at ?? null);
+        }
       })
       .catch(() => {})
       .finally(() => {
@@ -32,5 +28,5 @@ export function useLiveMemberStatus() {
     };
   }, []);
 
-  return { status, isLoading };
+  return { status, draftClosesAt, isLoading };
 }

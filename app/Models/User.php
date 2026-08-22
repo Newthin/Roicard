@@ -89,6 +89,21 @@ class User extends Authenticatable
         return $this->status === 'active';
     }
 
+    /**
+     * When this draft account will be closed by drafts:expiration-reminders,
+     * or null for non-draft accounts. The command closes cohorts whose
+     * created_at date is 8 days back, i.e. at/after midnight following the
+     * 7-day activation window — matching the "after midnight" email copy.
+     */
+    public function draftClosesAt(): ?\Carbon\CarbonInterface
+    {
+        if ($this->status !== 'draft' || !$this->created_at) {
+            return null;
+        }
+
+        return $this->created_at->startOfDay()->addDays(8);
+    }
+
     public function isDeactivated(): bool
     {
         return $this->deactivated_at !== null;

@@ -8,6 +8,8 @@ export interface DashboardData {
     email: string;
     status: string;
     role: string;
+    /** ISO timestamp — when the draft account will be closed; null when active */
+    draft_closes_at?: string | null;
   };
   profile: Record<string, unknown> | null;
   smart_card: Record<string, unknown> | null;

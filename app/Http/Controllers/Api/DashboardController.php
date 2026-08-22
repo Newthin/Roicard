@@ -46,7 +46,11 @@ class DashboardController extends Controller
         }
 
         return response()->json([
-            'user' => $user->only(['id', 'first_name', 'last_name', 'email', 'status', 'role']),
+            'user' => $user->only(['id', 'first_name', 'last_name', 'email', 'status', 'role'])
+                + [
+                    // Countdown support for draft accounts (null when active)
+                    'draft_closes_at' => $user->draftClosesAt()?->toISOString(),
+                ],
             'profile' => $profilePayload,
             'smart_card' => $smartCard,
             'stats' => [
