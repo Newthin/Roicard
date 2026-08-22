@@ -138,11 +138,16 @@ function PaymentCallbackContent() {
             We couldn't confirm your payment. You can retry or check later from
             your dashboard.
           </p>
-          <Link href="/onboarding">
-            <Button variant="secondary" className="rounded-xl">
-              Return to onboarding
-            </Button>
-          </Link>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Link href="/dashboard">
+              <Button className="rounded-xl">Go to dashboard</Button>
+            </Link>
+            <Link href="/onboarding">
+              <Button variant="secondary" className="rounded-xl">
+                Return to onboarding
+              </Button>
+            </Link>
+          </div>
         </>
       )}
 
