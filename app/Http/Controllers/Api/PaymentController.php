@@ -122,7 +122,17 @@ class PaymentController extends Controller
             ->firstOrFail();
 
         if ($payment->isPending()) {
-            $verified = $this->paymentService->verify($reference);
+            // Verification must never take this endpoint down: an unreachable
+            // or slow provider just means we report the last known status.
+            try {
+                $verified = $this->paymentService->verify($reference);
+            } catch (\Throwable $e) {
+                Log::warning('Payment verification failed', [
+                    'reference' => $reference,
+                    'error' => $e->getMessage(),
+                ]);
+                $verified = null;
+            }
 
             if ($verified && $verified['status'] === 'success') {
                 $payment->update(['status' => 'success']);
