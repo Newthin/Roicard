@@ -28,6 +28,14 @@ export interface AdminUser {
     title?: string;
     organisation?: string;
     avatar_url?: string | null;
+    role_description?: string | null;
+    bio?: string | null;
+    location?: string | null;
+    phone?: string | null;
+    whatsapp_phone?: string | null;
+    seeking?: string | null;
+    offering?: string | null;
+    interests?: string[] | null;
   };
   created_at: string;
 }
@@ -59,6 +67,8 @@ export interface AdminSmartCard {
     last_name: string;
     email: string;
   } | null;
+  public_profile_url?: string | null;
+  public_profile_qr_url?: string | null;
 }
 
 export interface AdminConnection {
@@ -142,6 +152,30 @@ export async function updateAdminUser(
   body: { status?: string; role?: string }
 ): Promise<{ user: AdminUser; message: string }> {
   const { data } = await apiClient.patch(`/admin/users/${id}`, body);
+  return data;
+}
+
+export interface AdminUserProfilePayload {
+  first_name?: string;
+  last_name?: string;
+  title?: string;
+  organisation?: string;
+  role_description?: string;
+  bio?: string;
+  location?: string;
+  phone?: string;
+  whatsapp_phone?: string;
+  seeking?: string;
+  offering?: string;
+  interests?: string;
+  social_links?: string;
+}
+
+export async function updateAdminUserProfile(
+  id: number,
+  body: AdminUserProfilePayload
+): Promise<{ user: AdminUser; profile: unknown; message: string }> {
+  const { data } = await apiClient.patch(`/admin/users/${id}/profile`, body);
   return data;
 }
 

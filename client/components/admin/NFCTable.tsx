@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/cn";
 import type { NFCCard } from "@/lib/admin/types";
-import { Plus } from "lucide-react";
+import { Check, Copy, ExternalLink, Plus, QrCode } from "lucide-react";
 import { useState } from "react";
 
 const COLUMNS = [
@@ -29,6 +29,88 @@ const COLUMNS = [
   { key: "date", label: "Date Assigned" },
   { key: "actions", label: "Actions", className: "text-right" },
 ];
+
+/** Modal showing the holder's public profile URL + QR for card programming. */
+function ProfileLinkModal({
+  card,
+  onClose,
+}: {
+  card: NFCCard | null;
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  if (!card?.publicProfileUrl) return null;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(card.publicProfileUrl ?? "");
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard unavailable — URL remains selectable in the input below.
+    }
+  };
+
+  return (
+    <Modal
+      isOpen={!!card}
+      onClose={onClose}
+      title="Program this Roicard"
+      description={card.cardId}
+    >
+      <div className="space-y-4">
+        <p className="text-sm text-roicard-text-muted">
+          Encode this exact URL onto{" "}
+          <span className="text-roicard-text">{card.cardId}</span> — it opens{" "}
+          <span className="text-roicard-text">
+            {card.assignedUserName}&apos;s
+          </span>{" "}
+          live public profile.
+        </p>
+
+        <div className="flex items-center gap-2">
+          <input
+            readOnly
+            value={card.publicProfileUrl}
+            onFocus={(e) => e.target.select()}
+            className="h-11 w-full rounded-lg border border-roicard-border bg-roicard-bg-muted px-4 font-mono text-sm text-roicard-text"
+            aria-label="Public profile URL"
+          />
+          <Button
+            variant="secondary"
+            onClick={handleCopy}
+            className="shrink-0"
+            aria-label="Copy URL"
+          >
+            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            {copied ? "Copied" : "Copy"}
+          </Button>
+        </div>
+
+        {card.publicProfileQrUrl && (
+          <div className="flex flex-col items-center gap-3 rounded-xl border border-roicard-border bg-white p-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={card.publicProfileQrUrl}
+              alt={`QR code for ${card.publicProfileUrl}`}
+              className="h-44 w-44"
+            />
+            <a
+              href={card.publicProfileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-roicard-accent hover:underline"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Open profile
+            </a>
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}
 
 function NfcStatusBadge({ status }: { status: NFCCard["status"] }) {
   return (
@@ -233,6 +315,7 @@ export function NFCTable() {
   const { confirm } = useConfirm();
   const [assignCard, setAssignCard] = useState<NFCCard | null>(null);
   const [registerOpen, setRegisterOpen] = useState(false);
+  const [linkCard, setLinkCard] = useState<NFCCard | null>(null);
 
   /** Remove NFC assignment after admin confirmation. */
   const handleRemoveAssignment = async (card: NFCCard) => {
@@ -311,6 +394,16 @@ export function NFCTable() {
               </DataTableCell>
               <DataTableCell className="text-right">
                 <div className="flex flex-wrap justify-end gap-1">
+                  {card.publicProfileUrl && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setLinkCard(card)}
+                    >
+                      <QrCode className="h-4 w-4" />
+                      URL &amp; QR
+                    </Button>
+                  )}
                   {(card.status === "available" || card.status === "deactivated") && (
                     <Button
                       variant="ghost"
@@ -383,6 +476,16 @@ export function NFCTable() {
               </p>
             )}
             <div className="mt-3 flex flex-wrap gap-2">
+              {card.publicProfileUrl && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setLinkCard(card)}
+                >
+                  <QrCode className="h-4 w-4" />
+                  URL &amp; QR
+                </Button>
+              )}
               {(card.status === "available" || card.status === "deactivated") && (
                 <Button
                   variant="secondary"
@@ -441,6 +544,7 @@ export function NFCTable() {
         onClose={() => setRegisterOpen(false)}
         onRegister={registerNfcCard}
       />
+      <ProfileLinkModal card={linkCard} onClose={() => setLinkCard(null)} />
     </div>
   );
 }

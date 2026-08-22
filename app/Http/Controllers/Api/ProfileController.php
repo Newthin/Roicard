@@ -74,78 +74,7 @@ class ProfileController extends Controller
         $user = auth()->user();
         $data = $request->validated();
 
-        // Update user name fields if provided (email is not changed here —
-        // the user is already authenticated with their existing email)
-        $userFields = array_filter([
-            'first_name' => $data['first_name'] ?? null,
-            'last_name' => $data['last_name'] ?? null,
-        ]);
-        if ($userFields) {
-            $user->update($userFields);
-        }
-
-        // Update profile (create if it doesn't exist yet)
-        $profile = $user->profile()->firstOrCreate([]);
-        // Decode interests JSON string into an array (empty array if invalid)
-        $interests = null;
-        if (!empty($data['interests'])) {
-            $decoded = json_decode($data['interests'], true);
-            $interests = is_array($decoded) ? array_values(array_filter($decoded, 'is_string')) : [];
-        }
-
-        // Sync interest options pivot table — create missing options so every
-        // saved interest becomes a selectable option for other members too.
-        if (is_array($interests)) {
-            $interestOptionIds = [];
-            foreach ($interests as $name) {
-                $option = \App\Models\InterestOption::firstOrCreate(
-                    ['name' => $name],
-                    ['sort_order' => \App\Models\InterestOption::max('sort_order') + 1]
-                );
-                $interestOptionIds[] = $option->id;
-            }
-            $profile->interestOptions()->sync($interestOptionIds);
-        }
-
-        $profileFields = array_filter([
-            'title' => $data['title'] ?? null,
-            'role_description' => $data['role_description'] ?? null,
-            'organisation' => $data['organisation'] ?? null,
-            'whatsapp_phone' => $data['whatsapp_phone'] ?? null,
-            'phone' => $data['phone'] ?? null,
-            'date_of_birth' => $data['date_of_birth'] ?? null,
-            'gender' => $data['gender'] ?? null,
-            'interests' => $interests,
-            'location' => $data['location'] ?? null,
-            'bio' => $data['bio'] ?? null,
-            'seeking' => $data['seeking'] ?? null,
-            'offering' => $data['offering'] ?? null,
-            'is_live' => $data['is_live'] ?? null,
-        ], fn ($value) => $value !== null);
-        if ($profileFields) {
-            $profile->update($profileFields);
-        }
-
-        // Handle social links
-        if (!empty($data['social_links'])) {
-            $links = json_decode($data['social_links'], true);
-            if (is_array($links)) {
-                $profile->socialLinks()->delete();
-                foreach ($links as $platform => $value) {
-                    if (!empty($value)) {
-                        $profile->socialLinks()->create([
-                            'platform' => $platform,
-                            'value' => $value,
-                        ]);
-                    }
-                }
-            }
-        }
-
-        $profile->recalculateCompletion();
-
-        // Bust the public profile cache so changes are visible immediately
-        $profile->bustPublicCache();
+        $profile = app(\App\Services\ProfileSaveService::class)->save($user, $data);
 
         // Send the welcome email exactly once — the first successful profile
         // save after a user begins onboarding. Variant depends on whether they

@@ -11,6 +11,7 @@
  */
 
 import { GuestInviteCard } from "@/components/profile/public/GuestInviteCard";
+import { BioText } from "@/components/profile/public/BioText";
 import { InfoCard } from "@/components/profile/public/InfoCard";
 import { InterestsCard } from "@/components/profile/public/InterestsCard";
 import { OpportunitiesCard } from "@/components/profile/public/OpportunitiesCard";
@@ -45,7 +46,7 @@ export function PublicProfileCardStack({
 
       {profile.bio.trim() && (
         <InfoCard icon={User} title="Professional Summary" collapsible defaultOpen>
-          {profile.bio}
+          <BioText bio={profile.bio} />
         </InfoCard>
       )}
 

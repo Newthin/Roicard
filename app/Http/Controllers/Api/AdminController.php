@@ -82,6 +82,26 @@ class AdminController extends Controller
         ]);
     }
 
+    /**
+     * Admin edit of a member's full profile. Reuses ProfileRequest so the
+     * validation rules are identical to the member's own settings flow, and
+     * persists through the same ProfileSaveService used by that flow.
+     */
+    public function updateUserProfile(string $id, \App\Http\Requests\ProfileRequest $request): JsonResponse
+    {
+        $user = User::findOrFail($id);
+
+        $profile = app(\App\Services\ProfileSaveService::class)->save($user, $request->validated());
+
+        $this->logAdminAction('update_user_profile', $user->id);
+
+        return response()->json([
+            'user' => $user->fresh(),
+            'profile' => $profile,
+            'message' => 'Member profile updated',
+        ]);
+    }
+
     public function storeUser(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -226,10 +246,12 @@ class AdminController extends Controller
 
         $this->logAdminAction('assign_card', $request->user_id);
 
-        return response()->json([
-            'smart_card' => $smartCard->fresh()->load('user:id,first_name,last_name,email'),
+        $fresh = $smartCard->fresh()->load(['user:id,first_name,last_name,email', 'user.profile:id,user_id,slug']);
+
+        return response()->json(array_merge([
+            'smart_card' => $fresh,
             'message' => 'Card assigned to user',
-        ]);
+        ], $this->publicProfileContext($fresh)));
     }
 
     public function unassignCard(string $id): JsonResponse
@@ -314,11 +336,40 @@ class AdminController extends Controller
         ]);
     }
 
+    /**
+     * Public-facing URL (and QR image) for a card holder's profile, so the
+     * admin programming the physical card has the exact URL to encode without
+     * leaving the card view. Null when the card is unassigned or the member
+     * has no slug yet.
+     */
+    protected function publicProfileContext(SmartCard $card): array
+    {
+        $slug = $card->user?->profile?->slug;
+
+        if (!$slug || !$card->user_id) {
+            return [
+                'public_profile_url' => null,
+                'public_profile_qr_url' => null,
+            ];
+        }
+
+        $base = rtrim(config('app.frontend_url', 'http://localhost:3000'), '/');
+
+        return [
+            'public_profile_url' => "{$base}/{$slug}",
+            'public_profile_qr_url' => "{$base}/api/qr/image/{$slug}",
+        ];
+    }
+
     public function smartCards(Request $request): JsonResponse
     {
-        $cards = SmartCard::with('user:id,first_name,last_name,email')
+        $cards = SmartCard::with(['user:id,first_name,last_name,email', 'user.profile:id,user_id,slug'])
             ->orderBy('created_at', 'desc')
             ->paginate($request->input('per_page', 20));
+
+        $cards->getCollection()->transform(function (SmartCard $card) {
+            return array_merge($card->toArray(), $this->publicProfileContext($card));
+        });
 
         return response()->json($cards);
     }

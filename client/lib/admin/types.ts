@@ -18,6 +18,13 @@ export type AdminUser = {
   profilePhotoUrl: string | null;
   professionalTitle: string;
   organization: string;
+  roleDescription: string;
+  bio: string;
+  location: string;
+  phone: string;
+  whatsapp: string;
+  seeking: string;
+  offering: string;
 };
 
 export type NFCStatus =
@@ -34,6 +41,10 @@ export type NFCCard = {
   assignedUserName: string | null;
   status: NFCStatus;
   assignedAt: string | null;
+  /** Holder's live public profile URL — what gets programmed onto the card. */
+  publicProfileUrl: string | null;
+  /** Same-origin QR image of the public profile URL. */
+  publicProfileQrUrl: string | null;
 };
 
 /** Platform-wide overview metrics. */

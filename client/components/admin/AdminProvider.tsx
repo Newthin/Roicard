@@ -25,8 +25,9 @@ import {
   registerSmartCard,
   unassignSmartCard,
   updateAdminUser,
+  updateAdminUserProfile,
 } from "@/lib/api/admin";
-import type { AdminUser as ApiAdminUser } from "@/lib/api/admin";
+import type { AdminUserProfilePayload, AdminUser as ApiAdminUser } from "@/lib/api/admin";
 import {
   ReactNode,
   createContext,
@@ -84,6 +85,13 @@ function mapApiUser(u: ApiAdminUser): AdminUser {
     profilePhotoUrl: u.profile?.avatar_url || null,
     professionalTitle: u.profile?.title ?? "",
     organization: u.profile?.organisation ?? "",
+    roleDescription: u.profile?.role_description ?? "",
+    bio: u.profile?.bio ?? "",
+    location: u.profile?.location ?? "",
+    phone: u.profile?.phone ?? "",
+    whatsapp: u.profile?.whatsapp_phone ?? "",
+    seeking: u.profile?.seeking ?? "",
+    offering: u.profile?.offering ?? "",
   };
 }
 
@@ -130,6 +138,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
                 : null,
               status: (c.inventory_status ?? (c.user_id ? "assigned" : "available")) as NFCCard["status"],
               assignedAt: c.assigned_at ?? c.dispatched_at ?? c.created_at ?? null,
+              publicProfileUrl: c.public_profile_url ?? null,
+              publicProfileQrUrl: c.public_profile_qr_url ?? null,
             }))
           )
         )
@@ -160,13 +170,32 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     async (userId: string, updates: Partial<AdminUser>) => {
       const body: { status?: string; role?: string } = {};
       if (updates.status) body.status = updates.status === "active" ? "active" : "draft";
-      if (Object.keys(body).length > 0) {
-        try {
-          await updateAdminUser(Number(userId), body);
-          await refresh();
-        } catch {
-          // silently fail
+
+      // Profile fields go through the dedicated profile endpoint so admins
+      // edit with the exact same validation/persistence as member settings.
+      const profileBody: AdminUserProfilePayload = {};
+      if (updates.firstName !== undefined) profileBody.first_name = updates.firstName;
+      if (updates.lastName !== undefined) profileBody.last_name = updates.lastName;
+      if (updates.professionalTitle !== undefined) profileBody.title = updates.professionalTitle;
+      if (updates.organization !== undefined) profileBody.organisation = updates.organization;
+      if (updates.roleDescription !== undefined) profileBody.role_description = updates.roleDescription;
+      if (updates.bio !== undefined) profileBody.bio = updates.bio;
+      if (updates.location !== undefined) profileBody.location = updates.location;
+      if (updates.phone !== undefined) profileBody.phone = updates.phone;
+      if (updates.whatsapp !== undefined) profileBody.whatsapp_phone = updates.whatsapp;
+      if (updates.seeking !== undefined) profileBody.seeking = updates.seeking;
+      if (updates.offering !== undefined) profileBody.offering = updates.offering;
+
+      try {
+        if (Object.keys(profileBody).length > 0) {
+          await updateAdminUserProfile(Number(userId), profileBody);
         }
+        if (Object.keys(body).length > 0) {
+          await updateAdminUser(Number(userId), body);
+        }
+        await refresh();
+      } catch {
+        // silently fail
       }
     },
     [refresh]

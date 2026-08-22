@@ -19,6 +19,7 @@ import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { PasswordStrengthChecklist } from "@/components/ui/PasswordStrengthChecklist";
+import { Textarea } from "@/components/ui/Textarea";
 import { cn } from "@/lib/cn";
 import type { AdminUser, UserStatus } from "@/lib/admin/types";
 import { arePasswordRulesMet } from "@/lib/validation/password";
@@ -226,6 +227,13 @@ function EditUserModal({
       username: current.username,
       professionalTitle: current.professionalTitle,
       organization: current.organization,
+      roleDescription: current.roleDescription,
+      bio: current.bio,
+      location: current.location,
+      phone: current.phone,
+      whatsapp: current.whatsapp,
+      seeking: current.seeking,
+      offering: current.offering,
     });
     onClose();
   };
@@ -293,6 +301,50 @@ function EditUserModal({
             label="Organization"
             value={current.organization}
             onChange={(e) => setField("organization", e.target.value)}
+          />
+          <Textarea
+            label="Role Description"
+            rows={2}
+            maxLength={500}
+            value={current.roleDescription}
+            onChange={(e) => setField("roleDescription", e.target.value)}
+          />
+          <Textarea
+            label="Bio"
+            rows={4}
+            value={current.bio}
+            onChange={(e) => setField("bio", e.target.value)}
+          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="Location"
+              value={current.location}
+              onChange={(e) => setField("location", e.target.value)}
+            />
+            <Input
+              label="Phone"
+              value={current.phone}
+              onChange={(e) => setField("phone", e.target.value)}
+            />
+            <Input
+              label="WhatsApp Number"
+              value={current.whatsapp}
+              onChange={(e) => setField("whatsapp", e.target.value)}
+            />
+          </div>
+          <Textarea
+            label="Seeking"
+            rows={2}
+            maxLength={300}
+            value={current.seeking}
+            onChange={(e) => setField("seeking", e.target.value)}
+          />
+          <Textarea
+            label="Offering"
+            rows={2}
+            maxLength={300}
+            value={current.offering}
+            onChange={(e) => setField("offering", e.target.value)}
           />
         </div>
       </div>

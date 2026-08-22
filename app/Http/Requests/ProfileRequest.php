@@ -25,7 +25,9 @@ class ProfileRequest extends FormRequest
             'gender' => ['nullable', 'string', 'in:male,female,prefer_not_to_say'],
             'interests' => ['nullable', 'string'],
             'location' => ['nullable', 'string', 'max:255'],
-            'bio' => ['nullable', 'string', 'max:1000'],
+            // No length cap on bio: storage is a TEXT column and truncation is
+            // presentation-layer only.
+            'bio' => ['nullable', 'string'],
             'seeking' => ['nullable', 'string', 'max:1000'],
             'offering' => ['nullable', 'string', 'max:1000'],
             'is_live' => ['nullable', 'boolean'],
