@@ -42,6 +42,7 @@ Route::get('/interests', [InterestOptionController::class, 'index'])->middleware
 
 // Public profile
 Route::get('/public/{slug}', [PublicProfileController::class, 'show'])->middleware('cache.get');
+Route::get('/public-sitemap', [PublicProfileController::class, 'sitemap']);
 Route::post('/public/{slug}/event', [PublicProfileController::class, 'trackEvent']);
 
 // Connection request (public, no auth)

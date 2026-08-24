@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import { ConfirmProvider } from "@/components/ui/ConfirmProvider";
 import { ThemeProvider } from "@/components/theme";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { siteUrl } from "@/lib/site";
 import { themeInitScript } from "@/lib/theme/script";
 import "@/styles/globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: "ROICARD",
     template: "%s | ROICARD",

@@ -119,4 +119,31 @@ class PublicProfileController extends Controller
 
         return response()->json(['message' => 'Event recorded']);
     }
+
+    /**
+     * Public sitemap feed — slugs of all publicly viewable profiles (same
+     * visibility rule as show(): activated member, not deleted). Consumed by
+     * the Next.js sitemap route; cached for an hour and busted alongside the
+     * per-profile cache.
+     */
+    public function sitemap(): JsonResponse
+    {
+        $profiles = Cache::remember('public_profiles_sitemap', 3600, function () {
+            return Profile::query()
+                ->join('users', 'users.id', '=', 'profiles.user_id')
+                ->whereNull('users.deleted_at')
+                ->where('users.status', 'active')
+                ->where('profiles.is_live', true)
+                ->whereNotNull('profiles.slug')
+                ->orderBy('profiles.id')
+                ->get(['profiles.slug', 'profiles.updated_at'])
+                ->map(fn ($p) => [
+                    'slug' => $p->slug,
+                    'lastmod' => $p->updated_at?->toISOString(),
+                ])
+                ->all();
+        });
+
+        return response()->json(['data' => $profiles]);
+    }
 }

@@ -58,6 +58,7 @@ class Profile extends Model implements HasMedia
         if ($this->slug) {
             Cache::forget("public_profile:{$this->slug}");
         }
+        Cache::forget('public_profiles_sitemap');
     }
 
     public function user()
