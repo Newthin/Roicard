@@ -59,6 +59,9 @@ export type JourneyStepId =
  * NOT included here — they are only reached when a member chooses to activate
  * membership, keeping payment fully optional. Payment/Success come last so the
  * member builds and reviews their profile before completing checkout.
+ *
+ * "experiences" is intentionally omitted for now (feature parked) — the step
+ * component stays in OnboardingJourney.tsx; re-add the id here to restore it.
  */
 const LINEAR_STEPS: JourneyStepId[] = [
   "about",
@@ -67,7 +70,6 @@ const LINEAR_STEPS: JourneyStepId[] = [
   "interests",
   "seeking",
   "offering",
-  "experiences",
   "review",
   "membership",
   "success",
