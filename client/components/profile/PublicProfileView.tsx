@@ -43,7 +43,7 @@ type PublicProfileViewProps = {
 function toUserProfile(p: PublicProfile): UserProfile {
   // Parse social_links array [{platform, value}] into the SocialLinks object
   const social: Record<string, string> = {};
-  const defaultSocial = { linkedin: "", instagram: "", twitter: "", facebook: "", tiktok: "", snapchat: "", website: "" };
+  const defaultSocial = { linkedin: "", instagram: "", twitter: "", facebook: "", youtube: "", tiktok: "", snapchat: "", website: "" };
   if (Array.isArray(p.social_links)) {
     for (const link of p.social_links) {
       if (link?.platform && typeof link.value === "string") {
@@ -71,6 +71,7 @@ function toUserProfile(p: PublicProfile): UserProfile {
       instagram: social.instagram ?? defaultSocial.instagram,
       twitter: social.twitter ?? defaultSocial.twitter,
       facebook: social.facebook ?? defaultSocial.facebook,
+      youtube: social.youtube ?? defaultSocial.youtube,
       tiktok: social.tiktok ?? defaultSocial.tiktok,
       snapchat: social.snapchat ?? defaultSocial.snapchat,
       website: social.website ?? defaultSocial.website,

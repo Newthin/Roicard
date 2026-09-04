@@ -17,6 +17,7 @@ import {
   SnapchatIcon,
   TikTokIcon,
   XIcon,
+  YouTubeIcon,
 } from "@/components/profile/public/BrandIcons";
 import { ProfileCard } from "@/components/profile/public/ProfileCard";
 import type { SocialLinks } from "@/lib/profile/types";
@@ -75,6 +76,13 @@ export function SocialLinksCard({
       label: "Facebook",
       href: ensureProtocol(social.facebook),
       icon: FacebookIcon,
+      external: true,
+    },
+    social.youtube && {
+      key: "youtube",
+      label: "YouTube",
+      href: ensureProtocol(social.youtube),
+      icon: YouTubeIcon,
       external: true,
     },
     social.tiktok && {

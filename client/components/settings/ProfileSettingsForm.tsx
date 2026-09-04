@@ -320,6 +320,12 @@ export function ProfileSettingsForm({
             onChange={(e) => updateSocial("facebook", e.target.value)}
           />
           <FormField
+            label="YouTube"
+            type="url"
+            value={form.social.youtube}
+            onChange={(e) => updateSocial("youtube", e.target.value)}
+          />
+          <FormField
             label="TikTok"
             type="url"
             value={form.social.tiktok}

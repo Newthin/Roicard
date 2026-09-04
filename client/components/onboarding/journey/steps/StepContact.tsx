@@ -23,6 +23,7 @@ const DEFAULT_SOCIALS = [
 
 const MORE_SOCIALS = [
   { key: "facebook", label: "Facebook", placeholder: "facebook.com/username" },
+  { key: "youtube", label: "YouTube", placeholder: "youtube.com/@username" },
   { key: "tiktok", label: "TikTok", placeholder: "tiktok.com/@username" },
   { key: "snapchat", label: "Snapchat", placeholder: "snapchat.com/add/username" },
 ] as const;

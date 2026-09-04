@@ -37,6 +37,7 @@ export const DEMO_USER_PROFILE: UserProfile = {
     instagram: "",
     twitter: "",
     facebook: "",
+    youtube: "",
     tiktok: "",
     snapchat: "",
     website: "",

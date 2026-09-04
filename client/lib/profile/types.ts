@@ -12,6 +12,7 @@ export type SocialLinks = {
   instagram: string;
   twitter: string;
   facebook: string;
+  youtube: string;
   tiktok: string;
   snapchat: string;
   website: string;
@@ -105,6 +106,7 @@ export const EMPTY_ONBOARDING_DATA: OnboardingFormData = {
     instagram: "",
     twitter: "",
     facebook: "",
+    youtube: "",
     tiktok: "",
     snapchat: "",
     website: "",

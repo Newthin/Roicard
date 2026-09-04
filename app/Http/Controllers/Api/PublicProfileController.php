@@ -9,6 +9,7 @@ use App\Services\AnalyticsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class PublicProfileController extends Controller
 {
@@ -93,8 +94,16 @@ class PublicProfileController extends Controller
             ], 403);
         }
 
-        $source = $request->input('src', 'profile_view');
-        RecordAnalyticsJob::dispatch($data['user_id'] ?? $this->userIdForSlug($slug), $source);
+        // Skip analytics for self-views — the profile owner viewing their own
+        // profile from the dashboard should not inflate view counts or trigger
+        // engagement emails. The route has no auth middleware, so we manually
+        // resolve the user from the Sanctum Bearer token if present.
+        $ownerUserId = $data['user_id'] ?? $this->userIdForSlug($slug);
+
+        if (!$this->isSelfView($request, $ownerUserId)) {
+            $source = $request->input('src', 'profile_view');
+            RecordAnalyticsJob::dispatch($ownerUserId, $source);
+        }
 
         return response()->json($data);
     }
@@ -102,6 +111,28 @@ class PublicProfileController extends Controller
     protected function userIdForSlug(string $slug): int
     {
         return (int) Profile::where('slug', $slug)->value('user_id');
+    }
+
+    /**
+     * Determine whether the incoming request is from the profile owner
+     * viewing their own profile. Resolves the user from the Sanctum
+     * Bearer token (the frontend attaches it to every API call via
+     * the axios interceptor, even on this public route).
+     */
+    protected function isSelfView(Request $request, int $ownerUserId): bool
+    {
+        $token = $request->bearerToken();
+        if (!$token) {
+            return false;
+        }
+
+        $accessToken = PersonalAccessToken::findToken($token);
+        if (!$accessToken) {
+            return false;
+        }
+
+        $user = $accessToken->tokenable;
+        return $user && $user->id === $ownerUserId;
     }
 
     public function trackEvent(string $slug, Request $request): JsonResponse
@@ -112,10 +143,14 @@ class PublicProfileController extends Controller
             'type' => ['required', 'string', 'in:contact_save,whatsapp_tap'],
         ]);
 
-        RecordAnalyticsJob::dispatch(
-            $profile->user_id,
-            $validated['type']
-        );
+        // Skip self-tracking — owner actions on their own profile should not
+        // count as engagement events.
+        if (!$this->isSelfView($request, $profile->user_id)) {
+            RecordAnalyticsJob::dispatch(
+                $profile->user_id,
+                $validated['type']
+            );
+        }
 
         return response()->json(['message' => 'Event recorded']);
     }
