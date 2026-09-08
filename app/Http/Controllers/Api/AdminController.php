@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\AdminActionLog;
 use App\Models\AnalyticsEvent;
 use App\Models\Connection;
+use App\Models\MeetingBooking;
+use App\Models\MeetingType;
 use App\Models\Payment;
 use App\Models\SmartCard;
 use App\Models\User;
@@ -35,9 +37,18 @@ class AdminController extends Controller
             'total_smart_cards' => SmartCard::count(),
             'cards_shipped' => SmartCard::where('status', 'shipped')->count(),
             'cards_delivered' => SmartCard::where('status', 'delivered')->count(),
-            'total_connections' => \App\Models\Connection::count(),
+            'total_connections' => Connection::count(),
             'total_analytics_events' => AnalyticsEvent::count(),
             'recent_views_7d' => AnalyticsEvent::where('created_at', '>=', now()->subDays(7))->count(),
+            'total_meetings' => MeetingBooking::count(),
+            'pending_meetings' => MeetingBooking::where('status', 'pending')->count(),
+            'confirmed_meetings' => MeetingBooking::where('status', 'confirmed')->count(),
+            'declined_meetings' => MeetingBooking::where('status', 'declined')->count(),
+            'cancelled_meetings' => MeetingBooking::where('status', 'cancelled')->count(),
+            'completed_meetings' => MeetingBooking::where('status', 'completed')->count(),
+            'expired_meetings' => MeetingBooking::where('status', 'expired')->count(),
+            'total_meeting_types' => MeetingType::count(),
+            'active_meeting_types' => MeetingType::where('is_active', true)->count(),
         ]);
     }
 
@@ -391,6 +402,45 @@ class AdminController extends Controller
             ->get();
 
         return response()->json($logs);
+    }
+
+    /**
+     * Paginated meeting bookings with filters for admin oversight.
+     *
+     * Filters:
+     *  - status: pending|confirmed|declined|cancelled|completed|expired
+     *  - member_id: host_user_id
+     *  - meeting_type_id: meeting type
+     *  - from / to: date range on start_time
+     */
+    public function meetings(Request $request): JsonResponse
+    {
+        $query = MeetingBooking::with(['host:id,first_name,last_name,email', 'meetingType:id,name']);
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('member_id')) {
+            $query->where('host_user_id', $request->member_id);
+        }
+
+        if ($request->filled('meeting_type_id')) {
+            $query->where('meeting_type_id', $request->meeting_type_id);
+        }
+
+        if ($request->filled('from')) {
+            $query->where('start_time', '>=', $request->from);
+        }
+
+        if ($request->filled('to')) {
+            $query->where('start_time', '<=', $request->to);
+        }
+
+        $bookings = $query->orderBy('start_time', 'desc')
+            ->paginate($request->input('per_page', 20));
+
+        return response()->json($bookings);
     }
 
     public function trends(Request $request): JsonResponse

@@ -18,6 +18,9 @@ export interface DashboardData {
     connections: number;
     pending_connections: number;
     unread_notifications: number;
+    meeting_types: number;
+    upcoming_bookings: number;
+    pending_bookings: number;
   };
 }
 

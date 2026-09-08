@@ -10,3 +10,7 @@ Schedule::command('users:purge')->daily();
 // release. Requires a daily `schedule:run` cron; a missed day skips that
 // cohort's step.
 Schedule::command('drafts:expiration-reminders')->daily();
+
+// Meeting reminders — dispatch reminders for bookings starting in 24h and 1h.
+// Runs every 15 minutes; idempotent via cache dedup in SendMeetingReminderJob.
+Schedule::command('meetings:reminders')->everyFifteenMinutes();

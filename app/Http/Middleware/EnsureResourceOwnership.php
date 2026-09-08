@@ -5,6 +5,8 @@ namespace App\Http\Middleware;
 use App\Models\AchievementEntry;
 use App\Models\EducationEntry;
 use App\Models\ExperienceEntry;
+use App\Models\MeetingBooking;
+use App\Models\MeetingType;
 use App\Models\Profile;
 use App\Models\User;
 use Closure;
@@ -16,11 +18,12 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Ensure the route-bound resource belongs to the authenticated user.
  *
- * Supports three shapes of ownership:
- *  1. Direct ownership — the model has a `user_id` column.
- *  2. Profile-scoped resources (education/experience/achievement) that belong
+ * Supports four shapes of ownership:
+ *  1. Direct ownership — the model has a `user_id` column (MeetingType, etc.).
+ *  2. Host ownership — the model has a `host_user_id` column (MeetingBooking).
+ *  3. Profile-scoped resources (education/experience/achievement) that belong
  *     to the user through their Profile (`profile_id`).
- *  3. Spatie Media attachments whose `model_type`/`model_id` point at the
+ *  4. Spatie Media attachments whose `model_type`/`model_id` point at the
  *     user's Profile (e.g. CV uploads).
  *
  * Registered as the `owns` route middleware alias in bootstrap/app.php.
@@ -53,7 +56,15 @@ class EnsureResourceOwnership
             return;
         }
 
-        // 2. Profile-scoped enrichment entries.
+        // 2. Meeting booking owned through host_user_id.
+        if ($resource instanceof MeetingBooking) {
+            $this->abortUnless(
+                (string) $resource->getAttribute('host_user_id') === (string) $user->getKey()
+            );
+            return;
+        }
+
+        // 3. Profile-scoped enrichment entries.
         if ($resource instanceof EducationEntry
             || $resource instanceof ExperienceEntry
             || $resource instanceof AchievementEntry) {
@@ -64,7 +75,7 @@ class EnsureResourceOwnership
             return;
         }
 
-        // 3. Spatie Media attachments owned through the user's profile.
+        // 4. Spatie Media attachments owned through the user's profile.
         if ($resource instanceof Media) {
             $owned = $resource->model_type === Profile::class
                 && (string) $resource->model_id === (string) $user->profile?->id;

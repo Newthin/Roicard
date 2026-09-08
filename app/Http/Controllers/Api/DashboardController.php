@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AnalyticsEvent;
 use App\Models\Connection;
+use App\Models\MeetingBooking;
+use App\Models\MeetingType;
 use App\Models\Profile;
 use App\Models\SmartCard;
 use Illuminate\Http\JsonResponse;
@@ -36,6 +38,16 @@ class DashboardController extends Controller
 
         $unreadNotifications = $user->unreadNotifications()->count();
 
+        // Meeting stats
+        $meetingTypeCount = MeetingType::where('user_id', $userId)->count();
+        $upcomingBookings = MeetingBooking::where('host_user_id', $userId)
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->where('start_time', '>', now('UTC'))
+            ->count();
+        $pendingBookings = MeetingBooking::where('host_user_id', $userId)
+            ->where('status', 'pending')
+            ->count();
+
         // Return the avatar as a clean string (no nested media array).
         $profilePayload = $profile ? $profile->toArray() : null;
         if ($profilePayload) {
@@ -58,6 +70,9 @@ class DashboardController extends Controller
                 'connections' => $connectionCount,
                 'pending_connections' => $pendingConnections,
                 'unread_notifications' => $unreadNotifications,
+                'meeting_types' => $meetingTypeCount,
+                'upcoming_bookings' => $upcomingBookings,
+                'pending_bookings' => $pendingBookings,
             ],
         ]);
     }

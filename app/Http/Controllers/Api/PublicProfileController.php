@@ -48,6 +48,27 @@ class PublicProfileController extends Controller
             $cv = $profile->getMedia('cv')->first();
             $avatar = $profile->getFirstMediaUrl('avatar');
 
+            // Load active meeting types with availability and custom questions
+            $meetingTypes = \App\Models\MeetingType::where('user_id', $profile->user_id)
+                ->where('is_active', true)
+                ->with(['availability', 'customQuestions'])
+                ->orderBy('sort_order')
+                ->get()
+                ->map(fn (\App\Models\MeetingType $type) => [
+                    'id' => $type->id,
+                    'name' => $type->name,
+                    'description' => $type->description,
+                    'duration_minutes' => $type->duration_minutes,
+                    'format' => $type->format,
+                    'format_label' => $type->format_label,
+                    'location_detail' => $type->location_detail,
+                    'custom_questions' => $type->customQuestions->map(fn ($q) => [
+                        'id' => $q->id,
+                        'question' => $q->question,
+                        'is_required' => $q->is_required,
+                    ]),
+                ]);
+
             return [
                 'id' => $profile->id,
                 'user_id' => $profile->user_id,
@@ -79,6 +100,7 @@ class PublicProfileController extends Controller
                     'name' => $cv->name,
                     'size_kb' => (int) round($cv->size / 1024),
                 ] : null,
+                'meeting_types' => $meetingTypes,
             ];
         });
 

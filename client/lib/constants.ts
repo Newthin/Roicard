@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  Calendar,
   LayoutDashboard,
   Link2,
   Settings,
@@ -25,6 +26,7 @@ export type NavItem = {
 export const DASHBOARD_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, exact: true },
   { label: "Profile", href: "/dashboard/profile", icon: User },
+  { label: "Meetings", href: "/dashboard/meetings", icon: Calendar },
   { label: "Connections", href: "/dashboard/connections", icon: Link2 },
   { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },

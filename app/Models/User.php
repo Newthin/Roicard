@@ -24,6 +24,7 @@ class User extends Authenticatable
         'password',
         'status',
         'role',
+        'timezone',
         'email_verified_at',
         'onboarding_completed_at',
         'two_factor_secret',
@@ -77,6 +78,21 @@ class User extends Authenticatable
     public function socialAccounts(): HasMany
     {
         return $this->hasMany(SocialAccount::class);
+    }
+
+    public function meetingTypes(): HasMany
+    {
+        return $this->hasMany(MeetingType::class);
+    }
+
+    public function hostedBookings(): HasMany
+    {
+        return $this->hasMany(MeetingBooking::class, 'host_user_id');
+    }
+
+    public function blockedDates(): HasMany
+    {
+        return $this->hasMany(MeetingBlockedDate::class);
     }
 
     public function isAdmin(): bool
