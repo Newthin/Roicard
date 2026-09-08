@@ -93,10 +93,14 @@ class IcsService
 
     protected function escapeIcs(string $value): string
     {
-        return str_replace(
-            ["\\", ";", ",", "\n"],
-            ["\\\\", "\\;", "\\,", "\\n"],
-            $value
-        );
+        // RFC 5545 §3.3.11: escape \ ; , and newlines
+        $value = str_replace('\\', '\\\\', $value);
+        $value = str_replace(';', '\\;', $value);
+        $value = str_replace(',', '\\,', $value);
+        $value = str_replace("\r\n", '\\n', $value);
+        $value = str_replace("\r", '\\n', $value);
+        $value = str_replace("\n", '\\n', $value);
+
+        return $value;
     }
 }

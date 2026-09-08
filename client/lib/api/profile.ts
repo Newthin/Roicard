@@ -15,6 +15,21 @@ export interface Profile {
   updated_at: string;
 }
 
+export interface PublicProfileMeetingType {
+  id: number;
+  name: string;
+  description: string | null;
+  duration_minutes: number;
+  format: string;
+  format_label: string;
+  location_detail: string | null;
+  custom_questions: {
+    id: number;
+    question: string;
+    is_required: boolean;
+  }[];
+}
+
 export interface PublicProfile {
   id: number;
   slug: string;
@@ -56,6 +71,7 @@ export interface PublicProfile {
     date: string | null;
   }[];
   cv: { url: string; name: string; size_kb: number } | null;
+  meeting_types: PublicProfileMeetingType[];
 }
 
 export async function getProfile(): Promise<{ profile: Profile }> {

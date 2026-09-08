@@ -19,6 +19,7 @@ import { GradientActionButton } from "@/components/profile/public/GradientAction
 import { ProfileAmbientBackdrop } from "@/components/profile/public/ProfileAmbientBackdrop";
 import { PublicProfileCardStack } from "@/components/profile/public/PublicProfileCardStack";
 import { PublicProfileHeader } from "@/components/profile/public/PublicProfileHeader";
+import { ScheduleMeetingModal } from "@/components/profile/public/ScheduleMeetingModal";
 import { SecondaryActionButtons } from "@/components/profile/public/SecondaryActionButtons";
 import { Button } from "@/components/ui/Button";
 import { addGuestConnectionRequest } from "@/lib/connections/storage";
@@ -160,6 +161,7 @@ export function PublicProfileView({ username }: PublicProfileViewProps) {
   const [connectionState, setConnectionState] =
     useState<ConnectionState>("none");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isMeetingModalOpen, setIsMeetingModalOpen] = useState(false);
   const [isDemo, setIsDemo] = useState(false);
 
   useEffect(() => {
@@ -187,6 +189,9 @@ export function PublicProfileView({ username }: PublicProfileViewProps) {
 
   const cardProfile = useMemo(() => profile ? toUserProfile(profile) : null, [profile]);
   const hasWhatsApp = profile?.whatsapp_phone != null;
+  const hasMeetingTypes = useMemo(() => {
+    return Array.isArray(profile?.meeting_types) && profile.meeting_types.length > 0;
+  }, [profile?.meeting_types]);
   const displayName = profile
     ? `${profile.user.first_name} ${profile.user.last_name}`
     : "";
@@ -371,6 +376,7 @@ export function PublicProfileView({ username }: PublicProfileViewProps) {
                 <SecondaryActionButtons
                   onSaveContact={handleSaveContact}
                   onWhatsApp={hasWhatsApp ? handleWhatsApp : undefined}
+                  onScheduleMeeting={hasMeetingTypes ? () => setIsMeetingModalOpen(true) : undefined}
                 />
               </>
             }
@@ -384,6 +390,16 @@ export function PublicProfileView({ username }: PublicProfileViewProps) {
         onSubmit={handleConnectionSubmit}
         profileName={displayName}
       />
+
+      {hasMeetingTypes && (
+        <ScheduleMeetingModal
+          isOpen={isMeetingModalOpen}
+          onClose={() => setIsMeetingModalOpen(false)}
+          slug={username}
+          memberName={displayName}
+          meetingTypes={profile.meeting_types}
+        />
+      )}
     </div>
   );
 }

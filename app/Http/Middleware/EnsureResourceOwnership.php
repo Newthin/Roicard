@@ -6,6 +6,7 @@ use App\Models\AchievementEntry;
 use App\Models\EducationEntry;
 use App\Models\ExperienceEntry;
 use App\Models\MeetingBooking;
+use App\Models\MeetingRescheduleRequest;
 use App\Models\MeetingType;
 use App\Models\Profile;
 use App\Models\User;
@@ -60,6 +61,18 @@ class EnsureResourceOwnership
         if ($resource instanceof MeetingBooking) {
             $this->abortUnless(
                 (string) $resource->getAttribute('host_user_id') === (string) $user->getKey()
+            );
+            return;
+        }
+
+        // 2b. Reschedule request owned through the parent booking's host_user_id.
+        if ($resource instanceof MeetingRescheduleRequest) {
+            $booking = $resource->booking;
+            if (!$booking) {
+                abort(403, 'Resource does not belong to this account.');
+            }
+            $this->abortUnless(
+                (string) $booking->getAttribute('host_user_id') === (string) $user->getKey()
             );
             return;
         }

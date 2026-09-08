@@ -79,4 +79,5 @@ export const DEMO_PUBLIC_PROFILE: PublicProfile = {
   experience: [],
   achievements: [],
   cv: null,
+  meeting_types: [],
 };

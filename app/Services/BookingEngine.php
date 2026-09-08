@@ -122,21 +122,23 @@ class BookingEngine
             throw new InvalidBookingStateException('Only pending bookings can be confirmed.');
         }
 
-        $booking->update([
-            'status' => MeetingBooking::STATUS_CONFIRMED,
-            'confirmed_at' => Carbon::now('UTC'),
-        ]);
+        DB::transaction(function () use ($booking) {
+            $booking->update([
+                'status' => MeetingBooking::STATUS_CONFIRMED,
+                'confirmed_at' => Carbon::now('UTC'),
+            ]);
 
-        DB::afterCommit(function () use ($booking) {
-            $guest = $booking->guestUser;
-            if ($guest) {
-                $guest->notify(new MeetingConfirmedNotification($booking));
-            }
+            DB::afterCommit(function () use ($booking) {
+                $guest = $booking->guestUser;
+                if ($guest) {
+                    $guest->notify(new MeetingConfirmedNotification($booking));
+                }
 
-            $host = $booking->host;
-            if ($host) {
-                $host->notify(new MeetingConfirmedNotification($booking));
-            }
+                $host = $booking->host;
+                if ($host) {
+                    $host->notify(new MeetingConfirmedNotification($booking));
+                }
+            });
         });
 
         return $booking->fresh();
@@ -151,18 +153,20 @@ class BookingEngine
             throw new InvalidBookingStateException('Only active bookings can be declined.');
         }
 
-        $booking->update([
-            'status' => MeetingBooking::STATUS_DECLINED,
-            'cancelled_at' => Carbon::now('UTC'),
-            'cancelled_by' => 'host',
-            'cancellation_reason' => $reason,
-        ]);
+        DB::transaction(function () use ($booking, $reason) {
+            $booking->update([
+                'status' => MeetingBooking::STATUS_DECLINED,
+                'cancelled_at' => Carbon::now('UTC'),
+                'cancelled_by' => 'host',
+                'cancellation_reason' => $reason,
+            ]);
 
-        DB::afterCommit(function () use ($booking, $reason) {
-            $guest = $booking->guestUser;
-            if ($guest) {
-                $guest->notify(new MeetingDeclinedNotification($booking, $reason));
-            }
+            DB::afterCommit(function () use ($booking, $reason) {
+                $guest = $booking->guestUser;
+                if ($guest) {
+                    $guest->notify(new MeetingDeclinedNotification($booking, $reason));
+                }
+            });
         });
 
         return $booking->fresh();
@@ -177,18 +181,20 @@ class BookingEngine
             throw new InvalidBookingStateException('Only active bookings can be cancelled.');
         }
 
-        $booking->update([
-            'status' => MeetingBooking::STATUS_CANCELLED,
-            'cancelled_at' => Carbon::now('UTC'),
-            'cancelled_by' => 'host',
-            'cancellation_reason' => $reason,
-        ]);
+        DB::transaction(function () use ($booking, $reason) {
+            $booking->update([
+                'status' => MeetingBooking::STATUS_CANCELLED,
+                'cancelled_at' => Carbon::now('UTC'),
+                'cancelled_by' => 'host',
+                'cancellation_reason' => $reason,
+            ]);
 
-        DB::afterCommit(function () use ($booking, $reason) {
-            $guest = $booking->guestUser;
-            if ($guest) {
-                $guest->notify(new MeetingCancelledNotification($booking, $reason));
-            }
+            DB::afterCommit(function () use ($booking, $reason) {
+                $guest = $booking->guestUser;
+                if ($guest) {
+                    $guest->notify(new MeetingCancelledNotification($booking, $reason));
+                }
+            });
         });
 
         return $booking->fresh();
@@ -203,18 +209,20 @@ class BookingEngine
             ->whereIn('status', [MeetingBooking::STATUS_PENDING, MeetingBooking::STATUS_CONFIRMED])
             ->firstOrFail();
 
-        $booking->update([
-            'status' => MeetingBooking::STATUS_CANCELLED,
-            'cancelled_at' => Carbon::now('UTC'),
-            'cancelled_by' => 'guest',
-            'cancellation_reason' => $reason,
-        ]);
+        DB::transaction(function () use ($booking, $reason) {
+            $booking->update([
+                'status' => MeetingBooking::STATUS_CANCELLED,
+                'cancelled_at' => Carbon::now('UTC'),
+                'cancelled_by' => 'guest',
+                'cancellation_reason' => $reason,
+            ]);
 
-        DB::afterCommit(function () use ($booking, $reason) {
-            $host = $booking->host;
-            if ($host) {
-                $host->notify(new MeetingCancelledNotification($booking, $reason));
-            }
+            DB::afterCommit(function () use ($booking, $reason) {
+                $host = $booking->host;
+                if ($host) {
+                    $host->notify(new MeetingCancelledNotification($booking, $reason));
+                }
+            });
         });
 
         return $booking->fresh();
@@ -244,30 +252,33 @@ class BookingEngine
             );
         }
 
-        $request = $booking->rescheduleRequests()->create([
-            'requested_by_user_id' => $requestedByUserId,
-            'proposed_start_time' => $proposedStart,
-            'proposed_end_time' => $proposedEnd,
-            'status' => MeetingRescheduleRequest::STATUS_PENDING,
-            'reason' => $reason,
-        ]);
+        $request = null;
 
-        $booking->update([
-            'status' => MeetingBooking::STATUS_RESCHEDULE_REQUESTED,
-        ]);
+        DB::transaction(function () use ($booking, $requestedByUserId, $proposedStart, $proposedEnd, $reason, &$request) {
+            $request = $booking->rescheduleRequests()->create([
+                'requested_by_user_id' => $requestedByUserId,
+                'proposed_start_time' => $proposedStart,
+                'proposed_end_time' => $proposedEnd,
+                'status' => MeetingRescheduleRequest::STATUS_PENDING,
+                'reason' => $reason,
+            ]);
 
-        DB::afterCommit(function () use ($booking, $request) {
-            // Notify the other party (not the one who proposed)
-            $proposerId = $request->requested_by_user_id;
+            $booking->update([
+                'status' => MeetingBooking::STATUS_RESCHEDULE_REQUESTED,
+            ]);
 
-            if ($booking->host_user_id !== $proposerId && $booking->host) {
-                $booking->host->notify(new RescheduleProposedNotification($booking, $request));
-            }
+            DB::afterCommit(function () use ($booking, $request) {
+                $proposerId = $request->requested_by_user_id;
 
-            $guest = $booking->guestUser;
-            if ($guest && $guest->id !== $proposerId) {
-                $guest->notify(new RescheduleProposedNotification($booking, $request));
-            }
+                if ($booking->host_user_id !== $proposerId && $booking->host) {
+                    $booking->host->notify(new RescheduleProposedNotification($booking, $request));
+                }
+
+                $guest = $booking->guestUser;
+                if ($guest && $guest->id !== $proposerId) {
+                    $guest->notify(new RescheduleProposedNotification($booking, $request));
+                }
+            });
         });
 
         return $request;
@@ -284,34 +295,36 @@ class BookingEngine
 
         $booking = $request->booking;
 
-        $request->update([
-            'status' => MeetingRescheduleRequest::STATUS_ACCEPTED,
-            'responded_at' => Carbon::now('UTC'),
-        ]);
+        DB::transaction(function () use ($request, $booking) {
+            $request->update([
+                'status' => MeetingRescheduleRequest::STATUS_ACCEPTED,
+                'responded_at' => Carbon::now('UTC'),
+            ]);
 
-        $booking->update([
-            'start_time' => $request->proposed_start_time,
-            'end_time' => $request->proposed_end_time,
-            'status' => MeetingBooking::STATUS_CONFIRMED,
-            'confirmed_at' => Carbon::now('UTC'),
-        ]);
+            $booking->update([
+                'start_time' => $request->proposed_start_time,
+                'end_time' => $request->proposed_end_time,
+                'status' => MeetingBooking::STATUS_CONFIRMED,
+                'confirmed_at' => Carbon::now('UTC'),
+            ]);
 
-        // Expire other pending reschedule requests for this booking
-        $booking->rescheduleRequests()
-            ->where('id', '!=', $request->id)
-            ->where('status', MeetingRescheduleRequest::STATUS_PENDING)
-            ->update(['status' => MeetingRescheduleRequest::STATUS_EXPIRED]);
+            // Expire other pending reschedule requests for this booking
+            $booking->rescheduleRequests()
+                ->where('id', '!=', $request->id)
+                ->where('status', MeetingRescheduleRequest::STATUS_PENDING)
+                ->update(['status' => MeetingRescheduleRequest::STATUS_EXPIRED]);
 
-        DB::afterCommit(function () use ($booking, $request) {
-            $guest = $booking->guestUser;
-            if ($guest) {
-                $guest->notify(new RescheduleAcceptedNotification($booking, $request));
-            }
+            DB::afterCommit(function () use ($booking, $request) {
+                $guest = $booking->guestUser;
+                if ($guest) {
+                    $guest->notify(new RescheduleAcceptedNotification($booking, $request));
+                }
 
-            $host = $booking->host;
-            if ($host) {
-                $host->notify(new RescheduleAcceptedNotification($booking, $request));
-            }
+                $host = $booking->host;
+                if ($host) {
+                    $host->notify(new RescheduleAcceptedNotification($booking, $request));
+                }
+            });
         });
 
         return $booking->fresh();
@@ -326,27 +339,30 @@ class BookingEngine
             throw new InvalidBookingStateException('This reschedule request is no longer pending.');
         }
 
-        $request->update([
-            'status' => MeetingRescheduleRequest::STATUS_DECLINED,
-            'responded_at' => Carbon::now('UTC'),
-        ]);
-
         $booking = $request->booking;
-        if ($booking->status === MeetingBooking::STATUS_RESCHEDULE_REQUESTED) {
-            $booking->update(['status' => MeetingBooking::STATUS_CONFIRMED]);
-        }
 
-        DB::afterCommit(function () use ($booking, $request) {
-            $proposerId = $request->requested_by_user_id;
+        DB::transaction(function () use ($request, $booking) {
+            $request->update([
+                'status' => MeetingRescheduleRequest::STATUS_DECLINED,
+                'responded_at' => Carbon::now('UTC'),
+            ]);
 
-            if ($booking->host_user_id !== $proposerId && $booking->host) {
-                $booking->host->notify(new RescheduleDeclinedNotification($booking, $request));
+            if ($booking->status === MeetingBooking::STATUS_RESCHEDULE_REQUESTED) {
+                $booking->update(['status' => MeetingBooking::STATUS_CONFIRMED]);
             }
 
-            $guest = $booking->guestUser;
-            if ($guest && $guest->id !== $proposerId) {
-                $guest->notify(new RescheduleDeclinedNotification($booking, $request));
-            }
+            DB::afterCommit(function () use ($booking, $request) {
+                $proposerId = $request->requested_by_user_id;
+
+                if ($booking->host_user_id !== $proposerId && $booking->host) {
+                    $booking->host->notify(new RescheduleDeclinedNotification($booking, $request));
+                }
+
+                $guest = $booking->guestUser;
+                if ($guest && $guest->id !== $proposerId) {
+                    $guest->notify(new RescheduleDeclinedNotification($booking, $request));
+                }
+            });
         });
 
         return $request->fresh();
