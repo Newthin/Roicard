@@ -21,7 +21,8 @@ use Illuminate\Support\Str;
 class BookingEngine
 {
     public function __construct(
-        protected AvailabilityEngine $availabilityEngine
+        protected AvailabilityEngine $availabilityEngine,
+        protected GuestNotificationService $guestNotificationService
     ) {}
 
     /**
@@ -107,6 +108,8 @@ class BookingEngine
                 if ($host) {
                     $host->notify(new MeetingRequestReceivedNotification($booking));
                 }
+
+                $this->guestNotificationService->sendBookingReceived($booking);
             });
 
             return $booking;
@@ -138,6 +141,8 @@ class BookingEngine
                 if ($host) {
                     $host->notify(new MeetingConfirmedNotification($booking));
                 }
+
+                $this->guestNotificationService->sendBookingConfirmed($booking);
             });
         });
 
@@ -166,6 +171,8 @@ class BookingEngine
                 if ($guest) {
                     $guest->notify(new MeetingDeclinedNotification($booking, $reason));
                 }
+
+                $this->guestNotificationService->sendBookingDeclined($booking, $reason);
             });
         });
 
@@ -194,6 +201,8 @@ class BookingEngine
                 if ($guest) {
                     $guest->notify(new MeetingCancelledNotification($booking, $reason));
                 }
+
+                $this->guestNotificationService->sendBookingCancelled($booking, $reason);
             });
         });
 
@@ -222,6 +231,8 @@ class BookingEngine
                 if ($host) {
                     $host->notify(new MeetingCancelledNotification($booking, $reason));
                 }
+
+                $this->guestNotificationService->sendBookingCancelled($booking, $reason);
             });
         });
 
@@ -278,6 +289,8 @@ class BookingEngine
                 if ($guest && $guest->id !== $proposerId) {
                     $guest->notify(new RescheduleProposedNotification($booking, $request));
                 }
+
+                $this->guestNotificationService->sendRescheduleProposed($booking, $request);
             });
         });
 
@@ -324,6 +337,8 @@ class BookingEngine
                 if ($host) {
                     $host->notify(new RescheduleAcceptedNotification($booking, $request));
                 }
+
+                $this->guestNotificationService->sendRescheduleAccepted($booking, $request);
             });
         });
 
@@ -362,6 +377,8 @@ class BookingEngine
                 if ($guest && $guest->id !== $proposerId) {
                     $guest->notify(new RescheduleDeclinedNotification($booking, $request));
                 }
+
+                $this->guestNotificationService->sendRescheduleDeclined($booking, $request);
             });
         });
 

@@ -195,7 +195,7 @@ class MeetingNotificationsTest extends TestCase
 
     // ─── In-app notification data tests ──────────────────────────────────
 
-    public function test_notification toArray contains_required_fields(): void
+    public function test_notification_toArray_contains_required_fields(): void
     {
         $slotStart = Carbon::now('UTC')->addDays(3)->setTime(14, 0);
 

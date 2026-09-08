@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\MeetingBooking;
 use App\Notifications\MeetingReminderNotification;
+use App\Services\GuestNotificationService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -53,5 +54,7 @@ class SendMeetingReminderJob implements ShouldQueue
         if ($booking->host) {
             $booking->host->notify(new MeetingReminderNotification($booking, $this->reminderType));
         }
+
+        app(GuestNotificationService::class)->sendReminder($booking, $this->reminderType);
     }
 }
