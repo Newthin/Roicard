@@ -54,6 +54,13 @@ export async function getPublicSlots(
   return data.data;
 }
 
+function generateIdempotencyKey(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 12);
+}
+
 /** Submit a public booking request (no auth, idempotent). */
 export async function submitPublicBooking(
   slug: string,
@@ -71,7 +78,8 @@ export async function submitPublicBooking(
 ): Promise<BookingResult> {
   const { data } = await apiClient.post(
     `/public/${slug}/meeting-types/${meetingTypeId}/book`,
-    payload
+    payload,
+    { headers: { "Idempotency-Key": generateIdempotencyKey() } }
   );
   return data.data;
 }
