@@ -22,7 +22,7 @@ interface ProfileData {
 
 async function fetchProfile(slug: string): Promise<ProfileData | null> {
   try {
-    const res = await fetch(`${API_URL}/public/${slug}`, {
+    const res = await fetch(`${API_URL}/public/${slug}?_metadata=1`, {
       next: { revalidate: 3600 },
     });
     if (!res.ok) return null;

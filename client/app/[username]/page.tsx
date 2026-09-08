@@ -16,7 +16,7 @@ interface ProfileMetadata {
 
 async function fetchProfileForMetadata(slug: string): Promise<ProfileMetadata | null> {
   try {
-    const res = await fetch(`${API_URL}/public/${slug}`, {
+    const res = await fetch(`${API_URL}/public/${slug}?_metadata=1`, {
       next: { revalidate: 3600 },
     });
     if (!res.ok) return null;

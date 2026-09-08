@@ -116,13 +116,13 @@ class PublicProfileController extends Controller
             ], 403);
         }
 
-        // Skip analytics for self-views — the profile owner viewing their own
-        // profile from the dashboard should not inflate view counts or trigger
-        // engagement emails. The route has no auth middleware, so we manually
-        // resolve the user from the Sanctum Bearer token if present.
+        // Skip analytics when the request is a server-side metadata/OG-image
+        // fetch (identified by the _metadata query flag) or when the profile
+        // owner is viewing their own profile. The route has no auth middleware,
+        // so we manually resolve the viewer from the Sanctum Bearer token.
         $ownerUserId = $data['user_id'] ?? $this->userIdForSlug($slug);
 
-        if (!$this->isSelfView($request, $ownerUserId)) {
+        if (!$request->boolean('_metadata') && !$this->isSelfView($request, $ownerUserId)) {
             $source = $request->input('src', 'profile_view');
             RecordAnalyticsJob::dispatch($ownerUserId, $source);
         }
