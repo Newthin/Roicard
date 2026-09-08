@@ -66,7 +66,7 @@ class MeetingTypeController extends Controller
 
         $type->load(['availability', 'customQuestions']);
 
-        $this->forgetPublicProfileCache((int) $type->user_id);
+        $this->invalidatePublicProfileCache((int) $type->user_id);
 
         return response()->json(['data' => $type], 201);
     }
@@ -117,7 +117,7 @@ class MeetingTypeController extends Controller
 
         $meetingType->load(['availability', 'customQuestions']);
 
-        $this->forgetPublicProfileCache((int) $meetingType->user_id);
+        $this->invalidatePublicProfileCache((int) $meetingType->user_id);
 
         return response()->json(['data' => $meetingType]);
     }
@@ -132,24 +132,26 @@ class MeetingTypeController extends Controller
 
         $meetingType->delete();
 
-        $this->forgetPublicProfileCache($userId);
+        $this->invalidatePublicProfileCache($userId);
 
         return response()->json(null, 204);
     }
 
     /**
-     * Invalidate the cached public profile so meeting type changes
+     * Bust the cached public profile so meeting-type changes
      * (create / activate / deactivate / delete) are visible immediately.
      */
-    protected function forgetPublicProfileCache(int $userId): void
+    protected function invalidatePublicProfileCache(int $userId): void
     {
-        $slug = \App\Models\Profile::where('user_id', $userId)->value('slug');
+        try {
+            $profile = \App\Models\Profile::where('user_id', $userId)->first();
 
-        if (empty($slug)) {
-            return;
+            if ($profile) {
+                $profile->bustPublicCache();
+            }
+        } catch (\Throwable) {
+            // Cache invalidation is best-effort; never break the request.
         }
-
-        Cache::forget("public_profile:{$slug}");
     }
 
     /**
