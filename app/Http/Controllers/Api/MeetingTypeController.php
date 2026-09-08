@@ -9,6 +9,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class MeetingTypeController extends Controller
 {
@@ -65,6 +66,8 @@ class MeetingTypeController extends Controller
 
         $type->load(['availability', 'customQuestions']);
 
+        $this->forgetPublicProfileCache((int) $type->user_id);
+
         return response()->json(['data' => $type], 201);
     }
 
@@ -114,6 +117,8 @@ class MeetingTypeController extends Controller
 
         $meetingType->load(['availability', 'customQuestions']);
 
+        $this->forgetPublicProfileCache((int) $meetingType->user_id);
+
         return response()->json(['data' => $meetingType]);
     }
 
@@ -123,9 +128,28 @@ class MeetingTypeController extends Controller
             return response()->json(['error' => 'Cannot delete a meeting type with active bookings.'], 422);
         }
 
+        $userId = (int) $meetingType->user_id;
+
         $meetingType->delete();
 
+        $this->forgetPublicProfileCache($userId);
+
         return response()->json(null, 204);
+    }
+
+    /**
+     * Invalidate the cached public profile so meeting type changes
+     * (create / activate / deactivate / delete) are visible immediately.
+     */
+    protected function forgetPublicProfileCache(int $userId): void
+    {
+        $slug = \App\Models\Profile::where('user_id', $userId)->value('slug');
+
+        if (empty($slug)) {
+            return;
+        }
+
+        Cache::forget("public_profile:{$slug}");
     }
 
     /**
