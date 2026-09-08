@@ -18,7 +18,7 @@ const FORMATS = [
 
 const DURATIONS = [15, 30, 45, 60];
 const BUFFERS = [0, 10, 15, 30];
-const MIN_NOTICE = [1, 3, 6, 12, 24, 48];
+const MIN_NOTICE = [1, 2, 3, 6, 12, 24, 48];
 const ADVANCE_DAYS = [7, 14, 30, 60, 90];
 
 type Props = {
@@ -84,7 +84,18 @@ export function MeetingTypeForm({ isOpen, onClose, meetingType, onSave }: Props)
       });
       onClose();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to save");
+      const axiosErr = e as {
+        response?: { data?: { message?: string; errors?: Record<string, string[]> } };
+      };
+      const fieldErrors = axiosErr?.response?.data?.errors;
+      const firstFieldError = fieldErrors
+        ? Object.values(fieldErrors).flat()[0]
+        : undefined;
+      setError(
+        firstFieldError ??
+          axiosErr?.response?.data?.message ??
+          (e instanceof Error ? e.message : "Failed to save")
+      );
     } finally {
       setSaving(false);
     }

@@ -28,7 +28,7 @@ class StoreMeetingTypeRequest extends FormRequest
             'capacity' => ['nullable', 'integer', 'min:1', 'max:10'],
             'is_active' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
-            'min_notice_hours' => ['nullable', 'integer', 'in:1,3,6,12,24,48'],
+            'min_notice_hours' => ['nullable', 'integer', 'in:1,2,3,6,12,24,48'],
             'advance_booking_days' => ['nullable', 'integer', 'in:7,14,30,60,90'],
             'max_bookings_per_day' => ['nullable', 'integer', 'min:1'],
             'availability' => ['nullable', 'array'],
