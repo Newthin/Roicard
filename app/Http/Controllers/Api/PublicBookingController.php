@@ -8,9 +8,11 @@ use App\Models\User;
 use App\Services\AvailabilityEngine;
 use App\Services\BookingEngine;
 use Carbon\Carbon;
+use Carbon\CarbonTimeZone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class PublicBookingController extends Controller
 {
@@ -161,12 +163,16 @@ class PublicBookingController extends Controller
         $format = $validated['format'] ?? $meetingType->format;
 
         try {
+            // Parse start_time in the guest's timezone, then convert to UTC for storage.
+            $guestTz = new CarbonTimeZone($validated['timezone']);
+            $slotStart = Carbon::parse($validated['start_time'], $guestTz)->setTimezone('UTC');
+
             // BookingEngine re-validates the slot inside a transaction
             $booking = $this->bookingEngine->book(
                 $meetingType,
                 $validated['guest_name'],
                 $validated['guest_email'],
-                Carbon::parse($validated['start_time'], 'UTC'),
+                $slotStart,
                 $validated['timezone'],
                 $validated['guest_phone'] ?? null,
                 $validated['guest_notes'] ?? null,
@@ -174,29 +180,29 @@ class PublicBookingController extends Controller
                 $guestUserId
             );
 
-            // Update with guest_user_id if applicable
-            if ($guestUserId) {
-                $booking->update(['guest_user_id' => $guestUserId]);
-            }
+            // Update guest_user_id, format snapshot, and custom answers atomically
+            DB::transaction(function () use ($booking, $guestUserId, $format, $meetingType, $validated) {
+                if ($guestUserId) {
+                    $booking->update(['guest_user_id' => $guestUserId]);
+                }
 
-            // Update format snapshot if guest selected a different format
-            if ($format !== $meetingType->format) {
-                $booking->update(['type_format' => $format]);
-            }
+                if ($format !== $meetingType->format) {
+                    $booking->update(['type_format' => $format]);
+                }
 
-            // Save custom answers with question_id reference
-            if (!empty($validated['custom_answers'])) {
-                foreach ($validated['custom_answers'] as $index => $answer) {
-                    $question = $meetingType->customQuestions()->find($answer['question_id']);
-                    if ($question) {
-                        $booking->customAnswers()->create([
-                            'question' => $question->question,
-                            'answer' => $answer['answer'],
-                            'sort_order' => $index,
-                        ]);
+                if (!empty($validated['custom_answers'])) {
+                    foreach ($validated['custom_answers'] as $index => $answer) {
+                        $question = $meetingType->customQuestions()->find($answer['question_id']);
+                        if ($question) {
+                            $booking->customAnswers()->create([
+                                'question' => $question->question,
+                                'answer' => $answer['answer'],
+                                'sort_order' => $index,
+                            ]);
+                        }
                     }
                 }
-            }
+            });
 
             return response()->json([
                 'data' => [

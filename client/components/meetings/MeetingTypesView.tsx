@@ -136,7 +136,7 @@ export function MeetingTypesView() {
         </div>
       )}
 
-      <MeetingTypeForm isOpen={formOpen} onClose={() => setFormOpen(false)} meetingType={editing} onSave={handleSave} />
+      <MeetingTypeForm key={editing?.id ?? 'new'} isOpen={formOpen} onClose={() => setFormOpen(false)} meetingType={editing} onSave={handleSave} />
     </div>
   );
 }
