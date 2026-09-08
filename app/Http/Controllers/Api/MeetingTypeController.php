@@ -144,11 +144,12 @@ class MeetingTypeController extends Controller
     protected function invalidatePublicProfileCache(int $userId): void
     {
         try {
-            $profile = \App\Models\Profile::where('user_id', $userId)->first();
+            $slug = \App\Models\Profile::where('user_id', $userId)->value('slug');
 
-            if ($profile) {
-                $profile->bustPublicCache();
+            if ($slug) {
+                \Illuminate\Support\Facades\Cache::forget("public_profile:{$slug}");
             }
+            \Illuminate\Support\Facades\Cache::forget('public_profiles_sitemap');
         } catch (\Throwable) {
             // Cache invalidation is best-effort; never break the request.
         }

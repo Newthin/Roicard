@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class MeetingTypeAvailability extends Model
 {
+    protected $table = 'meeting_type_availability';
+
     protected $fillable = [
         'meeting_type_id',
         'day_of_week',
