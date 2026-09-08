@@ -50,5 +50,17 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(100)->by(auth()->id() ?? $request->ip());
         });
+
+        // Guest cancellation — prevent brute-force token guessing.
+        // 10 requests/min per IP is generous for legitimate use.
+        RateLimiter::for('guest-cancellation', function (Request $request) {
+            return Limit::perMinute(10)->by($request->ip());
+        });
+
+        // Public booking endpoints — prevent scraping and abuse.
+        // 30 requests/min per IP for browsing meeting types and slots.
+        RateLimiter::for('public-booking', function (Request $request) {
+            return Limit::perMinute(30)->by($request->ip());
+        });
     }
 }

@@ -48,6 +48,14 @@ Route::post('/public/{slug}/event', [PublicProfileController::class, 'trackEvent
 // Connection request (public, no auth)
 Route::post('/connections', [ConnectionController::class, 'store']);
 
+// Public meeting booking flow (no auth, rate-limited)
+Route::get('/public/{slug}/meeting-types', [\App\Http\Controllers\Api\PublicBookingController::class, 'meetingTypes'])->middleware('throttle:public-booking');
+Route::get('/public/{slug}/meeting-types/{meetingType}/slots', [\App\Http\Controllers\Api\PublicBookingController::class, 'slots'])->middleware('throttle:public-booking');
+Route::post('/public/{slug}/meeting-types/{meetingType}/book', [\App\Http\Controllers\Api\PublicBookingController::class, 'book'])->middleware('idempotency');
+
+// Public booking cancellation (guest uses token, rate-limited to prevent brute-force)
+Route::post('/meetings/cancel/{token}', [\App\Http\Controllers\Api\MeetingBookingController::class, 'cancelByToken'])->middleware('throttle:guest-cancellation');
+
 // QR code (public)
 // /qr/image/{slug} serves the SVG for display; /qr/{slug} is the scan entry
 // point that records a qr_scan and redirects to the profile. The scan route
@@ -122,6 +130,30 @@ Route::middleware(['auth:sanctum', 'prevent_leak'])->group(function () {
     Route::get('/analytics/summary', [AnalyticsController::class, 'summary']);
     Route::post('/analytics/events', [AnalyticsController::class, 'store']);
 
+    // Meetings - Owner
+    Route::get('/meeting-types', [\App\Http\Controllers\Api\MeetingTypeController::class, 'index']);
+    Route::post('/meeting-types', [\App\Http\Controllers\Api\MeetingTypeController::class, 'store']);
+    Route::get('/meeting-types/{meetingType}', [\App\Http\Controllers\Api\MeetingTypeController::class, 'show'])->middleware('owns');
+    Route::patch('/meeting-types/{meetingType}', [\App\Http\Controllers\Api\MeetingTypeController::class, 'update'])->middleware('owns');
+    Route::delete('/meeting-types/{meetingType}', [\App\Http\Controllers\Api\MeetingTypeController::class, 'destroy'])->middleware('owns');
+    Route::get('/meeting-types/{meetingType}/slots', [\App\Http\Controllers\Api\MeetingTypeController::class, 'slots'])->middleware('owns');
+
+    // Meetings - Bookings (owner)
+    Route::get('/meetings', [\App\Http\Controllers\Api\MeetingBookingController::class, 'index']);
+    Route::get('/meetings/{meetingBooking}', [\App\Http\Controllers\Api\MeetingBookingController::class, 'show'])->middleware('owns');
+    Route::patch('/meetings/{meetingBooking}/confirm', [\App\Http\Controllers\Api\MeetingBookingController::class, 'confirm'])->middleware('owns');
+    Route::patch('/meetings/{meetingBooking}/decline', [\App\Http\Controllers\Api\MeetingBookingController::class, 'decline'])->middleware('owns');
+    Route::patch('/meetings/{meetingBooking}/cancel', [\App\Http\Controllers\Api\MeetingBookingController::class, 'cancel'])->middleware('owns');
+    Route::post('/meetings/{meetingBooking}/reschedule', [\App\Http\Controllers\Api\MeetingBookingController::class, 'proposeReschedule'])->middleware('owns');
+    Route::patch('/meetings/{meetingBooking}/reschedule/{rescheduleRequest}/accept', [\App\Http\Controllers\Api\MeetingBookingController::class, 'acceptReschedule'])->middleware('owns');
+    Route::patch('/meetings/{meetingBooking}/reschedule/{rescheduleRequest}/decline', [\App\Http\Controllers\Api\MeetingBookingController::class, 'declineReschedule'])->middleware('owns');
+    Route::get('/meetings/{meetingBooking}/ics', [\App\Http\Controllers\Api\MeetingBookingController::class, 'downloadIcs'])->middleware('owns');
+
+    // Meetings - Blocked dates (owner)
+    Route::get('/blocked-dates', [\App\Http\Controllers\Api\MeetingBlockedDateController::class, 'index']);
+    Route::post('/blocked-dates', [\App\Http\Controllers\Api\MeetingBlockedDateController::class, 'store']);
+    Route::delete('/blocked-dates/{meetingBlockedDate}', [\App\Http\Controllers\Api\MeetingBlockedDateController::class, 'destroy'])->middleware('owns');
+
     /*
     |--------------------------------------------------------------------------
     | Admin Routes
@@ -145,6 +177,7 @@ Route::middleware(['auth:sanctum', 'prevent_leak'])->group(function () {
         Route::patch('/smart-cards/{id}/deliver', [AdminController::class, 'deliverCard']);
         Route::get('/connections', [AdminController::class, 'connections']);
         Route::get('/activity-log', [AdminController::class, 'activityLog']);
+        Route::get('/meetings', [AdminController::class, 'meetings']);
     });
 });
 
