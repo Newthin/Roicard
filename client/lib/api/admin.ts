@@ -42,12 +42,10 @@ export interface AdminUser {
 
 export interface AdminUserListResponse {
   data: AdminUser[];
-  meta: {
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-  };
+  current_page?: number;
+  last_page?: number;
+  per_page?: number;
+  total?: number;
 }
 
 export interface AdminSmartCard {
@@ -111,12 +109,10 @@ export interface AdminTrends {
 
 export interface PaginatedResponse<T> {
   data: T[];
-  meta: {
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-  };
+  current_page?: number;
+  last_page?: number;
+  per_page?: number;
+  total?: number;
 }
 
 export async function getAdminStats(): Promise<AdminStats> {

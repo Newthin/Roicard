@@ -128,8 +128,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
           // first 20. The client-side search/filter/pagination in UserTable
           // operates on this full set.
           const pages: AdminUser[] = res.data.map(mapApiUser);
-          const lastPage = res.meta.last_page;
-          const pageSize = res.meta.per_page;
+          const lastPage = res.last_page ?? 1;
+          const pageSize = res.per_page ?? 100;
 
           for (let page = 2; page <= lastPage; page++) {
             const next = await getAdminUsers({ page, per_page: pageSize });
@@ -140,23 +140,44 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         })
         .catch((e) => console.error("getAdminUsers failed", e)),
 
-      getAdminSmartCards()
-        .then((res) =>
-          setNfcCards(
-            res.data.map((c) => ({
-              id: String(c.id),
-              cardId: c.card_id,
-              assignedUserId: c.user_id ? String(c.user_id) : null,
-              assignedUserName: c.user
-                ? `${c.user.first_name} ${c.user.last_name}`
-                : null,
-              status: (c.inventory_status ?? (c.user_id ? "assigned" : "available")) as NFCCard["status"],
-              assignedAt: c.assigned_at ?? c.dispatched_at ?? c.created_at ?? null,
-              publicProfileUrl: c.public_profile_url ?? null,
-              publicProfileQrUrl: c.public_profile_qr_url ?? null,
-            }))
-          )
-        )
+      getAdminSmartCards({ per_page: 100 })
+        .then(async (res) => {
+          const cards = res.data.map((c) => ({
+            id: String(c.id),
+            cardId: c.card_id,
+            assignedUserId: c.user_id ? String(c.user_id) : null,
+            assignedUserName: c.user
+              ? `${c.user.first_name} ${c.user.last_name}`
+              : null,
+            status: (c.inventory_status ?? (c.user_id ? "assigned" : "available")) as NFCCard["status"],
+            assignedAt: c.assigned_at ?? c.dispatched_at ?? c.created_at ?? null,
+            publicProfileUrl: c.public_profile_url ?? null,
+            publicProfileQrUrl: c.public_profile_qr_url ?? null,
+          }));
+
+          const lastPage = res.last_page ?? 1;
+          const pageSize = res.per_page ?? 100;
+
+          for (let page = 2; page <= lastPage; page++) {
+            const next = await getAdminSmartCards({ page, per_page: pageSize });
+            cards.push(
+              ...next.data.map((c) => ({
+                id: String(c.id),
+                cardId: c.card_id,
+                assignedUserId: c.user_id ? String(c.user_id) : null,
+                assignedUserName: c.user
+                  ? `${c.user.first_name} ${c.user.last_name}`
+                  : null,
+                status: (c.inventory_status ?? (c.user_id ? "assigned" : "available")) as NFCCard["status"],
+                assignedAt: c.assigned_at ?? c.dispatched_at ?? c.created_at ?? null,
+                publicProfileUrl: c.public_profile_url ?? null,
+                publicProfileQrUrl: c.public_profile_qr_url ?? null,
+              }))
+            );
+          }
+
+          setNfcCards(cards);
+        })
         .catch((e) => console.error("getAdminSmartCards failed", e)),
     ]);
 
