@@ -122,8 +122,22 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         )
         .catch((e) => console.error("getAdminStats failed", e)),
 
-      getAdminUsers()
-        .then((res) => setUsers(res.data.map(mapApiUser)))
+      getAdminUsers({ per_page: 100 })
+        .then(async (res) => {
+          // Fetch every page so the admin table sees all users, not just the
+          // first 20. The client-side search/filter/pagination in UserTable
+          // operates on this full set.
+          const pages: AdminUser[] = res.data.map(mapApiUser);
+          const lastPage = res.meta.last_page;
+          const pageSize = res.meta.per_page;
+
+          for (let page = 2; page <= lastPage; page++) {
+            const next = await getAdminUsers({ page, per_page: pageSize });
+            pages.push(...next.data.map(mapApiUser));
+          }
+
+          setUsers(pages);
+        })
         .catch((e) => console.error("getAdminUsers failed", e)),
 
       getAdminSmartCards()
