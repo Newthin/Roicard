@@ -29,7 +29,7 @@ return [
     */
 
     'nlf' => [
-        'campaign_code' => env('NLF_CAMPAIGN_CODE'),
+        'campaign_code' => env('NLF_CAMPAIGN_CODE', 'NLF2026'),
         'activation_fee' => (float) env('NLF_ACTIVATION_FEE_GHS', 0),
     ],
 
