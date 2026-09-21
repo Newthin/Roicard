@@ -22,6 +22,23 @@ class DiscountCampaignController extends Controller
 {
     use LogsAdminActions;
 
+    /** Public: return currently live campaigns so the register form knows whether to show the code field. */
+    public function active(): JsonResponse
+    {
+        $campaigns = DiscountCampaign::query()
+            ->where('is_active', true)
+            ->where(function ($q) {
+                $q->whereNull('starts_at')->orWhere('starts_at', '<=', now());
+            })
+            ->where(function ($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>=', now());
+            })
+            ->select('code', 'name', 'amount')
+            ->get();
+
+        return response()->json(['campaigns' => $campaigns]);
+    }
+
     public function index(): JsonResponse
     {
         $campaigns = DiscountCampaign::query()

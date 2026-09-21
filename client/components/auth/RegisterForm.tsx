@@ -6,9 +6,10 @@ import { InputField } from "@/components/auth/InputField";
 import { Button } from "@/components/ui/Button";
 import { PasswordStrengthChecklist } from "@/components/ui/PasswordStrengthChecklist";
 import { useAuth } from "@/contexts/AuthContext";
+import { getActiveCampaigns } from "@/lib/api/auth";
 import { arePasswordRulesMet } from "@/lib/validation/password";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -18,8 +19,15 @@ export function RegisterForm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [campaignCode, setCampaignCode] = useState("");
+  const [hasActiveCampaigns, setHasActiveCampaigns] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    getActiveCampaigns()
+      .then((res) => setHasActiveCampaigns(res.campaigns.length > 0))
+      .catch(() => {});
+  }, []);
 
   const allPassed = arePasswordRulesMet(password, confirmPassword);
 
@@ -80,14 +88,16 @@ export function RegisterForm() {
           onChange={(event) => setEmail(event.target.value)}
         />
 
-        <InputField
-          label="Campaign Code (optional)"
-          name="campaignCode"
-          placeholder="NLF2026"
-          autoComplete="off"
-          value={campaignCode}
-          onChange={(event) => setCampaignCode(event.target.value)}
-        />
+        {hasActiveCampaigns && (
+          <InputField
+            label="Campaign Code (optional)"
+            name="campaignCode"
+            placeholder="e.g. NLF2026"
+            autoComplete="off"
+            value={campaignCode}
+            onChange={(event) => setCampaignCode(event.target.value)}
+          />
+        )}
 
         <InputField
           label="Password"

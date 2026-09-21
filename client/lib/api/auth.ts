@@ -177,3 +177,14 @@ export async function deleteAccount(current_password: string): Promise<void> {
     data: { current_password },
   });
 }
+
+export interface ActiveCampaign {
+  code: string;
+  name: string;
+  amount: number;
+}
+
+export async function getActiveCampaigns(): Promise<{ campaigns: ActiveCampaign[] }> {
+  const { data } = await apiClient.get("/discount-campaigns/active");
+  return data;
+}

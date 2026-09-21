@@ -68,6 +68,9 @@ Route::get('/qr/{slug}', [QRController::class, 'show']);
 // Payment webhook (no auth, signature-verified)
 Route::post('/payments/webhook/{provider}', [PaymentController::class, 'webhook']);
 
+// Active discount campaigns (public — used by register form)
+Route::get('/discount-campaigns/active', [DiscountCampaignController::class, 'active']);
+
 /*
 |--------------------------------------------------------------------------
 | Authenticated Routes
