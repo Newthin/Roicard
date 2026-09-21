@@ -154,6 +154,30 @@ export const PAYMENT_METHODS = [
 /** One-time membership activation fee in Ghanaian Cedis. */
 export const MEMBERSHIP_FEE_GHS = 350;
 
+/**
+ * Price the member actually pays, resolved from the server payload with the
+ * standard fee as a fallback until it arrives. Program members (campaign code)
+ * pay a discounted rate, shown with a strikethrough original price.
+ */
+export type ActivationPricing = {
+  fee: number;
+  original: number | null;
+  program: boolean;
+};
+
+export function getActivationPricing(user?: {
+  activation_fee?: number;
+  campaign_code?: string | null;
+} | null): ActivationPricing {
+  const fee = user?.activation_fee ?? MEMBERSHIP_FEE_GHS;
+  const program = Boolean(user?.campaign_code?.trim());
+  return {
+    fee,
+    original: program && fee < MEMBERSHIP_FEE_GHS ? MEMBERSHIP_FEE_GHS : null,
+    program,
+  };
+}
+
 /** Metadata for each wizard step — drives stepper UI and navigation. */
 export type OnboardingStepConfig = {
   id: number;

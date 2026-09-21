@@ -12,6 +12,7 @@
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/contexts/AuthContext";
 import { initiatePayment } from "@/lib/api/payments";
+import { getActivationPricing } from "@/lib/profile/types";
 import { AlarmClock } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
@@ -55,7 +56,7 @@ export function DraftCountdown({ closesAt }: { closesAt: string }) {
     setIsSubmitting(true);
     try {
       const { redirect } = await initiatePayment({
-        amount: user?.activation_fee ?? 350,
+        amount: getActivationPricing(user).fee,
         currency: "GHS",
         method: "card",
       });

@@ -17,7 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/cn";
 import { initiatePayment } from "@/lib/api/payments";
 import { savePaymentSnapshot } from "@/lib/profile/storage";
-import { PAYMENT_METHODS } from "@/lib/profile/types";
+import { PAYMENT_METHODS, getActivationPricing } from "@/lib/profile/types";
 import { useEffect, useRef, useState } from "react";
 
 export function StepPayment() {
@@ -28,10 +28,9 @@ export function StepPayment() {
   const [error, setError] = useState<string | null>(null);
   const redirectedRef = useRef(false);
 
-  // The server is the source of truth for pricing (NLF campaign members get a
-  // discounted/free activation fee). Fall back to the standard fee only when
-  // the payload hasn't arrived yet.
-  const fee = user?.activation_fee ?? 350;
+  // The server is the source of truth for pricing (NLF campaign members pay a
+  // discounted rate). Resolve server-first, falling back to the standard fee.
+  const pricing = getActivationPricing(user);
 
   useEffect(() => {
     if (redirectedRef.current) return;
@@ -48,7 +47,7 @@ export function StepPayment() {
 
     try {
       const { redirect } = await initiatePayment({
-        amount: fee,
+        amount: pricing.fee,
         currency: "GHS",
         method: "card",
       });
@@ -131,13 +130,30 @@ export function StepPayment() {
         </p>
       )}
 
+      {pricing.program && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-roicard-accent/40 bg-roicard-accent/10 px-4 py-3">
+          <span className="rounded-full bg-roicard-accent/15 px-2 py-0.5 text-xs font-semibold text-roicard-accent">
+            50% off
+          </span>
+          <p className="text-sm text-roicard-text">
+            You're paying the Program rate.
+            {pricing.original !== null && (
+              <span className="text-roicard-text-muted">
+                {" "}
+                (was GHS {pricing.original})
+              </span>
+            )}
+          </p>
+        </div>
+      )}
+
       <div className="flex flex-col gap-3">
         <Button
           onClick={handlePay}
           disabled={isSubmitting}
           className="w-full rounded-xl"
         >
-          {isSubmitting ? "Starting payment..." : `Pay GHS ${fee}`}
+          {isSubmitting ? "Starting payment..." : `Pay GHS ${pricing.fee}`}
         </Button>
         <button
           type="button"

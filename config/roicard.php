@@ -29,8 +29,9 @@ return [
     */
 
     'nlf' => [
+        // 50% off the standard GHS 350 activation fee for program members.
         'campaign_code' => env('NLF_CAMPAIGN_CODE', 'NLF2026'),
-        'activation_fee' => (float) env('NLF_ACTIVATION_FEE_GHS', 0),
+        'activation_fee' => (float) env('NLF_ACTIVATION_FEE_GHS', 175),
     ],
 
 ];
