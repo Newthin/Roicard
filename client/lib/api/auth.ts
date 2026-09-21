@@ -82,6 +82,17 @@ export async function verifyEmail(email: string): Promise<void> {
   await apiClient.post("/auth/email/resend", { email });
 }
 
+export async function verifyEmailCode(
+  email: string,
+  code: string
+): Promise<{ message: string }> {
+  const { data } = await apiClient.post("/auth/verify-email/code", {
+    email,
+    code,
+  });
+  return data;
+}
+
 export async function forgotPassword(email: string): Promise<void> {
   await apiClient.post("/auth/forgot-password", { email });
 }

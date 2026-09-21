@@ -512,6 +512,36 @@ class AuthController extends Controller
         return response()->json(['message' => 'Verification email sent']);
     }
 
+    public function verifyEmailCode(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => ['required', 'email'],
+            'code'  => ['required', 'string', 'size:6'],
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json(['message' => 'No account found with that email'], 404);
+        }
+
+        if ($user->hasVerifiedEmail()) {
+            return response()->json(['message' => 'Email already verified']);
+        }
+
+        if (!$user->validateEmailVerificationCode($request->code)) {
+            return response()->json(['message' => 'Invalid or expired verification code'], 422);
+        }
+
+        if ($user->markEmailAsVerified()) {
+            event(new Verified($user));
+        }
+
+        $user->clearEmailVerificationCode();
+
+        return response()->json(['message' => 'Email verified successfully']);
+    }
+
     public function forgotPassword(Request $request): JsonResponse
     {
         $request->validate(['email' => ['required', 'email']]);

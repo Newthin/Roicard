@@ -35,12 +35,16 @@ export function LoginForm() {
     setDeactivated(false);
     setReactivateMsg(null);
     try {
-      await login(email, password);
+      const loggedInUser = await login(email, password);
       // When 2FA is required, twoFactorPending flips true and the form
       // switches to the code screen — no navigation happens yet.
-      if (!twoFactorPending) {
+      if (!twoFactorPending && loggedInUser) {
         const next = searchParams.get("next");
-        router.push(next || "/dashboard");
+        router.push(
+          loggedInUser.onboarding_completed === false
+            ? "/onboarding"
+            : next || "/dashboard"
+        );
       }
     } catch (err: unknown) {
       const data =
@@ -90,9 +94,13 @@ export function LoginForm() {
     setIsLoading(true);
     setError("");
     try {
-      await submitTwoFactor(code);
+      const verifiedUser = await submitTwoFactor(code);
       const next = searchParams.get("next");
-      router.push(next || "/dashboard");
+      router.push(
+        verifiedUser && verifiedUser.onboarding_completed === false
+          ? "/onboarding"
+          : next || "/dashboard"
+      );
     } catch (err: unknown) {
       const data =
         err && typeof err === "object" && "response" in err

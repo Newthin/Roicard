@@ -34,6 +34,7 @@ Route::get('/auth/social/{provider}/redirect', [SocialAuthController::class, 're
 Route::get('/auth/social/{provider}/callback', [SocialAuthController::class, 'callback']);
 Route::get('/auth/verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])->name('verification.verify');
 Route::post('/auth/email/resend', [AuthController::class, 'resendVerification'])->middleware('throttle:forgot-password');
+Route::post('/auth/verify-email/code', [AuthController::class, 'verifyEmailCode']);
 Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:forgot-password');
 Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
 Route::post('/auth/reactivate', [AuthController::class, 'reactivate']);

@@ -31,12 +31,12 @@ interface AuthContextValue {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User | null>;
   register: (payload: authApi.RegisterPayload) => Promise<void>;
   logout: () => void;
   setSession: (token: string, user: User) => void;
   twoFactorPending: boolean;
-  submitTwoFactor: (code: string) => Promise<void>;
+  submitTwoFactor: (code: string) => Promise<User | null>;
   cancelTwoFactor: () => void;
 }
 
@@ -176,7 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [clearState]);
 
   const login = useCallback(
-    async (email: string, password: string) => {
+    async (email: string, password: string): Promise<User | null> => {
       const response = await authApi.login({ email, password });
 
       if (response.two_factor_required && response.pending_token) {
@@ -185,18 +185,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(TOKEN_KEY, response.pending_token);
         localStorage.setItem(USER_KEY, JSON.stringify(response.user));
         setTwoFactorPending(true);
-        return;
+        return null;
       }
 
       if (response.token) {
         setSession(response.token, response.user);
+        return response.user;
       }
+
+      return null;
     },
     [setSession]
   );
 
   const submitTwoFactor = useCallback(
-    async (code: string) => {
+    async (code: string): Promise<User | null> => {
       if (!pendingTokenRef.current) {
         throw new Error("No pending two-factor session");
       }
@@ -207,6 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         pendingTokenRef.current = null;
         setTwoFactorPending(false);
         setSession(response.token!, response.user);
+        return response.user;
       } catch (error) {
         throw error;
       }

@@ -26,6 +26,8 @@ class User extends Authenticatable
         'role',
         'timezone',
         'email_verified_at',
+        'email_verification_code',
+        'email_verification_code_expires_at',
         'onboarding_completed_at',
         'campaign_code',
         'discount_campaign_id',
@@ -38,18 +40,65 @@ class User extends Authenticatable
         'password',
         'remember_token',
         'two_factor_secret',
+        'email_verification_code',
     ];
 
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
+            'email_verification_code_expires_at' => 'datetime',
             'onboarding_completed_at' => 'datetime',
             'deactivated_at' => 'datetime',
             'deleted_at' => 'datetime',
             'two_factor_enabled' => 'boolean',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Generate a 6-digit email verification code with a 30-minute expiry.
+     */
+    public function generateEmailVerificationCode(): string
+    {
+        $code = str_pad((string) mt_rand(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        $this->update([
+            'email_verification_code' => $code,
+            'email_verification_code_expires_at' => now()->addMinutes(30),
+        ]);
+
+        return $code;
+    }
+
+    /**
+     * Check if the given code matches and hasn't expired.
+     */
+    public function validateEmailVerificationCode(string $code): bool
+    {
+        if (
+            $this->email_verification_code === null ||
+            $this->email_verification_code_expires_at === null
+        ) {
+            return false;
+        }
+
+        if (now()->greaterThan($this->email_verification_code_expires_at)) {
+            return false;
+        }
+
+        return hash_equals($this->email_verification_code, $code);
+    }
+
+    /**
+     * Clear the verification code after successful use.
+     */
+    public function clearEmailVerificationCode(): void
+    {
+        $this->update([
+            'email_verification_code' => null,
+            'email_verification_code_expires_at' => null,
+        ]);
     }
 
     public function profile()
@@ -105,6 +154,12 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $code = $this->generateEmailVerificationCode();
+        $this->notify(new \App\Notifications\VerifyEmail($code));
     }
 
     public function isActive(): bool
