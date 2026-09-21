@@ -18,3 +18,4 @@ export { NFCTable } from "@/components/admin/NFCTable";
 export { DataTable, DataTableRow, DataTableCell } from "@/components/admin/DataTable";
 export { StatsChart } from "@/components/admin/StatsChart";
 export { AdminActivityFeed } from "@/components/admin/AdminActivityFeed";
+export { DiscountsManagementView } from "@/components/admin/DiscountsManagementView";

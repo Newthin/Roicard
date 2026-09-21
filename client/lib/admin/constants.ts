@@ -7,6 +7,7 @@ import {
   CreditCard,
   LayoutDashboard,
   Nfc,
+  Percent,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -21,6 +22,7 @@ export type AdminNavItem = {
 export const ADMIN_NAV: AdminNavItem[] = [
   { label: "Dashboard Overview", href: "/admin", icon: LayoutDashboard, exact: true },
   { label: "Users", href: "/admin/users", icon: Users },
+  { label: "Discounts", href: "/admin/discounts", icon: Percent },
   { label: "Generate Card", href: "/admin/cards/generate", icon: CreditCard },
   { label: "Roicard Management", href: "/admin/nfc", icon: Nfc },
   { label: "Statistics", href: "/admin/statistics", icon: BarChart3 },

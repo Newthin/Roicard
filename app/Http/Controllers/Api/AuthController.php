@@ -22,8 +22,23 @@ class AuthController extends Controller
 {
     public function register(RegisterRequest $request): JsonResponse
     {
+        $campaign = null;
+        if ($request->filled('campaign_code')) {
+            $code = mb_strtoupper(trim((string) $request->campaign_code));
+            $campaign = \App\Models\DiscountCampaign::where('code', $code)->first();
+
+            if (! $campaign || ! $campaign->isLive()) {
+                return response()->json([
+                    'message' => 'The campaign code is invalid or has ended.',
+                    'errors' => [
+                        'campaign_code' => ['This code is invalid or no longer active.'],
+                    ],
+                ], 422);
+            }
+        }
+
         try {
-            $user = DB::transaction(function () use ($request) {
+            $user = DB::transaction(function () use ($request, $campaign) {
                 $user = User::create([
                     'first_name' => $request->first_name,
                     'last_name' => $request->last_name,
@@ -31,9 +46,8 @@ class AuthController extends Controller
                     'password' => $request->password,
                     'status' => 'draft',
                     'role' => 'member',
-                    'campaign_code' => $request->filled('campaign_code')
-                        ? mb_strtoupper(trim($request->campaign_code))
-                        : null,
+                    'campaign_code' => $campaign?->code,
+                    'discount_campaign_id' => $campaign?->id,
                 ]);
 
                 // Create empty profile

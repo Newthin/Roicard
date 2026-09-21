@@ -246,3 +246,46 @@ export async function getAdminTrends(
   });
   return data;
 }
+
+export interface AdminDiscountCampaign {
+  id: number;
+  code: string;
+  name: string;
+  amount: number;
+  starts_at: string | null;
+  expires_at: string | null;
+  is_active: boolean;
+  users_count?: number;
+  created_at?: string;
+}
+
+export interface DiscountCampaignPayload {
+  code: string;
+  name: string;
+  amount: number;
+  starts_at?: string | null;
+  expires_at?: string | null;
+  is_active?: boolean;
+}
+
+export async function getAdminDiscountCampaigns(): Promise<{
+  campaigns: AdminDiscountCampaign[];
+}> {
+  const { data } = await apiClient.get("/admin/discount-campaigns");
+  return data;
+}
+
+export async function createAdminDiscountCampaign(
+  body: DiscountCampaignPayload
+): Promise<{ campaign: AdminDiscountCampaign; message: string }> {
+  const { data } = await apiClient.post("/admin/discount-campaigns", body);
+  return data;
+}
+
+export async function updateAdminDiscountCampaign(
+  id: number,
+  body: Partial<DiscountCampaignPayload>
+): Promise<{ campaign: AdminDiscountCampaign; message: string }> {
+  const { data } = await apiClient.patch(`/admin/discount-campaigns/${id}`, body);
+  return data;
+}

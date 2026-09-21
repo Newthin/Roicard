@@ -28,6 +28,7 @@ class User extends Authenticatable
         'email_verified_at',
         'onboarding_completed_at',
         'campaign_code',
+        'discount_campaign_id',
         'two_factor_secret',
         'two_factor_enabled',
         'deactivated_at',
@@ -54,6 +55,11 @@ class User extends Authenticatable
     public function profile()
     {
         return $this->hasOne(Profile::class);
+    }
+
+    public function discountCampaign()
+    {
+        return $this->belongsTo(DiscountCampaign::class, 'discount_campaign_id');
     }
 
     public function payments()

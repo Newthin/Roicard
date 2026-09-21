@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ConnectionController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\DiscountCampaignController;
 use App\Http\Controllers\Api\GoogleAuthController;
 use App\Http\Controllers\Api\InterestOptionController;
 use App\Http\Controllers\Api\NotificationController;
@@ -178,6 +179,11 @@ Route::middleware(['auth:sanctum', 'prevent_leak'])->group(function () {
         Route::get('/connections', [AdminController::class, 'connections']);
         Route::get('/activity-log', [AdminController::class, 'activityLog']);
         Route::get('/meetings', [AdminController::class, 'meetings']);
+
+        // Discount campaigns (member pricing)
+        Route::get('/discount-campaigns', [DiscountCampaignController::class, 'index']);
+        Route::post('/discount-campaigns', [DiscountCampaignController::class, 'store']);
+        Route::patch('/discount-campaigns/{id}', [DiscountCampaignController::class, 'update']);
     });
 });
 

@@ -27,16 +27,25 @@ class PaymentController extends Controller
         }
 
         // Optional late campaign code: a member who missed it at registration
-        // can still claim the discount at checkout. Only a recognized code is
-        // stamped — unknown codes are ignored and the standard fee applies.
-        $nlfCode = config('roicard.nlf.campaign_code');
+        // can still claim a live campaign's discounted rate at checkout.
         if ($request->filled('campaign_code')) {
             $entered = mb_strtoupper(trim((string) $request->campaign_code));
-            if ($user->campaign_code === null
-                && $nlfCode !== null
-                && $entered === strtoupper((string) $nlfCode)
-            ) {
-                $user->update(['campaign_code' => $entered]);
+            $campaign = \App\Models\DiscountCampaign::where('code', $entered)->first();
+
+            if (! $campaign || ! $campaign->isLive()) {
+                return response()->json([
+                    'message' => 'The campaign code is invalid or has ended.',
+                    'errors' => [
+                        'campaign_code' => ['This code is invalid or no longer active.'],
+                    ],
+                ], 422);
+            }
+
+            if ($user->discount_campaign_id === null) {
+                $user->update([
+                    'campaign_code' => $campaign->code,
+                    'discount_campaign_id' => $campaign->id,
+                ]);
             }
         }
 
