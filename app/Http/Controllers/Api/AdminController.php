@@ -68,6 +68,7 @@ class AdminController extends Controller
         $request->validate([
             'status' => ['sometimes', 'string', 'in:draft,active'],
             'role' => ['sometimes', 'string', 'in:member,admin'],
+            'campaign_code' => ['nullable', 'string', 'max:40'],
         ]);
 
         $user = User::findOrFail($id);
@@ -77,6 +78,18 @@ class AdminController extends Controller
         }
         if ($request->has('role')) {
             $user->role = $request->role;
+        }
+        if ($request->has('campaign_code')) {
+            $code = mb_strtoupper(trim((string) $request->campaign_code));
+
+            if ($code === '') {
+                $user->campaign_code = null;
+                $user->discount_campaign_id = null;
+            } else {
+                $campaign = \App\Models\DiscountCampaign::where('code', $code)->first();
+                $user->campaign_code = $code;
+                $user->discount_campaign_id = $campaign?->id;
+            }
         }
         $user->save();
 

@@ -23,6 +23,7 @@ export interface AdminUser {
   email: string;
   status: string;
   role: string;
+  campaign_code?: string | null;
   profile?: {
     slug?: string;
     title?: string;
@@ -145,7 +146,7 @@ export async function createAdminUser(body: {
 
 export async function updateAdminUser(
   id: number,
-  body: { status?: string; role?: string }
+  body: { status?: string; role?: string; campaign_code?: string | null }
 ): Promise<{ user: AdminUser; message: string }> {
   const { data } = await apiClient.patch(`/admin/users/${id}`, body);
   return data;

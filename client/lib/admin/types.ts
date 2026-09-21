@@ -25,6 +25,7 @@ export type AdminUser = {
   whatsapp: string;
   seeking: string;
   offering: string;
+  campaignCode?: string | null;
 };
 
 export type NFCStatus =

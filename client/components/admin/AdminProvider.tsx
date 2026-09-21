@@ -92,6 +92,7 @@ function mapApiUser(u: ApiAdminUser): AdminUser {
     whatsapp: u.profile?.whatsapp_phone ?? "",
     seeking: u.profile?.seeking ?? "",
     offering: u.profile?.offering ?? "",
+    campaignCode: u.campaign_code ?? null,
   };
 }
 
@@ -203,8 +204,9 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   const updateUser = useCallback(
     async (userId: string, updates: Partial<AdminUser>) => {
-      const body: { status?: string; role?: string } = {};
+      const body: { status?: string; role?: string; campaign_code?: string | null } = {};
       if (updates.status) body.status = updates.status === "active" ? "active" : "draft";
+      if (updates.campaignCode !== undefined) body.campaign_code = updates.campaignCode ?? null;
 
       // Profile fields go through the dedicated profile endpoint so admins
       // edit with the exact same validation/persistence as member settings.

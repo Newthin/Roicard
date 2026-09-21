@@ -234,6 +234,7 @@ function EditUserModal({
       whatsapp: current.whatsapp,
       seeking: current.seeking,
       offering: current.offering,
+      campaignCode: current.campaignCode,
     });
     onClose();
   };
@@ -292,6 +293,18 @@ function EditUserModal({
               onChange={(e) => setField("username", e.target.value)}
             />
           </div>
+          <Input
+            label="Discount Code"
+            placeholder="e.g. NLF2026 (leave blank for standard fee)"
+            value={current.campaignCode ?? ""}
+            onChange={(e) =>
+              setForm((f) => ({
+                ...f,
+                campaignCode: e.target.value.toUpperCase() || null,
+              }))
+            }
+            hint="If set, this member pays the discounted activation fee for this campaign."
+          />
           <Input
             label="Professional Title"
             value={current.professionalTitle}
@@ -735,6 +748,7 @@ export function UserTable() {
             { key: "name", label: "User" },
             { key: "email", label: "Email" },
             { key: "username", label: "Username" },
+            { key: "discount", label: "Discount" },
             { key: "status", label: "Status" },
             { key: "joined", label: "Joined" },
             { key: "actions", label: "Actions", className: "text-right" },
@@ -768,6 +782,15 @@ export function UserTable() {
                 {user.username ? (
                   <span className="text-roicard-text">
                     @{user.username}
+                  </span>
+                ) : (
+                  <span className="text-roicard-text-muted">—</span>
+                )}
+              </DataTableCell>
+              <DataTableCell>
+                {user.campaignCode ? (
+                  <span className="inline-flex items-center rounded-full border border-roicard-accent/40 bg-roicard-accent/15 px-2.5 py-0.5 text-xs font-semibold text-roicard-accent">
+                    {user.campaignCode}
                   </span>
                 ) : (
                   <span className="text-roicard-text-muted">—</span>
