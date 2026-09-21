@@ -141,16 +141,15 @@ export function useJourney() {
   return ctx;
 }
 
-/** Validates a step's required fields; empty result means the step is valid. */
+/** Validates a step's fields; empty result means the step is valid. */
+// All fields are OPTIONAL for the NLF mass-onboarding: members must be able to
+// skip anything with one click (backend already accepts an empty profile).
+// Validation only catches malformed values WHEN one is supplied.
 function validateStep(step: JourneyStepId, data: JourneyData): JourneyFieldErrors {
   const errors: JourneyFieldErrors = {};
 
   if (step === "about") {
-    if (!data.firstName.trim()) errors.firstName = "First name is required";
-    if (!data.lastName.trim()) errors.lastName = "Last name is required";
-    if (!data.email.trim()) {
-      errors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+    if (data.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
       errors.email = "Please enter a valid email address";
     }
     if (data.dateOfBirth) {
@@ -158,24 +157,6 @@ function validateStep(step: JourneyStepId, data: JourneyData): JourneyFieldError
       if (isNaN(dob.getTime()) || dob >= new Date()) {
         errors.dateOfBirth = "Please enter a valid date in the past";
       }
-    }
-  }
-
-  if (step === "identity") {
-    if (!data.professionalTitle.trim()) {
-      errors.professionalTitle = "Professional headline is required";
-    }
-    if (!data.bio.trim()) {
-      errors.bio = "A short bio helps people understand you";
-    }
-    if (!data.location.trim()) {
-      errors.location = "Location is required";
-    }
-  }
-
-  if (step === "interests") {
-    if (data.interests.length === 0) {
-      errors.interests = "Select at least one area of interest";
     }
   }
 

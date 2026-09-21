@@ -17,6 +17,7 @@ export function RegisterForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [campaignCode, setCampaignCode] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -39,6 +40,7 @@ export function RegisterForm() {
         email,
         password,
         password_confirmation: confirmPassword,
+        campaign_code: campaignCode.trim() || undefined,
       });
       router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err: unknown) {
@@ -76,6 +78,15 @@ export function RegisterForm() {
           autoComplete="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
+        />
+
+        <InputField
+          label="Campaign Code (optional)"
+          name="campaignCode"
+          placeholder="NLF2026"
+          autoComplete="off"
+          value={campaignCode}
+          onChange={(event) => setCampaignCode(event.target.value)}
         />
 
         <InputField

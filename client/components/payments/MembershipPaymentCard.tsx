@@ -10,20 +10,27 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/contexts/AuthContext";
 import { useLiveMemberStatus } from "@/hooks/useLiveMemberStatus";
 import { initiatePayment } from "@/lib/api/payments";
 import {
   getCurrentUserProfile,
   savePaymentSnapshot,
 } from "@/lib/profile/storage";
-import { MEMBERSHIP_BENEFITS, MEMBERSHIP_FEE_GHS } from "@/lib/profile/types";
+import { MEMBERSHIP_BENEFITS } from "@/lib/profile/types";
 import { Check, Loader2, Wallet } from "lucide-react";
 import { useCallback, useState } from "react";
 
 export function MembershipPaymentCard() {
+  const { user } = useAuth();
   const { status, isLoading } = useLiveMemberStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // The server is the source of truth for pricing (NLF campaign members get a
+  // discounted/free activation fee). Fall back to the standard fee only when
+  // the payload hasn't arrived yet.
+  const fee = user?.activation_fee ?? 350;
 
   // Hide entirely once the backend confirms the member is active.
   if (!isLoading && status === "active") {
@@ -46,7 +53,7 @@ export function MembershipPaymentCard() {
       }
 
       const { redirect } = await initiatePayment({
-        amount: MEMBERSHIP_FEE_GHS,
+        amount: fee,
         currency: "GHS",
         method: "card",
       });
@@ -82,7 +89,7 @@ export function MembershipPaymentCard() {
       );
       setIsSubmitting(false);
     }
-  }, [isSubmitting]);
+  }, [isSubmitting, fee]);
 
   return (
     <section className="rounded-2xl border border-roicard-accent/40 bg-gradient-to-br from-roicard-primary/10 to-roicard-bg-elevated p-6">
@@ -117,7 +124,7 @@ export function MembershipPaymentCard() {
             One-time activation fee
           </p>
           <p className="mt-1 text-2xl font-bold text-roicard-text">
-            GHS {MEMBERSHIP_FEE_GHS}
+            {fee === 0 ? "FREE" : `GHS ${fee}`}
           </p>
         </div>
 

@@ -27,6 +27,7 @@ class User extends Authenticatable
         'timezone',
         'email_verified_at',
         'onboarding_completed_at',
+        'campaign_code',
         'two_factor_secret',
         'two_factor_enabled',
         'deactivated_at',

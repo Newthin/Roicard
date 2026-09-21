@@ -17,7 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/cn";
 import { initiatePayment } from "@/lib/api/payments";
 import { savePaymentSnapshot } from "@/lib/profile/storage";
-import { MEMBERSHIP_FEE_GHS, PAYMENT_METHODS } from "@/lib/profile/types";
+import { PAYMENT_METHODS } from "@/lib/profile/types";
 import { useEffect, useRef, useState } from "react";
 
 export function StepPayment() {
@@ -27,6 +27,11 @@ export function StepPayment() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const redirectedRef = useRef(false);
+
+  // The server is the source of truth for pricing (NLF campaign members get a
+  // discounted/free activation fee). Fall back to the standard fee only when
+  // the payload hasn't arrived yet.
+  const fee = user?.activation_fee ?? 350;
 
   useEffect(() => {
     if (redirectedRef.current) return;
@@ -43,7 +48,7 @@ export function StepPayment() {
 
     try {
       const { redirect } = await initiatePayment({
-        amount: MEMBERSHIP_FEE_GHS,
+        amount: fee,
         currency: "GHS",
         method: "card",
       });
@@ -132,7 +137,7 @@ export function StepPayment() {
           disabled={isSubmitting}
           className="w-full rounded-xl"
         >
-          {isSubmitting ? "Starting payment..." : `Pay GHS ${MEMBERSHIP_FEE_GHS}`}
+          {isSubmitting ? "Starting payment..." : `Pay GHS ${fee}`}
         </Button>
         <button
           type="button"

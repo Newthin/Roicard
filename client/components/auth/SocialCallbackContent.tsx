@@ -32,9 +32,12 @@ function SocialCallbackContent() {
     try {
       const user = JSON.parse(rawUser);
       setSession(token, user);
-      // Brand-new social sign-ins (status "draft") still need to complete
-      // onboarding; existing members go straight to the dashboard.
-      router.replace(user?.status === "draft" ? "/onboarding" : "/dashboard");
+      // Brand-new social sign-ins (not onboarding_completed) still need to
+      // complete onboarding; existing members — including draft members who
+      // already finished onboarding but haven't activated — go to the dashboard.
+      router.replace(
+        user?.onboarding_completed ? "/dashboard" : "/onboarding"
+      );
     } catch {
       setError("Could not complete sign-in. Please try again.");
     }

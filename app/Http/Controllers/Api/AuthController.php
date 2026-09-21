@@ -12,6 +12,7 @@ use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
@@ -21,20 +22,40 @@ class AuthController extends Controller
 {
     public function register(RegisterRequest $request): JsonResponse
     {
-        $user = User::create([
-            'first_name' => $request->first_name,
-            'last_name' => $request->last_name,
-            'email' => $request->email,
-            'password' => $request->password,
-            'status' => 'draft',
-            'role' => 'member',
-        ]);
+        try {
+            $user = DB::transaction(function () use ($request) {
+                $user = User::create([
+                    'first_name' => $request->first_name,
+                    'last_name' => $request->last_name,
+                    'email' => $request->email,
+                    'password' => $request->password,
+                    'status' => 'draft',
+                    'role' => 'member',
+                    'campaign_code' => $request->filled('campaign_code')
+                        ? mb_strtoupper(trim($request->campaign_code))
+                        : null,
+                ]);
 
-        // Create empty profile
-        $user->profile()->create([]);
+                // Create empty profile
+                $user->profile()->create([]);
 
-        // Link any prior guest connection requests to this account
-        Connection::linkGuestRequestsToUser($user);
+                // Link any prior guest connection requests to this account
+                Connection::linkGuestRequestsToUser($user);
+
+                return $user;
+            });
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Unique-constraint race: two concurrent requests claimed the same
+            // email between validation and insert. Report it cleanly instead of
+            // surfacing a 500.
+            if ((int) $e->errorInfo[0] === 23000) {
+                return response()->json([
+                    'message' => 'This email is already registered. Please sign in.',
+                ], 422);
+            }
+
+            throw $e;
+        }
 
         try {
             $user->sendEmailVerificationNotification();
@@ -518,6 +539,9 @@ class AuthController extends Controller
     {
         return $user->only(['id', 'first_name', 'last_name', 'email', 'status', 'role'])
             + ['email_verified' => (bool) $user->hasVerifiedEmail()]
+            + ['onboarding_completed' => (bool) $user->onboarding_completed_at]
+            + ['campaign_code' => $user->campaign_code]
+            + ['activation_fee' => app(\App\Services\ActivationFeeService::class)->for($user)]
             + ['draft_closes_at' => $user->draftClosesAt()?->toISOString()];
     }
 }

@@ -9,6 +9,9 @@ export interface LoginResponse {
     status: string;
     role: string;
     email_verified?: boolean;
+    onboarding_completed?: boolean;
+    campaign_code?: string | null;
+    activation_fee?: number;
   };
   token?: string;
   two_factor_required?: boolean;
@@ -24,6 +27,9 @@ export interface RegisterResponse {
     status: string;
     role: string;
     email_verified?: boolean;
+    onboarding_completed?: boolean;
+    campaign_code?: string | null;
+    activation_fee?: number;
   };
   requires_email_verification: boolean;
 }
@@ -34,6 +40,7 @@ export interface RegisterPayload {
   email: string;
   password: string;
   password_confirmation: string;
+  campaign_code?: string;
 }
 
 export interface LoginPayload {
@@ -60,6 +67,9 @@ export interface MeResponse {
     status: string;
     role: string;
     email_verified?: boolean;
+    onboarding_completed?: boolean;
+    campaign_code?: string | null;
+    activation_fee?: number;
   };
 }
 

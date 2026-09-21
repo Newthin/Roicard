@@ -11,12 +11,17 @@ import { useJourney } from "@/components/onboarding/journey/JourneyContext";
 import { StepHeading } from "@/components/onboarding/journey/StepHeading";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/contexts/AuthContext";
-import { MEMBERSHIP_BENEFITS, MEMBERSHIP_FEE_GHS } from "@/lib/profile/types";
+import { MEMBERSHIP_BENEFITS } from "@/lib/profile/types";
 import { Check } from "lucide-react";
 
 export function StepMembership() {
   const { user } = useAuth();
   const { activateMembership, skipMembership, next } = useJourney();
+
+  // The server is the source of truth for pricing (NLF campaign members get a
+  // discounted/free activation fee). Fall back to the standard fee only when
+  // the payload hasn't arrived yet.
+  const fee = user?.activation_fee ?? 350;
 
   if (user?.status === "active") {
     return (
@@ -83,7 +88,7 @@ export function StepMembership() {
                 One-time activation fee
               </p>
               <p className="mt-1 text-2xl font-bold text-roicard-text">
-                GHS {MEMBERSHIP_FEE_GHS}
+                {fee === 0 ? "FREE" : `GHS ${fee}`}
               </p>
             </div>
           </div>

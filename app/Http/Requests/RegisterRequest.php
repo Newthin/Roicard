@@ -24,6 +24,10 @@ class RegisterRequest extends FormRequest
                 'confirmed',
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*[\d\W]).{8,}$/',
             ],
+            // Optional promotion/event code (e.g. NLF) captured at signup. Not
+            // validated against a known code — that happens server-side so a
+            // wrong/unknown code degrades gracefully to the standard fee.
+            'campaign_code' => ['nullable', 'string', 'max:40'],
         ];
     }
 

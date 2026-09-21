@@ -32,23 +32,42 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('login', function (Request $request) {
-            return Limit::perMinute(5)->by($request->input('email') . '|' . $request->ip());
+            $email = strtolower((string) $request->input('email'));
+
+            // Per-account brute-force protection + a per-IP ceiling that stays
+            // on the safe side of event WiFi/NAT (many users, one address).
+            return [
+                Limit::perMinute(10)->by($email . '|' . $request->ip()),
+                Limit::perMinute(60)->by($request->ip()),
+            ];
         });
 
         RateLimiter::for('register', function (Request $request) {
-            return Limit::perMinute(3)->by($request->ip());
+            // Registration is guarded by per-IP *and* per-email limits: 500+
+            // members on shared event WiFi need headroom, but each address is
+            // still capped to stop scripted bulk signups.
+            return [
+                Limit::perMinute(60)->by($request->ip()),
+                Limit::perMinute(5)->by(strtolower((string) $request->input('email'))),
+            ];
         });
 
         RateLimiter::for('forgot-password', function (Request $request) {
-            return Limit::perMinute(3)->by($request->ip());
+            return Limit::perMinute(10)->by($request->ip());
         });
 
         RateLimiter::for('payment-initiate', function (Request $request) {
-            return Limit::perMinute(5)->by(auth()->id() ?? $request->ip());
+            return Limit::perMinute(10)->by(auth()->id() ?? $request->ip());
         });
 
         RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute(100)->by(auth()->id() ?? $request->ip());
+            if ($request->user()) {
+                return Limit::perMinute(600)->by($request->user()->id);
+            }
+
+            // Guests (public profiles, meetings, QR scans) get a higher shared
+            // ceiling so browsing on congested event WiFi isn't throttled.
+            return Limit::perMinute(300)->by($request->ip());
         });
 
         // Guest cancellation — prevent brute-force token guessing.

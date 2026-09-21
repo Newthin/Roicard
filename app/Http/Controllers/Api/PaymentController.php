@@ -26,6 +26,20 @@ class PaymentController extends Controller
             return response()->json(['message' => 'Account already active'], 400);
         }
 
+        // Optional late campaign code: a member who missed it at registration
+        // can still claim the discount at checkout. Only a recognized code is
+        // stamped — unknown codes are ignored and the standard fee applies.
+        $nlfCode = config('roicard.nlf.campaign_code');
+        if ($request->filled('campaign_code')) {
+            $entered = mb_strtoupper(trim((string) $request->campaign_code));
+            if ($user->campaign_code === null
+                && $nlfCode !== null
+                && $entered === strtoupper((string) $nlfCode)
+            ) {
+                $user->update(['campaign_code' => $entered]);
+            }
+        }
+
         // Guard against duplicate pending payments for this user within the
         // last hour (retry storm / double-tap protection). Instead of blocking,
         // resume the existing attempt: re-run the provider handshake so the
@@ -82,11 +96,13 @@ class PaymentController extends Controller
         }
 
         // user_id is hardcoded to the authenticated user — it is never taken
-        // from request input.
+        // from request input. The amount is derived server-side from the
+        // user's campaign/status context: the client's $request->amount is
+        // deliberately ignored so pricing can never be spoofed.
         $payment = Payment::create([
             'user_id' => $user->id,
-            'amount' => $request->amount,
-            'currency' => $request->currency ?? 'GHS',
+            'amount' => app(\App\Services\ActivationFeeService::class)->for($user),
+            'currency' => 'GHS',
             'method' => $request->method ?? 'mobile_money',
             'momo_number' => $request->momo_number,
             'status' => 'pending',
@@ -112,6 +128,7 @@ class PaymentController extends Controller
         return response()->json([
             'payment' => $payment,
             'redirect' => $result,
+            'activation_fee' => app(\App\Services\ActivationFeeService::class)->for($user),
         ]);
     }
 

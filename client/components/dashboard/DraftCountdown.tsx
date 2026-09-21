@@ -10,8 +10,8 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/contexts/AuthContext";
 import { initiatePayment } from "@/lib/api/payments";
-import { MEMBERSHIP_FEE_GHS } from "@/lib/profile/types";
 import { AlarmClock } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
@@ -40,6 +40,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
 
 export function DraftCountdown({ closesAt }: { closesAt: string }) {
   const target = new Date(closesAt).getTime();
+  const { user } = useAuth();
   const [remaining, setRemaining] = useState<Remaining | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -54,7 +55,7 @@ export function DraftCountdown({ closesAt }: { closesAt: string }) {
     setIsSubmitting(true);
     try {
       const { redirect } = await initiatePayment({
-        amount: MEMBERSHIP_FEE_GHS,
+        amount: user?.activation_fee ?? 350,
         currency: "GHS",
         method: "card",
       });
@@ -74,7 +75,7 @@ export function DraftCountdown({ closesAt }: { closesAt: string }) {
     } catch {
       setIsSubmitting(false);
     }
-  }, [isSubmitting]);
+  }, [isSubmitting, user?.activation_fee]);
 
   if (!remaining) return null;
 

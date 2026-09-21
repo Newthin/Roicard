@@ -92,7 +92,11 @@ class ProfileController extends Controller
         return response()->json([
             'profile' => $profile,
             'message' => 'Profile updated successfully',
-            'user' => $user->only(['id', 'first_name', 'last_name', 'email', 'status', 'role']),
+            'user' => $user->only(['id', 'first_name', 'last_name', 'email', 'status', 'role'])
+                + ['email_verified' => (bool) $user->hasVerifiedEmail()]
+                + ['onboarding_completed' => (bool) $user->onboarding_completed_at]
+                + ['campaign_code' => $user->campaign_code]
+                + ['activation_fee' => app(\App\Services\ActivationFeeService::class)->for($user)],
         ]);
     }
 }

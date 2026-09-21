@@ -21,6 +21,9 @@ interface User {
   status: string;
   role: string;
   email_verified?: boolean;
+  onboarding_completed?: boolean;
+  campaign_code?: string | null;
+  activation_fee?: number;
 }
 
 interface AuthContextValue {
@@ -122,9 +125,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           clearState();
         } else if (
           server.status !== session.user.status ||
-          server.role !== session.user.role
+          server.role !== session.user.role ||
+          server.email_verified !== session.user.email_verified ||
+          server.onboarding_completed !== session.user.onboarding_completed
         ) {
-          // Same identity, but status/role changed server-side — refresh.
+          // Same identity, but status/role/etc changed server-side — refresh.
           const freshUser: User = {
             id: server.id,
             first_name: server.first_name,
@@ -133,6 +138,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             status: server.status,
             role: server.role,
             email_verified: server.email_verified,
+            onboarding_completed: server.onboarding_completed,
+            campaign_code: server.campaign_code,
+            activation_fee: server.activation_fee,
           };
           localStorage.setItem(USER_KEY, JSON.stringify(freshUser));
           setUser(freshUser);
