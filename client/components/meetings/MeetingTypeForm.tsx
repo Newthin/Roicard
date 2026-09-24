@@ -18,8 +18,8 @@ const FORMATS = [
 
 const DURATIONS = [15, 30, 45, 60];
 const BUFFERS = [0, 10, 15, 30];
-const MIN_NOTICE = [1, 2, 3, 6, 12, 24, 48];
-const ADVANCE_DAYS = [7, 14, 30, 60, 90];
+const MIN_NOTICE = [0, 1, 2, 3, 6, 12, 24, 48];
+const ADVANCE_DAYS: (number | null)[] = [null, 7, 14, 30, 60, 90];
 
 type Props = {
   isOpen: boolean;
@@ -37,8 +37,8 @@ export function MeetingTypeForm({ isOpen, onClose, meetingType, onSave }: Props)
   const [phoneNumber, setPhoneNumber] = useState(meetingType?.phone_number ?? "");
   const [meetingLink, setMeetingLink] = useState(meetingType?.meeting_link ?? "");
   const [buffer, setBuffer] = useState(meetingType?.buffer_minutes ?? 0);
-  const [minNotice, setMinNotice] = useState(meetingType?.min_notice_hours ?? 2);
-  const [advanceDays, setAdvanceDays] = useState(meetingType?.advance_booking_days ?? 30);
+  const [minNotice, setMinNotice] = useState(meetingType?.min_notice_hours ?? 0);
+  const [advanceDays, setAdvanceDays] = useState<number | null>(meetingType?.advance_booking_days ?? null);
   const [maxPerDay, setMaxPerDay] = useState(meetingType?.max_bookings_per_day?.toString() ?? "");
   const [availability, setAvailability] = useState<Partial<MeetingTypeAvailability>[]>(
     meetingType?.availability ?? []
@@ -156,13 +156,18 @@ export function MeetingTypeForm({ isOpen, onClose, meetingType, onSave }: Props)
           <div>
             <label className="mb-1 block text-sm font-medium text-roicard-text">Min Notice (hrs)</label>
             <select value={minNotice} onChange={(e) => setMinNotice(Number(e.target.value))} className="w-full rounded-lg border border-roicard-border bg-roicard-bg-muted px-3 py-2 text-sm text-roicard-text">
-              {MIN_NOTICE.map((h) => <option key={h} value={h}>{h}</option>)}
+              {MIN_NOTICE.map((h) => <option key={h} value={h}>{h === 0 ? "None" : h}</option>)}
             </select>
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-roicard-text">Advance (days)</label>
-            <select value={advanceDays} onChange={(e) => setAdvanceDays(Number(e.target.value))} className="w-full rounded-lg border border-roicard-border bg-roicard-bg-muted px-3 py-2 text-sm text-roicard-text">
-              {ADVANCE_DAYS.map((d) => <option key={d} value={d}>{d}</option>)}
+            <select
+              value={advanceDays === null ? "" : String(advanceDays)}
+              onChange={(e) => setAdvanceDays(e.target.value === "" ? null : Number(e.target.value))}
+              className="w-full rounded-lg border border-roicard-border bg-roicard-bg-muted px-3 py-2 text-sm text-roicard-text"
+            >
+              <option value="">No limit</option>
+              {ADVANCE_DAYS.filter((d): d is number => d !== null).map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
         </div>

@@ -31,7 +31,7 @@ export interface MeetingType {
   is_active: boolean;
   sort_order: number;
   min_notice_hours: number;
-  advance_booking_days: number;
+  advance_booking_days: number | null;
   max_bookings_per_day: number | null;
   availability: MeetingTypeAvailability[];
   custom_questions: MeetingTypeCustomQuestion[];

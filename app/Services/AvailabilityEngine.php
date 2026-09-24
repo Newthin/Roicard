@@ -54,11 +54,17 @@ class AvailabilityEngine
         // Compute global constraints
         $now = Carbon::now('UTC');
         $minNotice = $now->copy()->addHours($type->min_notice_hours);
-        $advanceDeadline = $now->copy()->addDays($type->advance_booking_days);
+        // null = no advance-booking limit.
+        $advanceDeadline = $type->advance_booking_days !== null
+            ? $now->copy()->addDays($type->advance_booking_days)
+            : null;
 
         // Clamp range to [now + min_notice, advance_deadline]
         $effectiveStart = $rangeStart->copy()->gt($minNotice) ? $rangeStart : $minNotice;
-        $effectiveEnd = $rangeEnd->copy()->lt($advanceDeadline) ? $rangeEnd : $advanceDeadline;
+        $effectiveEnd = $rangeEnd->copy();
+        if ($advanceDeadline !== null && $effectiveEnd->gt($advanceDeadline)) {
+            $effectiveEnd = $advanceDeadline;
+        }
 
         if ($effectiveStart->gt($effectiveEnd)) {
             return collect();
@@ -136,8 +142,8 @@ class AvailabilityEngine
                         continue;
                     }
 
-                    // Constraint 11: Advance booking window
-                    if ($slotStartUtc->gt($advanceDeadline)) {
+                    // Constraint 11: Advance booking window (null = no limit)
+                    if ($advanceDeadline !== null && $slotStartUtc->gt($advanceDeadline)) {
                         break;
                     }
 
@@ -206,10 +212,12 @@ class AvailabilityEngine
             return ['available' => false, 'reason' => 'Slot is before minimum notice window.'];
         }
 
-        // Constraint 11: Advance booking
-        $advanceDeadline = $now->copy()->addDays($type->advance_booking_days);
-        if ($slotStart->gt($advanceDeadline)) {
-            return ['available' => false, 'reason' => 'Slot is beyond advance booking window.'];
+        // Constraint 11: Advance booking (null = no limit)
+        if ($type->advance_booking_days !== null) {
+            $advanceDeadline = $now->copy()->addDays($type->advance_booking_days);
+            if ($slotStart->gt($advanceDeadline)) {
+                return ['available' => false, 'reason' => 'Slot is beyond advance booking window.'];
+            }
         }
 
         // Constraint 16: Current time
