@@ -55,6 +55,7 @@ type AdminContextValue = {
     password_confirmation: string;
     status: "draft" | "active";
     role: "member" | "admin";
+    campaign_code?: string;
   }) => Promise<{ ok: true } | { ok: false; error: string }>;
   assignNfc: (nfcId: string, userId: string) => void;
   unassignNfc: (nfcId: string) => void;
@@ -246,6 +247,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       password_confirmation: string;
       status: "draft" | "active";
       role: "member" | "admin";
+      campaign_code?: string;
     }): Promise<{ ok: true } | { ok: false; error: string }> => {
       try {
         await createAdminUser(data);

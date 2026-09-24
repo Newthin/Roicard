@@ -234,7 +234,6 @@ function EditUserModal({
       whatsapp: current.whatsapp,
       seeking: current.seeking,
       offering: current.offering,
-      campaignCode: current.campaignCode,
     });
     onClose();
   };
@@ -293,18 +292,6 @@ function EditUserModal({
               onChange={(e) => setField("username", e.target.value)}
             />
           </div>
-          <Input
-            label="Discount Code"
-            placeholder="e.g. NLF2026 (leave blank for standard fee)"
-            value={current.campaignCode ?? ""}
-            onChange={(e) =>
-              setForm((f) => ({
-                ...f,
-                campaignCode: e.target.value.toUpperCase() || null,
-              }))
-            }
-            hint="If set, this member pays the discounted activation fee for this campaign."
-          />
           <Input
             label="Professional Title"
             value={current.professionalTitle}
@@ -381,6 +368,7 @@ function AddUserModal({
     password_confirmation: "",
     status: "draft" as const,
     role: "member" as const,
+    campaign_code: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -428,6 +416,7 @@ function AddUserModal({
         password_confirmation: "",
         status: "draft",
         role: "member",
+        campaign_code: "",
       });
       setErrors({});
       onClose();
@@ -512,6 +501,19 @@ function AddUserModal({
               }
             />
           </div>
+        </div>
+
+        <div className="space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-roicard-accent">
+            Discount
+          </p>
+          <Input
+            label="Discount Code"
+            placeholder="e.g. NLF2026 (leave blank for standard fee)"
+            value={form.campaign_code}
+            onChange={(e) => handleChange("campaign_code", e.target.value.toUpperCase())}
+            hint="If set, this member pays the discounted activation fee for this campaign."
+          />
         </div>
 
         <div className="space-y-3">

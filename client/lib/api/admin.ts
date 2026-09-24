@@ -139,6 +139,7 @@ export async function createAdminUser(body: {
   password_confirmation: string;
   status: "draft" | "active";
   role: "member" | "admin";
+  campaign_code?: string;
 }): Promise<{ user: AdminUser; message: string }> {
   const { data } = await apiClient.post("/admin/users", body);
   return data;

@@ -135,7 +135,19 @@ class AdminController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'status' => ['required', Rule::in(['draft', 'active'])],
             'role' => ['required', Rule::in(['member', 'admin'])],
+            'campaign_code' => ['nullable', 'string', 'max:50'],
         ]);
+
+        $campaignCode = $validated['campaign_code'] ?? null;
+        $campaignId = null;
+
+        if ($campaignCode) {
+            $campaignCode = strtoupper(trim($campaignCode));
+            $campaign = \App\Models\DiscountCampaign::where('code', $campaignCode)->first();
+            if ($campaign) {
+                $campaignId = $campaign->id;
+            }
+        }
 
         $user = User::create([
             'first_name' => $validated['first_name'],
@@ -144,6 +156,9 @@ class AdminController extends Controller
             'password' => Hash::make($validated['password']),
             'status' => $validated['status'],
             'role' => $validated['role'],
+            'email_verified_at' => now(),
+            'campaign_code' => $campaignCode,
+            'discount_campaign_id' => $campaignId,
         ]);
 
         // Create an empty profile for the user
