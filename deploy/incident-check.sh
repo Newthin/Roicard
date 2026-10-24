@@ -203,8 +203,8 @@ done
 # --- 9. App config ----------------------------------------------------------
 section "Application config"
 if [ -f "$APP/.env" ]; then
-    app_env="$(grep -E '^APP_ENV=' "$APP/.env" | cut -d= -f2- | tr -d '"' || true)"
-    app_dbg="$(grep -E '^APP_DEBUG=' "$APP/.env" | cut -d= -f2- | tr -d '"' || true)"
+    app_env="$(grep -m1 -E '^APP_ENV=' "$APP/.env" | cut -d= -f2- | tr -d '"\r' || true)"
+    app_dbg="$(grep -m1 -E '^APP_DEBUG=' "$APP/.env" | cut -d= -f2- | tr -d '"\r' || true)"
     [ "$app_env" = "production" ] && ok "APP_ENV=production" || warn "APP_ENV=${app_env:-unset} (expected production)"
     case "$app_dbg" in
         true|1) fail "APP_DEBUG=$app_dbg - stack traces and env values leak to users" ;;
