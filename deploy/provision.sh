@@ -4,7 +4,7 @@
 # Target: Ubuntu 24.04 (DigitalOcean droplet, clean install)
 # Run as: sudo bash provision.sh
 #
-# Installs: Nginx, PHP 8.3 (php-fpm), Composer, MySQL 8, Node 20, pm2
+# Installs: Nginx, PHP 8.3 (php-fpm), Composer, MySQL 8, Node 24, pm2
 set -euo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
@@ -41,8 +41,8 @@ composer --version
 echo "==> Installing MySQL 8"
 apt-get install -y mysql-server
 
-echo "==> Adding NodeSource Node 20"
-curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+echo "==> Adding NodeSource Node 24 (Node 20 is EOL and unpatched for CVE-2026-111497)"
+curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
 apt-get install -y nodejs
 npm install -g pm2
 

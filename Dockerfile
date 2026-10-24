@@ -1,4 +1,7 @@
-FROM php:8.3-apache
+# Pin the patch level: 8.3.36 is the first release fixing CVE-2026-109618 / CVE-2026-109619.
+# A floating `php:8.3-apache` tag can rebuild onto an unpatched image if the
+# upstream rebuild lags; bump this deliberately instead.
+FROM php:8.3.36-apache
 
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
