@@ -39,7 +39,7 @@ dig +short roicard.com
 ## 3. Provision the server
 
 Copy the provisioning script and run it (installs PHP 8.3, Composer, MySQL 8,
-Node 20, pm2, Nginx, and base tools). Takes ~5 minutes.
+Node 24, pm2, Nginx, and base tools). Takes ~5 minutes.
 
 ```bash
 # from your local machine, after cloning the repo onto the droplet:
@@ -96,6 +96,9 @@ cd /var/www/roicard/client
 sudo npm ci
 # NEXT_PUBLIC_API_URL is set by the systemd unit to https://roicard.com/api
 sudo npm run build
+# The build runs as root but the service runs as www-data. Without this, ISR
+# cache refreshes fail with EACCES and /username pages go stale.
+sudo chown -R www-data:www-data dist
 ```
 
 ## 8. Enable services
@@ -151,6 +154,27 @@ cd client
 sudo npm ci && sudo npm run build
 sudo systemctl restart roicard-frontend roicard-worker
 ```
+
+## Security checks
+
+`deploy.sh` refuses to deploy onto a runtime below the patched versions, and
+`deploy/incident-check.sh` answers the other half of the question: *were we
+exploited before we patched?* It is read-only and safe to run on production.
+
+```bash
+sudo bash /var/www/roicard/deploy/incident-check.sh
+sudo bash /var/www/roicard/deploy/incident-check.sh --since 2026-10-01   # wider window
+```
+
+It checks runtime versions (PHP, php-fpm, Node, installed Next.js), uncommitted
+drift on the deploy target, PHP files written since `--since`, PHP anywhere
+outside `public/index.php` or in uploads, webshell patterns, segfault/OOM lines
+in the journal, unexpected outbound connections, cron/unit/SSH-key changes, and
+`APP_DEBUG` leaking stack traces.
+
+Exit code `0` means nothing found. Any `FAIL` that a deploy does not explain
+should be treated as a compromised host: rotate the secrets in `.env` and
+`credentials.local.txt`, re-issue API keys, and review the database for changes.
 
 ## Troubleshooting
 
