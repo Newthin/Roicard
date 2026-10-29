@@ -42,6 +42,14 @@ class GoogleAuthController extends Controller
                 $user = User::where('email', $googleUser->getEmail())->first();
 
                 if (!$user) {
+                    // A soft-deleted account still occupies the email address.
+                    // Do not attempt an insert that would violate the unique
+                    // index; surface the same `account_deleted` state as the
+                    // social controller.
+                    if (User::withTrashed()->where('email', $googleUser->getEmail())->exists()) {
+                        return null;
+                    }
+
                     $name = $googleUser->getName() ?? $googleUser->getNickname() ?? '';
                     $nameParts = array_values(array_filter(explode(' ', trim($name))));
                     $firstName = $nameParts[0] ?? $googleUser->getEmail();
@@ -91,6 +99,12 @@ class GoogleAuthController extends Controller
             ]);
 
             return $this->frontendRedirect(['error' => 'google_signup_failed']);
+        }
+
+        if ($user === null) {
+            // This email belongs to a deleted account; it cannot be reused
+            // until it is restored or permanently purged.
+            return $this->frontendRedirect(['error' => 'account_deleted']);
         }
 
         // Revoke any previously issued tokens so old sessions can't linger.

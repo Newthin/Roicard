@@ -823,4 +823,22 @@ class MemberRoutingTest extends TestCase
             User::withTrashed()->where('email', 'deleted.member@example.com')->count()
         );
     }
+
+    public function test_google_signup_with_a_deleted_email_returns_account_deleted(): void
+    {
+        $user = $this->member(['email' => 'deleted.gmail@example.com']);
+        $user->delete();
+
+        $this->fakeGoogleUser('deleted.gmail@example.com', 'Deleted Gmail');
+
+        $payload = $this->oauthRedirectPayload($this->get('/api/auth/google/callback'));
+
+        // The dedicated Google controller must report the same state as the
+        // social controller instead of falling through to a unique violation.
+        $this->assertSame('account_deleted', $payload['error']);
+        $this->assertSame(
+            1,
+            User::withTrashed()->where('email', 'deleted.gmail@example.com')->count()
+        );
+    }
 }
