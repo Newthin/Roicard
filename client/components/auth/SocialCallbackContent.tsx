@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/contexts/AuthContext";
+import { destinationForUser } from "@/lib/authRouting";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
@@ -19,7 +20,9 @@ function SocialCallbackContent() {
       setError(
         errorParam === "provider_not_configured"
           ? "This sign-in option isn't set up yet. Please use email or Google."
-          : "Sign-in could not be completed. Please try again."
+          : errorParam === "account_deactivated"
+            ? "This account has been deactivated. Contact support to reactivate it."
+            : "Sign-in could not be completed. Please try again."
       );
       return;
     }
@@ -32,12 +35,9 @@ function SocialCallbackContent() {
     try {
       const user = JSON.parse(rawUser);
       setSession(token, user);
-      // Brand-new social sign-ins (not onboarding_completed) still need to
-      // complete onboarding; existing members — including draft members who
-      // already finished onboarding but haven't activated — go to the dashboard.
-      router.replace(
-        user?.onboarding_completed ? "/dashboard" : "/onboarding"
-      );
+      // The server decides whether this is a new member (onboarding), a
+      // completed member (dashboard) or an admin.
+      router.replace(destinationForUser(user));
     } catch {
       setError("Could not complete sign-in. Please try again.");
     }

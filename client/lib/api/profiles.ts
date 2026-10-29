@@ -44,3 +44,16 @@ export async function updateProfile(data: Partial<OnboardingData>) {
   const { data: result } = await apiClient.put("/profile", payload);
   return result;
 }
+
+/**
+ * Marks the onboarding journey complete on the server. This is the only call
+ * that flips `next_step` to `dashboard` — the client must not do it locally.
+ */
+export async function completeOnboarding(): Promise<{
+  message: string;
+  profile: unknown;
+  user: import("./auth").AuthUser;
+}> {
+  const { data } = await apiClient.post("/profile/complete");
+  return data;
+}

@@ -22,8 +22,12 @@ interface User {
   role: string;
   email_verified?: boolean;
   onboarding_completed?: boolean;
+  next_step?: authApi.NextStep;
+  is_deactivated?: boolean;
+  profile_completion_pct?: number;
   campaign_code?: string | null;
   activation_fee?: number;
+  draft_closes_at?: string | null;
 }
 
 interface AuthContextValue {
@@ -35,6 +39,8 @@ interface AuthContextValue {
   register: (payload: authApi.RegisterPayload) => Promise<void>;
   logout: () => void;
   setSession: (token: string, user: User) => void;
+  /** Re-fetches GET /me and updates the cached session (server is authoritative). */
+  refreshUser: () => Promise<User | null>;
   twoFactorPending: boolean;
   submitTwoFactor: (code: string) => Promise<User | null>;
   cancelTwoFactor: () => void;
@@ -91,6 +97,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(newUser);
   }, []);
 
+  /**
+   * Refresh the cached user from the server. Used after payment activation or
+   * onboarding completion so `next_step`/`status` flip without a full reload.
+   * Writes storage directly (instead of setSession) to avoid wiping the local
+   * onboarding journey of an in-progress member.
+   */
+  const refreshUser = useCallback(async (): Promise<User | null> => {
+    const existingToken = localStorage.getItem(TOKEN_KEY);
+    if (!existingToken) return null;
+
+    const me = await authApi.me();
+    const freshUser = me.user as User;
+    localStorage.setItem(USER_KEY, JSON.stringify(freshUser));
+    setUser(freshUser);
+    return freshUser;
+  }, []);
+
   // Boot: restore the cached session, then validate it against GET /me so a
   // token left behind by a previous account never bleeds into the new one.
   useEffect(() => {
@@ -127,7 +150,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           server.status !== session.user.status ||
           server.role !== session.user.role ||
           server.email_verified !== session.user.email_verified ||
-          server.onboarding_completed !== session.user.onboarding_completed
+          server.onboarding_completed !== session.user.onboarding_completed ||
+          server.next_step !== session.user.next_step ||
+          server.is_deactivated !== session.user.is_deactivated
         ) {
           // Same identity, but status/role/etc changed server-side — refresh.
           const freshUser: User = {
@@ -139,8 +164,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             role: server.role,
             email_verified: server.email_verified,
             onboarding_completed: server.onboarding_completed,
+            next_step: server.next_step,
+            is_deactivated: server.is_deactivated,
+            profile_completion_pct: server.profile_completion_pct,
             campaign_code: server.campaign_code,
             activation_fee: server.activation_fee,
+            draft_closes_at: server.draft_closes_at,
           };
           localStorage.setItem(USER_KEY, JSON.stringify(freshUser));
           setUser(freshUser);
@@ -258,6 +287,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         setSession,
+        refreshUser,
         twoFactorPending,
         submitTwoFactor,
         cancelTwoFactor,

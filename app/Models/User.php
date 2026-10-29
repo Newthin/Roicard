@@ -50,6 +50,7 @@ class User extends Authenticatable
             'email_verification_code_expires_at' => 'datetime',
             'onboarding_completed_at' => 'datetime',
             'deactivated_at' => 'datetime',
+            'suspended_by_admin' => 'boolean',
             'deleted_at' => 'datetime',
             'two_factor_enabled' => 'boolean',
             'password' => 'hashed',
@@ -185,6 +186,16 @@ class User extends Authenticatable
     public function isDeactivated(): bool
     {
         return $this->deactivated_at !== null;
+    }
+
+    /**
+     * True when an administrator blocked this account. Admin suspensions can
+     * only be lifted from the console; self-service reactivation is reserved
+     * for accounts the member deactivated themselves.
+     */
+    public function isSuspendedByAdmin(): bool
+    {
+        return (bool) $this->suspended_by_admin;
     }
 
     public function getFullNameAttribute(): string

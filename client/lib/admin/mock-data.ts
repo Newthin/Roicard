@@ -15,6 +15,32 @@ import type {
 const STORAGE_USERS_KEY = "roicard_admin_users";
 const STORAGE_NFC_KEY = "roicard_admin_nfc";
 
+/** Defaults for the account-state fields added to the admin user model. */
+function adminDefaults(
+  status: AdminUser["status"]
+): Pick<
+  AdminUser,
+  | "role"
+  | "emailVerified"
+  | "onboardingCompleted"
+  | "isDeactivated"
+  | "accessState"
+  | "profileCompletionPct"
+  | "nextStep"
+> {
+  const suspended = status === "suspended";
+
+  return {
+    role: "member",
+    emailVerified: true,
+    onboardingCompleted: true,
+    isDeactivated: suspended,
+    accessState: suspended ? "suspended" : "active",
+    profileCompletionPct: 100,
+    nextStep: suspended ? "blocked" : "dashboard",
+  };
+}
+
 function seedUsers(): AdminUser[] {
   return [
     {
@@ -35,6 +61,7 @@ function seedUsers(): AdminUser[] {
       whatsapp: "",
       seeking: "",
       offering: "",
+      ...adminDefaults("active"),
     },
     {
       id: "u2",
@@ -54,6 +81,7 @@ function seedUsers(): AdminUser[] {
       whatsapp: "",
       seeking: "",
       offering: "",
+      ...adminDefaults("active"),
     },
     {
       id: "u3",
@@ -73,6 +101,7 @@ function seedUsers(): AdminUser[] {
       whatsapp: "",
       seeking: "",
       offering: "",
+      ...adminDefaults("active"),
     },
     {
       id: "u4",
@@ -92,6 +121,7 @@ function seedUsers(): AdminUser[] {
       whatsapp: "",
       seeking: "",
       offering: "",
+      ...adminDefaults("active"),
     },
     {
       id: "u5",
@@ -111,6 +141,7 @@ function seedUsers(): AdminUser[] {
       whatsapp: "",
       seeking: "",
       offering: "",
+      ...adminDefaults("suspended"),
     },
     {
       id: "u6",
@@ -130,6 +161,7 @@ function seedUsers(): AdminUser[] {
       whatsapp: "",
       seeking: "",
       offering: "",
+      ...adminDefaults("active"),
     },
   ];
 }

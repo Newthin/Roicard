@@ -9,6 +9,7 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/contexts/AuthContext";
 import { getPaymentStatus } from "@/lib/api/payments";
 import {
   clearPaymentSnapshot,
@@ -28,6 +29,7 @@ type CallbackState = "checking" | "success" | "failed" | "no_reference";
 function PaymentCallbackContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { refreshUser } = useAuth();
   const reference = searchParams.get("reference");
   const [state, setState] = useState<CallbackState>("checking");
   const runRef = useRef(false);
@@ -76,6 +78,8 @@ function PaymentCallbackContent() {
               createAndSaveProfile(snapshot);
             }
             clearPaymentSnapshot();
+            // Pull the activated status + next_step from the server.
+            await refreshUser().catch(() => null);
             setState("success");
             return;
           }
@@ -94,7 +98,7 @@ function PaymentCallbackContent() {
     return () => {
       cancelled = true;
     };
-  }, [reference, router]);
+  }, [reference, refreshUser, router]);
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col items-center gap-5 py-16 text-center">

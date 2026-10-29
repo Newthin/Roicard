@@ -14,6 +14,7 @@ export type AdminUser = {
   email: string;
   username: string;
   status: UserStatus;
+  role: "member" | "admin";
   joinedAt: string;
   profilePhotoUrl: string | null;
   professionalTitle: string;
@@ -26,6 +27,36 @@ export type AdminUser = {
   seeking: string;
   offering: string;
   campaignCode?: string | null;
+  emailVerified: boolean;
+  onboardingCompleted: boolean;
+  isDeactivated: boolean;
+  accessState: "active" | "suspended";
+  profileCompletionPct: number;
+  nextStep?: string;
+};
+
+export type AdminPayment = {
+  id: number;
+  amount: number;
+  currency: string;
+  method: string | null;
+  momoNumber: string | null;
+  status: string;
+  provider: string;
+  providerReference: string;
+  createdAt: string | null;
+};
+
+export type AdminPaymentSummary = {
+  count: number;
+  successful: number;
+  totalPaid: number;
+  hasPaid: boolean;
+};
+
+export type AdminUserDetail = AdminUser & {
+  payments: AdminPayment[];
+  paymentSummary: AdminPaymentSummary | null;
 };
 
 export type NFCStatus =

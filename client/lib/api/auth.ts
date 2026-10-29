@@ -1,36 +1,33 @@
 import apiClient from "./client";
 
+export type NextStep = "dashboard" | "onboarding" | "admin" | "blocked";
+
+export interface AuthUser {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  status: string;
+  role: string;
+  email_verified?: boolean;
+  onboarding_completed?: boolean;
+  next_step?: NextStep;
+  is_deactivated?: boolean;
+  profile_completion_pct?: number;
+  campaign_code?: string | null;
+  activation_fee?: number;
+  draft_closes_at?: string | null;
+}
+
 export interface LoginResponse {
-  user: {
-    id: string;
-    first_name: string;
-    last_name: string;
-    email: string;
-    status: string;
-    role: string;
-    email_verified?: boolean;
-    onboarding_completed?: boolean;
-    campaign_code?: string | null;
-    activation_fee?: number;
-  };
+  user: AuthUser;
   token?: string;
   two_factor_required?: boolean;
   pending_token?: string;
 }
 
 export interface RegisterResponse {
-  user: {
-    id: string;
-    first_name: string;
-    last_name: string;
-    email: string;
-    status: string;
-    role: string;
-    email_verified?: boolean;
-    onboarding_completed?: boolean;
-    campaign_code?: string | null;
-    activation_fee?: number;
-  };
+  user: AuthUser;
   requires_email_verification: boolean;
 }
 
@@ -59,18 +56,7 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
 }
 
 export interface MeResponse {
-  user: {
-    id: string;
-    first_name: string;
-    last_name: string;
-    email: string;
-    status: string;
-    role: string;
-    email_verified?: boolean;
-    onboarding_completed?: boolean;
-    campaign_code?: string | null;
-    activation_fee?: number;
-  };
+  user: AuthUser;
 }
 
 export async function me(): Promise<MeResponse> {

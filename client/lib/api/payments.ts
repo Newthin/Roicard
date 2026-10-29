@@ -41,3 +41,34 @@ export async function getPaymentStatus(reference: string): Promise<{ status: str
   const { data } = await apiClient.get(`/payments/status/${reference}`);
   return data;
 }
+
+const PAYMENT_REFERENCE_KEY = "roicard_payment_reference";
+
+/** Remember the in-flight payment so the processing step can poll it. */
+export function rememberPaymentReference(reference: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(PAYMENT_REFERENCE_KEY, reference);
+}
+
+export function getRememberedPaymentReference(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(PAYMENT_REFERENCE_KEY);
+}
+
+export function clearRememberedPaymentReference(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(PAYMENT_REFERENCE_KEY);
+}
+
+/**
+ * Confirms a pending payment in mock mode (local/staging only). The server
+ * returns 404 when a real provider is configured, so this can never activate
+ * an account without a real payment in production.
+ */
+export async function confirmMockPayment(reference: string): Promise<{
+  status: string;
+  payment: Payment;
+}> {
+  const { data } = await apiClient.post("/payments/mock/confirm", { reference });
+  return data;
+}

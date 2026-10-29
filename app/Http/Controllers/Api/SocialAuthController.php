@@ -120,17 +120,16 @@ class SocialAuthController extends Controller
         // Revoke any previously issued tokens so old sessions can't linger.
         $user->tokens()->delete();
 
+        // Suspended accounts must not obtain a session through OAuth either.
+        if ($user->isDeactivated()) {
+            return $this->frontendRedirect(['error' => 'account_deactivated']);
+        }
+
         $token = $user->createToken('auth-token', ['*'], now()->addDays(30))->plainTextToken;
 
         return $this->frontendRedirect([
             'token' => $token,
-            'user' => json_encode(
-                $user->only(['id', 'first_name', 'last_name', 'email', 'status', 'role'])
-                + ['email_verified' => (bool) $user->hasVerifiedEmail()]
-                + ['onboarding_completed' => (bool) $user->onboarding_completed_at]
-                + ['campaign_code' => $user->campaign_code]
-                + ['activation_fee' => app(\App\Services\ActivationFeeService::class)->for($user)]
-            ),
+            'user' => json_encode(app(\App\Services\MemberAccessService::class)->payload($user)),
         ]);
     }
 

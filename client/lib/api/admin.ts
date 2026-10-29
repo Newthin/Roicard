@@ -16,6 +16,39 @@ export interface AdminStats {
   recent_views_7d: number;
 }
 
+export interface AdminUserProfile {
+  id?: number;
+  user_id?: number;
+  slug?: string | null;
+  title?: string | null;
+  organisation?: string | null;
+  avatar_url?: string | null;
+  role_description?: string | null;
+  bio?: string | null;
+  location?: string | null;
+  phone?: string | null;
+  whatsapp_phone?: string | null;
+  date_of_birth?: string | null;
+  gender?: string | null;
+  seeking?: string | null;
+  offering?: string | null;
+  interests?: string[] | null;
+  completion_pct?: number;
+  is_live?: boolean;
+}
+
+export interface AdminPayment {
+  id: number;
+  amount: number;
+  currency: string;
+  method: string | null;
+  momo_number: string | null;
+  status: string;
+  provider: string;
+  provider_reference: string;
+  created_at: string | null;
+}
+
 export interface AdminUser {
   id: number;
   first_name: string;
@@ -24,21 +57,23 @@ export interface AdminUser {
   status: string;
   role: string;
   campaign_code?: string | null;
-  profile?: {
-    slug?: string;
-    title?: string;
-    organisation?: string;
-    avatar_url?: string | null;
-    role_description?: string | null;
-    bio?: string | null;
-    location?: string | null;
-    phone?: string | null;
-    whatsapp_phone?: string | null;
-    seeking?: string | null;
-    offering?: string | null;
-    interests?: string[] | null;
-  };
+  profile?: AdminUserProfile | null;
+  email_verified_at?: string | null;
+  onboarding_completed?: boolean;
+  onboarding_completed_at?: string | null;
+  is_deactivated?: boolean;
+  deactivated_at?: string | null;
+  next_step?: string;
+  profile_completion_pct?: number;
   created_at: string;
+  payments?: AdminPayment[];
+  payment_summary?: {
+    count: number;
+    successful: number;
+    total_paid: number;
+    has_paid: boolean;
+  };
+  smart_card?: AdminSmartCard | null;
 }
 
 export interface AdminUserListResponse {
@@ -131,25 +166,65 @@ export async function getAdminUsers(params?: {
   return data;
 }
 
-export async function createAdminUser(body: {
-  first_name: string;
-  last_name: string;
-  email: string;
-  password: string;
-  password_confirmation: string;
-  status: "draft" | "active";
-  role: "member" | "admin";
-  campaign_code?: string;
-}): Promise<{ user: AdminUser; message: string }> {
+export interface AdminUserUpsertPayload {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  username?: string | null;
+  password?: string;
+  password_confirmation?: string;
+  status?: "draft" | "active";
+  role?: "member" | "admin";
+  campaign_code?: string | null;
+  onboarding_completed?: boolean;
+  email_verified?: boolean;
+  account_access?: "active" | "suspended";
+}
+
+export async function getAdminUser(
+  id: number
+): Promise<{ data: AdminUser }> {
+  const { data } = await apiClient.get(`/admin/users/${id}`);
+  return data;
+}
+
+export async function createAdminUser(
+  body: AdminUserUpsertPayload & {
+    first_name: string;
+    last_name: string;
+    email: string;
+    password: string;
+    password_confirmation: string;
+  }
+): Promise<{ user: AdminUser; message: string }> {
   const { data } = await apiClient.post("/admin/users", body);
   return data;
 }
 
 export async function updateAdminUser(
   id: number,
-  body: { status?: string; role?: string; campaign_code?: string | null }
+  body: AdminUserUpsertPayload
 ): Promise<{ user: AdminUser; message: string }> {
   const { data } = await apiClient.patch(`/admin/users/${id}`, body);
+  return data;
+}
+
+export async function uploadAdminUserAvatar(
+  id: number,
+  file: File
+): Promise<{ url: string | null }> {
+  const form = new FormData();
+  form.append("avatar", file);
+  const { data } = await apiClient.post(`/admin/users/${id}/avatar`, form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
+}
+
+export async function deleteAdminUserAvatar(
+  id: number
+): Promise<{ url: null; message: string }> {
+  const { data } = await apiClient.delete(`/admin/users/${id}/avatar`);
   return data;
 }
 

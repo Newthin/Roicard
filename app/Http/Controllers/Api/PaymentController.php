@@ -141,6 +141,39 @@ class PaymentController extends Controller
         ]);
     }
 
+    /**
+     * Confirms a pending payment while the app is running with the mock
+     * provider (local/staging). It is a no-op 404 for real providers so it can
+     * never be used to activate an account for free in production.
+     */
+    public function confirmMock(Request $request): JsonResponse
+    {
+        if (config('app.payment_provider', 'mock') !== 'mock') {
+            return response()->json(['message' => 'Not found'], 404);
+        }
+
+        $validated = $request->validate([
+            'reference' => ['required', 'string', 'max:64'],
+        ]);
+
+        $payment = Payment::where('provider_reference', $validated['reference'])
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        if ($payment->isPending()) {
+            // PaymentObserver dispatches ProcessActivationJob synchronously on
+            // the transition to success — same path as a verified webhook.
+            $payment->update(['status' => 'success']);
+        }
+
+        $payment->refresh();
+
+        return response()->json([
+            'status' => $payment->status,
+            'payment' => $payment,
+        ]);
+    }
+
     public function status(string $reference): JsonResponse
     {
         $payment = Payment::where('provider_reference', $reference)

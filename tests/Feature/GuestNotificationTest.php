@@ -27,7 +27,7 @@ class GuestNotificationTest extends TestCase
     {
         parent::setUp();
 
-        Role::create(['name' => 'member', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'member', 'guard_name' => 'web']);
 
         $this->engine = app(BookingEngine::class);
 

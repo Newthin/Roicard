@@ -14,11 +14,8 @@
 
 import {
   createAndSaveProfile,
-  setOnboardingComplete,
   getJourneyState,
   saveJourneyState,
-  clearJourneyState,
-  clearPaymentSnapshot,
 } from "@/lib/profile/storage";
 import {
   EMPTY_ONBOARDING_DATA,
@@ -283,7 +280,10 @@ export function OnboardingJourneyProvider({ children }: ProviderProps) {
     goTo("success");
   }, [goTo]);
 
-  /** Persists the profile, signs the member in, and marks onboarding complete. */
+  /**
+   * Builds the local profile snapshot. Completion is NOT marked here: only
+   * StepComplete may clear the journey, after the server confirms success.
+   */
   const complete = useCallback(() => {
     // Explicitly map to OnboardingFormData so the transient password is never
     // persisted into the stored profile.
@@ -310,9 +310,6 @@ export function OnboardingJourneyProvider({ children }: ProviderProps) {
       membershipStatus,
     };
     createAndSaveProfile(profile);
-    setOnboardingComplete();
-    clearJourneyState();
-    clearPaymentSnapshot();
     return profile.username;
   }, [data, membershipStatus, username]);
 

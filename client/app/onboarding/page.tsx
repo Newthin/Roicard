@@ -7,6 +7,7 @@
  */
 
 import { OnboardingJourney } from "@/components/onboarding/journey";
+import { OnboardingGate } from "@/components/onboarding/OnboardingGate";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -14,5 +15,9 @@ export const metadata: Metadata = {
 };
 
 export default function OnboardingPage() {
-  return <OnboardingJourney />;
+  return (
+    <OnboardingGate>
+      <OnboardingJourney />
+    </OnboardingGate>
+  );
 }

@@ -7,6 +7,8 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Models\Connection;
 use App\Models\User;
+use App\Services\MemberAccessService;
+use App\Services\MemberAccountService;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\JsonResponse;
@@ -141,6 +143,13 @@ class AuthController extends Controller
         ]);
 
         $user = $request->user();
+
+        if ($user->isDeactivated()) {
+            return response()->json([
+                'message' => 'This account has been deactivated. Contact support to reactivate it.',
+                'error' => 'account_deactivated',
+            ], 403);
+        }
 
         // Only a pending two-factor token may reach this step.
         if (!$request->user()->tokenCan('two-factor')) {
@@ -368,14 +377,9 @@ class AuthController extends Controller
             return response()->json(['message' => 'Current password is incorrect'], 422);
         }
 
-        $user->deactivated_at = now();
-        $user->save();
-
-        $user->profile?->update(['is_live' => false]);
-        $user->profile?->bustPublicCache();
-
-        // Revoke all sessions so the user must sign back in to reactivate.
-        $user->tokens()->delete();
+        // Shared with the admin console: hides the public profile and revokes
+        // every session immediately.
+        app(MemberAccountService::class)->suspend($user);
 
         return response()->json(['message' => 'Account deactivated']);
     }
@@ -398,8 +402,16 @@ class AuthController extends Controller
             return response()->json(['message' => 'Account is not deactivated'], 422);
         }
 
-        $user->deactivated_at = null;
-        $user->save();
+        // An administrative suspension is not something the member can lift
+        // with their password; only the admin console can restore access.
+        if ($user->isSuspendedByAdmin()) {
+            return response()->json([
+                'message' => 'This account was suspended by an administrator. Please contact support.',
+                'error' => 'account_suspended',
+            ], 403);
+        }
+
+        app(MemberAccountService::class)->restore($user);
 
         return response()->json(['message' => 'Account reactivated. You can now sign in.']);
     }
@@ -581,11 +593,9 @@ class AuthController extends Controller
 
     protected function userPayload(User $user): array
     {
-        return $user->only(['id', 'first_name', 'last_name', 'email', 'status', 'role'])
-            + ['email_verified' => (bool) $user->hasVerifiedEmail()]
-            + ['onboarding_completed' => (bool) $user->onboarding_completed_at]
-            + ['campaign_code' => $user->campaign_code]
-            + ['activation_fee' => app(\App\Services\ActivationFeeService::class)->for($user)]
-            + ['draft_closes_at' => $user->draftClosesAt()?->toISOString()];
+        // Canonical payload (includes `next_step`) — the client uses this to
+        // decide where to route after login instead of guessing from
+        // localStorage.
+        return app(MemberAccessService::class)->payload($user);
     }
 }

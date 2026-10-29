@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/contexts/AuthContext";
+import { destinationForUser } from "@/lib/authRouting";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
@@ -16,7 +17,11 @@ function GoogleCallbackContent() {
     const errorParam = searchParams.get("error");
 
     if (errorParam) {
-      setError("Google sign-in could not be completed. Please try again.");
+      setError(
+        errorParam === "account_deactivated"
+          ? "This account has been deactivated. Contact support to reactivate it."
+          : "Google sign-in could not be completed. Please try again."
+      );
       return;
     }
 
@@ -28,7 +33,7 @@ function GoogleCallbackContent() {
     try {
       const user = JSON.parse(rawUser);
       setSession(token, user);
-      router.replace("/dashboard");
+      router.replace(destinationForUser(user));
     } catch {
       setError("Could not complete Google sign-in. Please try again.");
     }

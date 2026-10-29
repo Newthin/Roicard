@@ -7,8 +7,11 @@ use App\Http\Requests\ProfileRequest;
 use App\Mail\WelcomeMemberMail;
 use App\Models\Profile;
 use App\Models\SocialLink;
+use App\Services\MemberAccessService;
+use App\Services\MemberAccountService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class ProfileController extends Controller
@@ -76,27 +79,70 @@ class ProfileController extends Controller
 
         $profile = app(\App\Services\ProfileSaveService::class)->save($user, $data);
 
-        // Send the welcome email exactly once — the first successful profile
-        // save after a user begins onboarding. Variant depends on whether they
-        // already paid (active) or not (draft).
-        if (!$user->onboarding_completed_at) {
-            $user->forceFill(['onboarding_completed_at' => now()])->save();
+        // Kept for backwards compatibility with older clients that finish the
+        // journey by saving the profile: the first successful save marks
+        // onboarding complete. New clients call POST /profile/complete.
+        if ($user->onboarding_completed_at === null) {
+            app(MemberAccountService::class)->markOnboardingComplete($user);
 
-            Mail::to($user)->queue(
-                new WelcomeMemberMail($user, $user->status === 'active' ? 'member' : 'draft')
-            );
+            try {
+                Mail::to($user)->queue(
+                    new WelcomeMemberMail($user, $user->status === 'active' ? 'member' : 'draft')
+                );
+            } catch (\Throwable $e) {
+                Log::warning('Failed to queue welcome email', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         $profile->load('education', 'experience', 'achievements', 'socialLinks', 'media');
+        $user->refresh();
 
         return response()->json([
             'profile' => $profile,
             'message' => 'Profile updated successfully',
-            'user' => $user->only(['id', 'first_name', 'last_name', 'email', 'status', 'role'])
-                + ['email_verified' => (bool) $user->hasVerifiedEmail()]
-                + ['onboarding_completed' => (bool) $user->onboarding_completed_at]
-                + ['campaign_code' => $user->campaign_code]
-                + ['activation_fee' => app(\App\Services\ActivationFeeService::class)->for($user)],
+            'user' => app(MemberAccessService::class)->payload($user),
+        ]);
+    }
+
+    /**
+     * Explicitly finishes the onboarding journey.
+     *
+     * The client must not decide completion locally: marking this on the
+     * server is what lets `next_step` flip to `dashboard`, so a completed
+     * member is never bounced back into onboarding.
+     */
+    public function complete(): JsonResponse
+    {
+        $user = auth()->user();
+        $profile = $user->profile()->firstOrCreate([]);
+        $profile->recalculateCompletion();
+
+        $wasComplete = $user->onboarding_completed_at !== null;
+
+        app(MemberAccountService::class)->markOnboardingComplete($user);
+        $user->refresh();
+
+        // Send the welcome email exactly once, matching the legacy save flow.
+        if (!$wasComplete) {
+            try {
+                Mail::to($user)->queue(
+                    new WelcomeMemberMail($user, $user->status === 'active' ? 'member' : 'draft')
+                );
+            } catch (\Throwable $e) {
+                Log::warning('Failed to queue welcome email', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return response()->json([
+            'message' => 'Onboarding complete',
+            'profile' => $profile->fresh(),
+            'user' => app(MemberAccessService::class)->payload($user),
         ]);
     }
 }

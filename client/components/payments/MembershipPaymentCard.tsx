@@ -12,7 +12,11 @@
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLiveMemberStatus } from "@/hooks/useLiveMemberStatus";
-import { initiatePayment } from "@/lib/api/payments";
+import {
+  confirmMockPayment,
+  initiatePayment,
+  rememberPaymentReference,
+} from "@/lib/api/payments";
 import {
   getCurrentUserProfile,
   savePaymentSnapshot,
@@ -25,7 +29,7 @@ import { Check, Loader2, Wallet } from "lucide-react";
 import { useCallback, useState } from "react";
 
 export function MembershipPaymentCard() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { status, isLoading } = useLiveMemberStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,11 +37,6 @@ export function MembershipPaymentCard() {
   // The server is the source of truth for pricing (NLF campaign members pay a
   // discounted rate). Resolve server-first, falling back to the standard fee.
   const pricing = getActivationPricing(user);
-
-  // Hide entirely once the backend confirms the member is active.
-  if (!isLoading && status === "active") {
-    return null;
-  }
 
   const handlePay = useCallback(async () => {
     if (isSubmitting) return;
@@ -50,37 +49,53 @@ export function MembershipPaymentCard() {
       if (current) {
         savePaymentSnapshot({
           ...current,
-          membershipStatus: "active",
+          membershipStatus: "pending",
         });
       }
 
-      const { redirect } = await initiatePayment({
+      const { payment, redirect } = await initiatePayment({
         amount: pricing.fee,
         currency: "GHS",
         method: "card",
       });
 
+      rememberPaymentReference(payment.provider_reference);
+
       const providerRedirect = redirect as {
         authorization_url?: string;
+        checkout_url?: string;
         status?: string;
+        mock?: boolean;
       };
 
       // The pending attempt already completed at the provider — reload so the
       // dashboard reflects the activated membership instead of paying again.
       if (providerRedirect?.status === "success") {
+        await refreshUser().catch(() => null);
         window.location.reload();
         return;
       }
 
-      if (providerRedirect?.authorization_url) {
-        window.location.assign(providerRedirect.authorization_url);
-      } else {
-        // No provider configured (mock mode) — surface a note to the member.
-        setError(
-          "Payment is not yet available. Please try again shortly."
-        );
-        setIsSubmitting(false);
+      const checkoutUrl =
+        providerRedirect?.authorization_url ?? providerRedirect?.checkout_url;
+
+      if (checkoutUrl) {
+        window.location.assign(checkoutUrl);
+        return;
       }
+
+      if (providerRedirect?.mock) {
+        // Mock mode: confirm through the backend so the real activation job
+        // runs. Never mark the membership active from the client.
+        await confirmMockPayment(payment.provider_reference);
+        await refreshUser().catch(() => null);
+        window.location.reload();
+        return;
+      }
+
+      // No provider configured — do not pretend the payment succeeded.
+      setError("Payment is not available right now. Please try again shortly.");
+      setIsSubmitting(false);
     } catch (e) {
       const serverMessage = (
         e as { response?: { data?: { message?: string } } } | null
@@ -91,7 +106,13 @@ export function MembershipPaymentCard() {
       );
       setIsSubmitting(false);
     }
-  }, [isSubmitting, pricing.fee]);
+  }, [isSubmitting, pricing.fee, refreshUser]);
+
+  // Hide entirely once the backend confirms the member is active. Checked
+  // after all hooks so the hook order never changes between renders.
+  if (!isLoading && status === "active") {
+    return null;
+  }
 
   return (
     <section className="rounded-2xl border border-roicard-accent/40 bg-gradient-to-br from-roicard-primary/10 to-roicard-bg-elevated p-6">

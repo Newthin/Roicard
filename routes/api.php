@@ -96,6 +96,7 @@ Route::middleware(['auth:sanctum', 'prevent_leak'])->group(function () {
     // Profile
     Route::post('/profile', [ProfileController::class, 'store']);
     Route::put('/profile', [ProfileController::class, 'update']);
+    Route::post('/profile/complete', [ProfileController::class, 'complete']);
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::post('/profile/avatar', [ProfileController::class, 'uploadAvatar']);
 
@@ -115,6 +116,7 @@ Route::middleware(['auth:sanctum', 'prevent_leak'])->group(function () {
 
     // Payments
     Route::post('/payments/initiate', [PaymentController::class, 'initiate'])->middleware(['throttle:payment-initiate', 'idempotency']);
+    Route::post('/payments/mock/confirm', [PaymentController::class, 'confirmMock'])->middleware('throttle:payment-initiate');
     Route::get('/payments/status/{reference}', [PaymentController::class, 'status']);
 
     // Smart Cards
@@ -168,10 +170,13 @@ Route::middleware(['auth:sanctum', 'prevent_leak'])->group(function () {
         Route::get('/stats', [AdminController::class, 'stats']);
         Route::get('/stats/trends', [AdminController::class, 'trends']);
         Route::get('/users', [AdminController::class, 'users']);
+        Route::get('/users/{id}', [AdminController::class, 'showUser']);
         Route::post('/users', [AdminController::class, 'storeUser']);
         Route::patch('/users/{id}', [AdminController::class, 'updateUser']);
         Route::patch('/users/{id}/profile', [AdminController::class, 'updateUserProfile']);
-    Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);
+        Route::post('/users/{id}/avatar', [AdminController::class, 'uploadUserAvatar']);
+        Route::delete('/users/{id}/avatar', [AdminController::class, 'deleteUserAvatar']);
+        Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);
         Route::get('/smart-cards', [AdminController::class, 'smartCards']);
         Route::post('/smart-cards', [AdminController::class, 'registerCard']);
         Route::patch('/smart-cards/{id}/assign', [AdminController::class, 'assignCard']);

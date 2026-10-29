@@ -30,7 +30,9 @@ class ProfileRequest extends FormRequest
             'bio' => ['nullable', 'string'],
             'seeking' => ['nullable', 'string', 'max:1000'],
             'offering' => ['nullable', 'string', 'max:1000'],
-            'is_live' => ['nullable', 'boolean'],
+            // `is_live` is deliberately NOT accepted here. Publication is a
+            // membership side effect (payment activation or admin override),
+            // never a field a profile form can set.
             'social_links' => ['nullable', 'string'],
         ];
     }

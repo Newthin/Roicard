@@ -69,7 +69,6 @@ class ProfileSaveService
             'bio' => $data['bio'] ?? null,
             'seeking' => $data['seeking'] ?? null,
             'offering' => $data['offering'] ?? null,
-            'is_live' => $data['is_live'] ?? null,
         ], fn ($value) => $value !== null);
         if ($profileFields) {
             $profile->update($profileFields);

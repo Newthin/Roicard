@@ -6,6 +6,7 @@ import { InputField } from "@/components/auth/InputField";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/contexts/AuthContext";
 import { reactivateAccount } from "@/lib/api/auth";
+import { destinationForUser } from "@/lib/authRouting";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useState } from "react";
@@ -36,15 +37,11 @@ export function LoginForm() {
     setReactivateMsg(null);
     try {
       const loggedInUser = await login(email, password);
-      // When 2FA is required, twoFactorPending flips true and the form
-      // switches to the code screen — no navigation happens yet.
-      if (!twoFactorPending && loggedInUser) {
+      // When 2FA is required, `login` returns null and the form switches to
+      // the code screen — no navigation happens yet.
+      if (loggedInUser) {
         const next = searchParams.get("next");
-        router.push(
-          loggedInUser.onboarding_completed === false
-            ? "/onboarding"
-            : next || "/dashboard"
-        );
+        router.push(destinationForUser(loggedInUser, next || "/dashboard"));
       }
     } catch (err: unknown) {
       const data =
@@ -96,11 +93,9 @@ export function LoginForm() {
     try {
       const verifiedUser = await submitTwoFactor(code);
       const next = searchParams.get("next");
-      router.push(
-        verifiedUser && verifiedUser.onboarding_completed === false
-          ? "/onboarding"
-          : next || "/dashboard"
-      );
+      if (verifiedUser) {
+        router.push(destinationForUser(verifiedUser, next || "/dashboard"));
+      }
     } catch (err: unknown) {
       const data =
         err && typeof err === "object" && "response" in err

@@ -3,11 +3,10 @@
 namespace App\Jobs;
 
 use App\Models\Payment;
-use App\Services\SlugService;
+use App\Services\MemberAccountService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Facades\DB;
 
 class ProcessActivationJob implements ShouldQueue
 {
@@ -17,23 +16,13 @@ class ProcessActivationJob implements ShouldQueue
         public Payment $payment
     ) {}
 
-    public function handle(SlugService $slugService): void
+    /**
+     * A verified payment flips the membership to active and publishes the
+     * public profile through the shared account service, so the payment path
+     * and the admin activation path apply identical side effects.
+     */
+    public function handle(MemberAccountService $accounts): void
     {
-        DB::transaction(function () use ($slugService) {
-            $user = $this->payment->user;
-            $profile = $user->profile;
-
-            if ($profile->slug === null) {
-                $slug = $slugService->generate($user->first_name, $user->last_name);
-                $profile->slug = $slug;
-            }
-
-            // Mark the public profile live now that membership is active.
-            $profile->is_live = true;
-            $profile->save();
-
-            $user->status = 'active';
-            $user->save();
-        });
+        $accounts->activateMembership($this->payment->user);
     }
 }

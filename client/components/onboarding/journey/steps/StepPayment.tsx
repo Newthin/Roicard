@@ -15,13 +15,17 @@ import { StepHeading } from "@/components/onboarding/journey/StepHeading";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/cn";
-import { initiatePayment } from "@/lib/api/payments";
+import {
+  confirmMockPayment,
+  initiatePayment,
+  rememberPaymentReference,
+} from "@/lib/api/payments";
 import { savePaymentSnapshot } from "@/lib/profile/storage";
 import { PAYMENT_METHODS, getActivationPricing } from "@/lib/profile/types";
 import { useEffect, useRef, useState } from "react";
 
 export function StepPayment() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { data, submitPayment, skipMembership } = useJourney();
   const [method, setMethod] = useState<string>(PAYMENT_METHODS[0].id);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,32 +50,67 @@ export function StepPayment() {
     setError(null);
 
     try {
-      const { redirect } = await initiatePayment({
+      const { payment, redirect } = await initiatePayment({
         amount: pricing.fee,
         currency: "GHS",
         method: "card",
       });
 
+      rememberPaymentReference(payment.provider_reference);
+
       // Persist the journey so the profile survives the provider redirect.
       // The username/createdAt are set at finalization; empty here is fine.
+      // Membership is NOT marked active locally — the server confirms it.
       const snapshot = {
         ...data,
         email: data.email || user?.email || "",
         username: "",
         createdAt: new Date().toISOString(),
-        membershipStatus: "active" as const,
+        membershipStatus: "pending" as const,
       };
       savePaymentSnapshot(snapshot);
 
-      const authorizationUrl = (redirect as { authorization_url?: string })
-        ?.authorization_url;
+      const providerRedirect = redirect as {
+        authorization_url?: string;
+        checkout_url?: string;
+        status?: string;
+        mock?: boolean;
+      };
 
-      if (authorizationUrl) {
-        window.location.assign(authorizationUrl);
-      } else {
-        // No provider configured (mock mode) — advance as before.
+      // The pending attempt already completed at the provider.
+      if (providerRedirect?.status === "success") {
+        try {
+          await refreshUser();
+        } catch {
+          // Activation already happened server-side.
+        }
         submitPayment();
+        return;
       }
+
+      const checkoutUrl =
+        providerRedirect?.authorization_url ?? providerRedirect?.checkout_url;
+
+      if (checkoutUrl) {
+        window.location.assign(checkoutUrl);
+        return;
+      }
+
+      if (providerRedirect?.mock) {
+        // Mock provider: confirm explicitly so the backend runs the same
+        // activation path as a verified webhook. Nothing is faked client-side.
+        await confirmMockPayment(payment.provider_reference);
+        try {
+          await refreshUser();
+        } catch {
+          // Non-fatal; StepProcessing re-checks via the status endpoint.
+        }
+        submitPayment();
+        return;
+      }
+
+      setError("Payment is not available right now. Please try again shortly.");
+      setIsSubmitting(false);
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Unable to start payment. Try again."

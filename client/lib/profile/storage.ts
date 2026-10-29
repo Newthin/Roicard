@@ -126,7 +126,9 @@ export async function updateCurrentUserProfile(updates: Partial<UserProfile>): P
 
 export function createAndSaveProfile(data: UserProfile): UserProfile {
   localStorage.setItem(CURRENT_USER_KEY, data.username);
-  localStorage.setItem("roicard_onboarding_complete", "true");
+  // NOTE: onboarding completion is tracked server-side. This helper only
+  // caches the profile for local preview; call setOnboardingComplete()
+  // explicitly after the server confirms completion.
   const raw = localStorage.getItem("roicard_profiles");
   const store = raw ? JSON.parse(raw) : {};
   store[data.username] = data;
