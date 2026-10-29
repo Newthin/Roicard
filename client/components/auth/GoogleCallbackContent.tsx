@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { destinationForUser } from "@/lib/authRouting";
+import { signupErrorMessage } from "@/lib/oauthErrors";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
@@ -17,11 +18,7 @@ function GoogleCallbackContent() {
     const errorParam = searchParams.get("error");
 
     if (errorParam) {
-      setError(
-        errorParam === "account_deactivated"
-          ? "This account has been deactivated. Contact support to reactivate it."
-          : "Google sign-in could not be completed. Please try again."
-      );
+      setError(signupErrorMessage(errorParam, "Google"));
       return;
     }
 

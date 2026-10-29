@@ -7,9 +7,12 @@ use App\Models\Connection;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
+use Spatie\Permission\Models\Role;
 
 class GoogleAuthController extends Controller
 {
@@ -34,36 +37,60 @@ class GoogleAuthController extends Controller
             return $this->frontendRedirect(['error' => 'google_auth_failed']);
         }
 
-        $user = User::where('email', $googleUser->getEmail())->first();
+        try {
+            $user = DB::transaction(function () use ($googleUser) {
+                $user = User::where('email', $googleUser->getEmail())->first();
 
-        if (!$user) {
-            $name = $googleUser->getName() ?? $googleUser->getNickname() ?? '';
-            $nameParts = array_values(array_filter(explode(' ', trim($name))));
-            $firstName = $nameParts[0] ?? $googleUser->getEmail();
-            $lastName = count($nameParts) > 1 ? implode(' ', array_slice($nameParts, 1)) : '';
+                if (!$user) {
+                    $name = $googleUser->getName() ?? $googleUser->getNickname() ?? '';
+                    $nameParts = array_values(array_filter(explode(' ', trim($name))));
+                    $firstName = $nameParts[0] ?? $googleUser->getEmail();
+                    $lastName = count($nameParts) > 1 ? implode(' ', array_slice($nameParts, 1)) : '';
 
-            $user = User::create([
-                'first_name' => $firstName,
-                'last_name' => $lastName,
+                    $user = User::create([
+                        'first_name' => $firstName,
+                        'last_name' => $lastName,
+                        'email' => $googleUser->getEmail(),
+                        'password' => Hash::make(Str::random(32)),
+                        'status' => 'draft',
+                        'role' => 'member',
+                        'google_id' => $googleUser->getId(),
+                        'email_verified_at' => now(),
+                    ]);
+
+                    $user->profile()->create([]);
+
+                    // The `role` column is the routing source of truth. The
+                    // Spatie role is secondary, so a deployment that has not
+                    // run the role seeder must not turn OAuth signup into a
+                    // 500 (`RoleDoesNotExist`).
+                    if (Role::where('name', 'member')->where('guard_name', 'web')->exists()) {
+                        $user->assignRole('member');
+                    }
+
+                    // Link any prior guest connection requests to this account
+                    Connection::linkGuestRequestsToUser($user);
+                } else {
+                    $user->google_id = $googleUser->getId();
+                    if (!$user->hasVerifiedEmail()) {
+                        $user->markEmailAsVerified();
+                    }
+                    $user->save();
+                }
+
+                return $user;
+            });
+        } catch (\Throwable $e) {
+            // Never leak a generic "Server Error" to the browser after Google
+            // has already authenticated the person. Log the real cause (DB,
+            // media, mail, etc.) and send them back with a usable error state.
+            Log::error('Google signup failed', [
+                'message' => $e->getMessage(),
+                'class' => get_class($e),
                 'email' => $googleUser->getEmail(),
-                'password' => Hash::make(Str::random(32)),
-                'status' => 'draft',
-                'role' => 'member',
-                'google_id' => $googleUser->getId(),
-                'email_verified_at' => now(),
             ]);
 
-            $user->profile()->create([]);
-            $user->assignRole('member');
-
-            // Link any prior guest connection requests to this account
-            Connection::linkGuestRequestsToUser($user);
-        } else {
-            $user->google_id = $googleUser->getId();
-            if (!$user->hasVerifiedEmail()) {
-                $user->markEmailAsVerified();
-            }
-            $user->save();
+            return $this->frontendRedirect(['error' => 'google_signup_failed']);
         }
 
         // Revoke any previously issued tokens so old sessions can't linger.

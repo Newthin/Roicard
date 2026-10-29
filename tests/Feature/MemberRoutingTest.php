@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Jobs\ProcessActivationJob;
 use App\Mail\WelcomeMemberMail;
 use App\Models\Payment;
+use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\MemberAccessService;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -12,6 +13,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
+use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\User as SocialiteUser;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -48,6 +51,40 @@ class MemberRoutingTest extends TestCase
             'status' => 'active',
             'role' => 'admin',
         ]);
+    }
+
+    /** Fake a successful Google OAuth identity for callback tests. */
+    protected function fakeGoogleUser(
+        string $email,
+        string $name = 'New Member',
+        string $id = 'google-123'
+    ): void {
+        $socialiteUser = (new SocialiteUser())->map([
+            'id' => $id,
+            'name' => $name,
+            'email' => $email,
+            'avatar' => null,
+        ]);
+
+        $provider = \Mockery::mock(\Laravel\Socialite\Contracts\Provider::class);
+        $provider->shouldReceive('stateless')->andReturnSelf();
+        $provider->shouldReceive('user')->andReturn($socialiteUser);
+
+        Socialite::shouldReceive('driver')->with('google')->andReturn($provider);
+    }
+
+    /** @return array{token?: string, user?: array<string, mixed>, error?: string} */
+    protected function oauthRedirectPayload(\Illuminate\Testing\TestResponse $response): array
+    {
+        $response->assertRedirect();
+        $location = (string) $response->headers->get('Location');
+        parse_str((string) parse_url($location, PHP_URL_QUERY), $query);
+
+        if (isset($query['user']) && is_string($query['user'])) {
+            $query['user'] = json_decode($query['user'], true);
+        }
+
+        return $query;
     }
 
     public function test_incomplete_member_is_routed_to_onboarding_on_login_and_me(): void
@@ -708,5 +745,82 @@ class MemberRoutingTest extends TestCase
 
         $this->assertSame('member', $user->fresh()->role);
         $this->assertSame(0, $user->roles()->count());
+    }
+
+    public function test_google_signup_creates_a_verified_member_and_routes_to_onboarding(): void
+    {
+        $this->fakeGoogleUser('gmail.member@example.com', 'Gmail Member');
+
+        $payload = $this->oauthRedirectPayload($this->get('/api/auth/google/callback'));
+
+        $this->assertArrayNotHasKey('error', $payload);
+        $this->assertNotEmpty($payload['token']);
+        $this->assertSame('onboarding', $payload['user']['next_step']);
+        $this->assertSame('member', $payload['user']['role']);
+        $this->assertTrue($payload['user']['email_verified']);
+
+        $user = User::where('email', 'gmail.member@example.com')->firstOrFail();
+        $this->assertNotNull($user->email_verified_at);
+        $this->assertNotNull($user->profile);
+        $this->assertSame('member', $user->role);
+    }
+
+    public function test_google_signup_survives_unseeded_spatie_roles(): void
+    {
+        // Production must not 500 just because the role seeder has not run.
+        Role::where('name', 'member')->delete();
+
+        $this->fakeGoogleUser('gmail.unseeded@example.com', 'Unseeded Member');
+
+        $payload = $this->oauthRedirectPayload($this->get('/api/auth/google/callback'));
+
+        $this->assertArrayNotHasKey('error', $payload);
+        $this->assertNotEmpty($payload['token']);
+
+        $user = User::where('email', 'gmail.unseeded@example.com')->firstOrFail();
+        $this->assertSame('member', $user->role);
+        $this->assertSame(0, $user->roles()->count());
+    }
+
+    public function test_social_google_signup_creates_a_member_and_routes_to_onboarding(): void
+    {
+        $this->fakeGoogleUser('social.member@example.com', 'Social Member');
+
+        $payload = $this->oauthRedirectPayload($this->get('/api/auth/social/google/callback'));
+
+        $this->assertArrayNotHasKey('error', $payload);
+        $this->assertNotEmpty($payload['token']);
+        $this->assertSame('onboarding', $payload['user']['next_step']);
+
+        $user = User::where('email', 'social.member@example.com')->firstOrFail();
+        $this->assertNotNull($user->email_verified_at);
+        $this->assertDatabaseHas('social_accounts', [
+            'user_id' => $user->id,
+            'provider' => 'google',
+            'provider_id' => 'google-123',
+        ]);
+    }
+
+    public function test_social_signup_with_a_deleted_linked_user_fails_gracefully(): void
+    {
+        $user = $this->member(['email' => 'deleted.member@example.com']);
+        SocialAccount::create([
+            'user_id' => $user->id,
+            'provider' => 'google',
+            'provider_id' => 'google-123',
+            'email' => $user->email,
+        ]);
+        $user->delete();
+
+        $this->fakeGoogleUser('deleted.member@example.com', 'Deleted Member');
+
+        $payload = $this->oauthRedirectPayload($this->get('/api/auth/social/google/callback'));
+
+        // No 500 and no duplicate insert against the soft-deleted email.
+        $this->assertSame('account_deleted', $payload['error']);
+        $this->assertSame(
+            1,
+            User::withTrashed()->where('email', 'deleted.member@example.com')->count()
+        );
     }
 }

@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { destinationForUser } from "@/lib/authRouting";
+import { signupErrorMessage } from "@/lib/oauthErrors";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
@@ -20,9 +21,7 @@ function SocialCallbackContent() {
       setError(
         errorParam === "provider_not_configured"
           ? "This sign-in option isn't set up yet. Please use email or Google."
-          : errorParam === "account_deactivated"
-            ? "This account has been deactivated. Contact support to reactivate it."
-            : "Sign-in could not be completed. Please try again."
+          : signupErrorMessage(errorParam, "Sign-in")
       );
       return;
     }
