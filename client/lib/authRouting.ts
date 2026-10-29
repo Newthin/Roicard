@@ -9,6 +9,9 @@ type RoutingUser = Pick<
  * Single client-side mapping from the server's `next_step` to a route.
  * `fallback` is used only when the member is cleared for the dashboard (e.g.
  * honouring a `?next=` deep link after sign-in).
+ *
+ * Admins default to the dashboard as well; the admin console is reached by
+ * role (`/admin`), not by routing.
  */
 export function destinationForUser(
   user: RoutingUser | null | undefined,
@@ -20,9 +23,11 @@ export function destinationForUser(
     case "blocked":
       return "/auth/login";
     case "onboarding":
-      return "/onboarding";
+      return user.role === "admin" ? fallback : "/onboarding";
+    // Legacy value from sessions cached before admins were moved to the
+    // dashboard.
     case "admin":
-      return "/admin";
+      return fallback;
     case "dashboard":
       return fallback;
     default:
@@ -30,8 +35,9 @@ export function destinationForUser(
   }
 
   // Sessions cached before `next_step` existed.
-  if (user.role === "admin") return "/admin";
-  if (user.onboarding_completed === false) return "/onboarding";
+  if (user.onboarding_completed === false && user.role !== "admin") {
+    return "/onboarding";
+  }
 
   return fallback;
 }

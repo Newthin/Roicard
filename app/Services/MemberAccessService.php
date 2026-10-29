@@ -12,7 +12,7 @@ use App\Models\User;
  * the server-side state columns:
  *
  *   deactivated_at           -> blocked (account access)
- *   role = admin             -> admin console
+ *   role = admin             -> dashboard (console is reachable by role)
  *   onboarding_completed_at is null -> onboarding journey
  *   otherwise                -> dashboard
  *
@@ -23,6 +23,7 @@ class MemberAccessService
 {
     public const NEXT_DASHBOARD = 'dashboard';
     public const NEXT_ONBOARDING = 'onboarding';
+    /** Legacy value; no longer returned (admins land on the dashboard). */
     public const NEXT_ADMIN = 'admin';
     public const NEXT_BLOCKED = 'blocked';
 
@@ -32,8 +33,10 @@ class MemberAccessService
             return self::NEXT_BLOCKED;
         }
 
+        // Admins start on the member dashboard just like everyone else. The
+        // admin console stays reachable by role (`/admin`), not by routing.
         if ($user->isAdmin()) {
-            return self::NEXT_ADMIN;
+            return self::NEXT_DASHBOARD;
         }
 
         if ($user->onboarding_completed_at === null) {

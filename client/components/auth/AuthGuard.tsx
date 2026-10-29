@@ -19,14 +19,18 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const pathname = usePathname();
   const { isAuthenticated, isLoading, user, logout } = useAuth();
 
-  // Fallback for sessions cached before `next_step` existed.
-  const nextStep =
+  const isAdmin = user?.role === "admin";
+
+  // Server-resolved step. Admins land on the dashboard too; the admin console
+  // is reachable by role, not by `next_step`. The `admin` value is only kept
+  // for sessions cached before this change.
+  const rawNextStep =
     user?.next_step ??
-    (user?.role === "admin"
-      ? "admin"
-      : user?.onboarding_completed === false
-        ? "onboarding"
-        : "dashboard");
+    (user?.onboarding_completed === false ? "onboarding" : "dashboard");
+  const nextStep =
+    rawNextStep === "admin" || (rawNextStep === "onboarding" && isAdmin)
+      ? "dashboard"
+      : rawNextStep;
 
   useEffect(() => {
     if (isLoading) return;
@@ -46,16 +50,12 @@ export function AuthGuard({ children }: AuthGuardProps) {
       return;
     }
 
-    if (nextStep === "admin" && !pathname?.startsWith("/admin")) {
-      router.replace("/admin");
-      return;
-    }
-
-    // A member must never see the admin console shell.
-    if (pathname?.startsWith("/admin") && nextStep !== "admin") {
+    // A member must never see the admin console shell. Admins may open it
+    // from the dashboard at any time.
+    if (pathname?.startsWith("/admin") && !isAdmin) {
       router.replace(nextStep === "onboarding" ? "/onboarding" : "/dashboard");
     }
-  }, [isAuthenticated, isLoading, logout, nextStep, pathname, router]);
+  }, [isAdmin, isAuthenticated, isLoading, logout, nextStep, pathname, router]);
 
   if (isLoading) {
     return null;
@@ -70,10 +70,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   if (nextStep === "onboarding" && !pathname?.startsWith("/onboarding")) {
     return null;
   }
-  if (nextStep === "admin" && !pathname?.startsWith("/admin")) {
-    return null;
-  }
-  if (pathname?.startsWith("/admin") && nextStep !== "admin") {
+  if (pathname?.startsWith("/admin") && !isAdmin) {
     return null;
   }
 

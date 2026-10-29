@@ -88,6 +88,28 @@ class MemberRoutingTest extends TestCase
             ->assertJsonPath('user.next_step', 'dashboard');
     }
 
+    public function test_admin_login_lands_on_dashboard_while_keeping_console_access(): void
+    {
+        $admin = $this->admin();
+        $admin->forceFill(['password' => bcrypt('Secret123!')])->save();
+
+        $login = $this->postJson('/api/auth/login', [
+            'email' => $admin->email,
+            'password' => 'Secret123!',
+        ]);
+
+        // Admins start on the member dashboard like everyone else.
+        $login->assertOk()
+            ->assertJsonPath('user.role', 'admin')
+            ->assertJsonPath('user.next_step', 'dashboard');
+
+        // The console is guarded by role, not by the routing hint, so admins
+        // can still open it from the dashboard.
+        $this->withToken($login->json('token'))
+            ->getJson('/api/admin/stats')
+            ->assertOk();
+    }
+
     public function test_profile_complete_flips_next_step_to_dashboard(): void
     {
         $user = $this->member();
