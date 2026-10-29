@@ -415,3 +415,210 @@ export async function updateAdminDiscountCampaign(
   const { data } = await apiClient.patch(`/admin/discount-campaigns/${id}`, body);
   return data;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Manual member messages                                                      */
+/* -------------------------------------------------------------------------- */
+
+export type AdminMessageCategory = "service" | "nudge";
+
+export type AdminMessageAudienceFilters = {
+  status?: "draft" | "active";
+  onboarding_completed?: boolean;
+  email_verified?: boolean;
+  has_campaign_code?: boolean;
+  campaign_code?: string;
+  created_from?: string;
+  created_to?: string;
+  search?: string;
+};
+
+export interface AdminMessageRecipientPreview {
+  id: number;
+  first_name: string;
+  last_name: string;
+  name: string;
+  email: string;
+  status: string;
+  role: string;
+  campaign_code: string | null;
+  onboarding_completed: boolean;
+  email_verified: boolean;
+  created_at: string | null;
+  draft_closes_at: string | null;
+  draft_days_remaining: number | null;
+}
+
+export interface AdminMessageQuota {
+  daily_limit: number;
+  monthly_limit: number;
+  committed_today: number;
+  committed_month: number;
+  daily_remaining: number;
+  monthly_remaining: number;
+  tracked_only: boolean;
+}
+
+export interface AdminMessage {
+  id: number;
+  sent_by: number | null;
+  sent_by_name: string | null;
+  subject: string;
+  body: string | null;
+  category: AdminMessageCategory;
+  filter_snapshot: Record<string, unknown> | null;
+  recipient_count: number;
+  skipped_count: number;
+  queued_count: number;
+  sent_count: number;
+  failed_count: number;
+  queued_recipients_count: number;
+  sent_recipients_count: number;
+  failed_recipients_count: number;
+  status: "queued" | "sending" | "sent" | "partial" | "failed";
+  is_stuck: boolean;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string | null;
+}
+
+export interface AdminMessageRecipient {
+  id: number;
+  user_id: number | null;
+  name: string | null;
+  email: string;
+  status: "queued" | "sending" | "sent" | "failed";
+  error: string | null;
+  attempts: number;
+  sent_at: string | null;
+}
+
+export interface AdminMessagePreview {
+  subject: string;
+  text: string;
+  body_html: string;
+  html: string;
+  recipient: { id: number; name: string; email: string } | null;
+}
+
+export interface AdminMessageAudiencePayload {
+  filters?: AdminMessageAudienceFilters;
+  include_user_ids?: number[];
+  exclude_user_ids?: number[];
+  include_admins?: boolean;
+}
+
+export async function getAdminMessageRecipients(
+  params: AdminMessageAudienceFilters & { page?: number; per_page?: number; include_admins?: boolean }
+): Promise<{
+  count: number;
+  total: number;
+  data: AdminMessageRecipientPreview[];
+  current_page: number;
+  last_page: number;
+  per_page: number;
+}> {
+  const { data } = await apiClient.get("/admin/messages/recipients", { params });
+  return data;
+}
+
+export async function getAdminMessageQuota(): Promise<AdminMessageQuota> {
+  const { data } = await apiClient.get("/admin/messages/quota");
+  return data;
+}
+
+export async function checkAdminMessageDuplicates(
+  subject: string,
+  audience: AdminMessageAudiencePayload
+): Promise<{ count: number; window_days: number; recipients: AdminMessageRecipientPreview[] }> {
+  const { data } = await apiClient.get("/admin/messages/duplicate-check", {
+    params: {
+      subject,
+      ...audience.filters,
+      include_admins: audience.include_admins,
+      include_user_ids: audience.include_user_ids,
+      exclude_user_ids: audience.exclude_user_ids,
+    },
+  });
+  return data;
+}
+
+export async function previewAdminMessage(body: {
+  subject: string;
+  body: string;
+  category: AdminMessageCategory;
+  user_id?: number;
+}): Promise<AdminMessagePreview> {
+  const { data } = await apiClient.post("/admin/messages/preview", body);
+  return data;
+}
+
+export async function sendAdminMessageTest(body: {
+  subject: string;
+  body: string;
+  category: AdminMessageCategory;
+}): Promise<{ message: string; email: string }> {
+  const { data } = await apiClient.post("/admin/messages/test", body);
+  return data;
+}
+
+export async function createAdminMessage(
+  body: {
+    subject: string;
+    body: string;
+    category: AdminMessageCategory;
+    expected_recipient_count: number;
+    confirmation_text?: string;
+    acknowledge_duplicates?: boolean;
+  } & AdminMessageAudiencePayload,
+  idempotencyKey: string
+): Promise<AdminMessage> {
+  const { data } = await apiClient.post("/admin/messages", body, {
+    headers: { "Idempotency-Key": idempotencyKey },
+  });
+  return data;
+}
+
+export async function getAdminMessages(params?: {
+  page?: number;
+  per_page?: number;
+  status?: string;
+  search?: string;
+}): Promise<{
+  data: AdminMessage[];
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+}> {
+  const { data } = await apiClient.get("/admin/messages", { params });
+  return data;
+}
+
+export async function getAdminMessage(
+  id: number,
+  params?: { page?: number; per_page?: number; status?: string; search?: string }
+): Promise<{
+  message: AdminMessage;
+  recipients: AdminMessageRecipient[];
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+}> {
+  const { data } = await apiClient.get(`/admin/messages/${id}`, { params });
+  return data;
+}
+
+export async function retryAdminMessage(
+  id: number,
+  idempotencyKey: string
+): Promise<{ message: string; queued_count: number }> {
+  const { data } = await apiClient.post(
+    `/admin/messages/${id}/retry`,
+    {},
+    { headers: { "Idempotency-Key": idempotencyKey } }
+  );
+  return data;
+}
+

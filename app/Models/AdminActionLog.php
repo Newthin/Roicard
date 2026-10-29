@@ -10,7 +10,15 @@ class AdminActionLog extends Model
         'admin_id',
         'action',
         'target_user_id',
+        'metadata',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'metadata' => 'array',
+        ];
+    }
 
     public function admin()
     {

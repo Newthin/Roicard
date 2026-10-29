@@ -13,6 +13,7 @@ use App\Models\SmartCard;
 use App\Models\User;
 use App\Notifications\SmartCardDeliveredNotification;
 use App\Notifications\SmartCardShippedNotification;
+use App\Services\Admin\UserAudienceQuery;
 use App\Services\MemberAccessService;
 use App\Services\MemberAccountService;
 use App\Services\ProfileSaveService;
@@ -24,7 +25,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rule;
-use Spatie\QueryBuilder\QueryBuilder;
 
 class AdminController extends Controller
 {
@@ -59,11 +59,11 @@ class AdminController extends Controller
 
     public function users(Request $request): JsonResponse
     {
-        $users = QueryBuilder::for(User::class)
-            ->allowedFilters(['status', 'role', 'first_name', 'last_name', 'email'])
-            ->allowedSorts(['created_at', 'first_name', 'last_name', 'email'])
-            ->with('profile')
-            ->paginate($request->input('per_page', 20));
+        // Shared audience query — the Send Message picker uses the same
+        // pipeline, so filters only have to be maintained in one place.
+        $users = app(UserAudienceQuery::class)
+            ->fromRequest($request, excludeAdmins: false, defaultSort: '-created_at')
+            ->paginate((int) $request->input('per_page', 20));
 
         // Add the canonical access state so the console never has to infer it
         // from status alone (payment status is separate from access).

@@ -19,3 +19,4 @@ export { DataTable, DataTableRow, DataTableCell } from "@/components/admin/DataT
 export { StatsChart } from "@/components/admin/StatsChart";
 export { AdminActivityFeed } from "@/components/admin/AdminActivityFeed";
 export { DiscountsManagementView } from "@/components/admin/DiscountsManagementView";
+export { MessagesManagementView } from "@/components/admin/MessagesManagementView";

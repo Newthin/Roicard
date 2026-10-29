@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\AdminMessageController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ConnectionController;
@@ -194,6 +195,19 @@ Route::middleware(['auth:sanctum', 'prevent_leak'])->group(function () {
         Route::get('/discount-campaigns', [DiscountCampaignController::class, 'index']);
         Route::post('/discount-campaigns', [DiscountCampaignController::class, 'store']);
         Route::patch('/discount-campaigns/{id}', [DiscountCampaignController::class, 'update']);
+
+        // Manual member messages — admins only.
+        Route::get('/messages/recipients', [AdminMessageController::class, 'recipients']);
+        Route::get('/messages/quota', [AdminMessageController::class, 'quota']);
+        Route::get('/messages/duplicate-check', [AdminMessageController::class, 'duplicateCheck']);
+        Route::post('/messages/preview', [AdminMessageController::class, 'preview'])->middleware('throttle:admin-message-test');
+        Route::post('/messages/test', [AdminMessageController::class, 'sendTest'])->middleware('throttle:admin-message-test');
+        Route::post('/messages', [AdminMessageController::class, 'store'])
+            ->middleware(['throttle:admin-message-send', 'idempotency']);
+        Route::get('/messages', [AdminMessageController::class, 'index']);
+        Route::get('/messages/{id}', [AdminMessageController::class, 'show']);
+        Route::post('/messages/{id}/retry', [AdminMessageController::class, 'retry'])
+            ->middleware(['throttle:admin-message-send', 'idempotency']);
     });
 });
 

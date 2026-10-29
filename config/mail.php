@@ -47,6 +47,26 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Roicard'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Manual Admin Messages
+    |--------------------------------------------------------------------------
+    |
+    | Replies are intentionally disabled: no Reply-To header is set. Members
+    | are pointed at the support address in the footer instead. Quotas mirror
+    | the Resend Free plan and must not be used to bypass provider limits.
+    |
+    */
+    'admin' => [
+        'from_address' => env('ADMIN_MAIL_FROM_ADDRESS', env('MAIL_FROM_ADDRESS', 'admin@myroicard.com')),
+        'from_name' => env('ADMIN_MAIL_FROM_NAME', 'Roicard'),
+        'support_email' => env('SUPPORT_EMAIL', 'support@myroicard.com'),
+        'duplicate_window_days' => (int) env('ADMIN_MAIL_DUPLICATE_WINDOW_DAYS', 7),
+        'rate_per_second' => (int) env('ADMIN_MAIL_RATE_PER_SECOND', 8),
+        'daily_quota' => (int) env('RESEND_DAILY_QUOTA', 100),
+        'monthly_quota' => (int) env('RESEND_MONTHLY_QUOTA', 3000),
+    ],
+
     'markdown' => [
         'theme' => 'default',
         'paths' => [

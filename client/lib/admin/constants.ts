@@ -6,6 +6,7 @@ import {
   BarChart3,
   CreditCard,
   LayoutDashboard,
+  Mail,
   Nfc,
   Percent,
   Users,
@@ -25,6 +26,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { label: "Discounts", href: "/admin/discounts", icon: Percent },
   { label: "Generate Card", href: "/admin/cards/generate", icon: CreditCard },
   { label: "Roicard Management", href: "/admin/nfc", icon: Nfc },
+  { label: "Messages", href: "/admin/messages", icon: Mail },
   { label: "Statistics", href: "/admin/statistics", icon: BarChart3 },
 ];
 
