@@ -24,6 +24,7 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
+  const [signupUrl, setSignupUrl] = useState<string | null>(null);
   const [deactivated, setDeactivated] = useState(false);
   const [reactivating, setReactivating] = useState(false);
   const [reactivateMsg, setReactivateMsg] = useState<string | null>(null);
@@ -33,6 +34,7 @@ export function LoginForm() {
     event.preventDefault();
     setIsLoading(true);
     setError("");
+    setSignupUrl(null);
     setDeactivated(false);
     setReactivateMsg(null);
     try {
@@ -46,7 +48,11 @@ export function LoginForm() {
     } catch (err: unknown) {
       const data =
         err && typeof err === "object" && "response" in err
-          ? (err as { response: { data: { message?: string; error?: string } } }).response?.data
+          ? (err as {
+              response: {
+                data: { message?: string; error?: string; signup_url?: string };
+              };
+            }).response?.data
           : null;
 
       if (data?.error === "email_not_verified") {
@@ -61,6 +67,12 @@ export function LoginForm() {
       }
 
       setError(data?.message || "Login failed");
+
+      // Unknown / mistyped email: point the visitor at account creation
+      // instead of leaving them with a dead end.
+      if (data?.error === "invalid_credentials") {
+        setSignupUrl(data.signup_url || "/auth/register");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -199,7 +211,17 @@ export function LoginForm() {
         </div>
 
         {error && (
-          <p className="text-sm text-red-500 text-center">{error}</p>
+          <div className="space-y-2 text-center">
+            <p className="text-sm text-red-500">{error}</p>
+            {signupUrl && (
+              <Link
+                href={signupUrl}
+                className="inline-flex items-center text-sm font-medium text-roicard-accent transition-colors hover:text-roicard-text"
+              >
+                Create an account
+              </Link>
+            )}
+          </div>
         )}
         {reactivateMsg && (
           <p className="text-sm text-emerald-500 text-center">{reactivateMsg}</p>

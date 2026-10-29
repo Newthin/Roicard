@@ -90,10 +90,29 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request): JsonResponse
     {
-        $user = User::where('email', $request->email)->first();
+        $email = mb_strtolower(trim((string) $request->email));
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json(['message' => 'Invalid credentials'], 401);
+        // Case-insensitive lookup so a member who capitalises their email can
+        // still sign in (SQLite in tests is case-sensitive for `=`).
+        $user = User::whereRaw('LOWER(email) = ?', [$email])->first();
+
+        // Guard the OAuth-only case (no password hash) and any malformed hash:
+        // both must be a clean 401, never a 500 "Server Error".
+        $passwordMatches = false;
+        if ($user && is_string($user->password) && $user->password !== '') {
+            try {
+                $passwordMatches = Hash::check((string) $request->password, $user->password);
+            } catch (\Throwable $e) {
+                $passwordMatches = false;
+            }
+        }
+
+        if (!$user || !$passwordMatches) {
+            return response()->json([
+                'message' => 'Incorrect email or password. If you are new, create an account to get started.',
+                'error' => 'invalid_credentials',
+                'signup_url' => '/auth/register',
+            ], 401);
         }
 
         if ($user->isDeactivated()) {
@@ -392,10 +411,24 @@ class AuthController extends Controller
             'current_password' => ['required', 'string'],
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $email = mb_strtolower(trim((string) $request->email));
+        $user = User::whereRaw('LOWER(email) = ?', [$email])->first();
 
-        if (!$user || !Hash::check($request->current_password, $user->password)) {
-            return response()->json(['message' => 'Invalid credentials'], 401);
+        $passwordMatches = false;
+        if ($user && is_string($user->password) && $user->password !== '') {
+            try {
+                $passwordMatches = Hash::check((string) $request->current_password, $user->password);
+            } catch (\Throwable $e) {
+                $passwordMatches = false;
+            }
+        }
+
+        if (!$user || !$passwordMatches) {
+            return response()->json([
+                'message' => 'Incorrect email or password. If you are new, create an account to get started.',
+                'error' => 'invalid_credentials',
+                'signup_url' => '/auth/register',
+            ], 401);
         }
 
         if (!$user->isDeactivated()) {

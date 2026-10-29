@@ -38,6 +38,7 @@ export function ProfileSettingsForm({
   const [form, setForm] = useState<OnboardingFormData>(initialData);
   const [isSaving, setIsSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [customInterest, setCustomInterest] = useState("");
   const interestOptions = useInterestOptions();
 
@@ -51,6 +52,7 @@ export function ProfileSettingsForm({
   ) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     setSavedMessage(null);
+    setSaveError(null);
   };
 
   const updateSocial = (field: keyof SocialLinks, value: string) => {
@@ -59,6 +61,7 @@ export function ProfileSettingsForm({
       social: { ...prev.social, [field]: value },
     }));
     setSavedMessage(null);
+    setSaveError(null);
   };
 
   const toggleInterest = (interest: string) => {
@@ -72,6 +75,7 @@ export function ProfileSettingsForm({
       };
     });
     setSavedMessage(null);
+    setSaveError(null);
   };
 
   /** UI-only photo upload — stores base64 preview in form state. */
@@ -119,6 +123,7 @@ export function ProfileSettingsForm({
     if (!confirmed) return;
 
     setIsSaving(true);
+    setSaveError(null);
     try {
       await updateCurrentUserProfile(form);
 
@@ -134,8 +139,31 @@ export function ProfileSettingsForm({
 
       setSavedMessage("Profile saved successfully.");
       onSaved?.();
-    } catch {
-      setSavedMessage("Failed to save. Please try again.");
+    } catch (err: unknown) {
+      // Surface the real reason (validation, throttle, network) instead of
+      // silently discarding it. The form keeps its values so the member can
+      // fix the field and press Save again.
+      const data =
+        err && typeof err === "object" && "response" in err
+          ? (err as {
+              response?: {
+                data?: {
+                  message?: string;
+                  errors?: Record<string, string[]>;
+                };
+              };
+            }).response?.data
+          : null;
+      const firstValidationError = data?.errors
+        ? Object.values(data.errors).flat()[0]
+        : null;
+
+      setSavedMessage(null);
+      setSaveError(
+        firstValidationError ||
+          data?.message ||
+          "Failed to save your profile. Check your connection and try again."
+      );
     } finally {
       setIsSaving(false);
     }
@@ -447,6 +475,14 @@ export function ProfileSettingsForm({
       {savedMessage && (
         <p className="mt-4 text-sm text-emerald-400" role="status">
           {savedMessage}
+        </p>
+      )}
+      {saveError && (
+        <p
+          className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400"
+          role="alert"
+        >
+          {saveError}
         </p>
       )}
 

@@ -22,6 +22,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rule;
 use Spatie\QueryBuilder\QueryBuilder;
 
@@ -120,6 +121,10 @@ class AdminController extends Controller
             'onboarding_completed' => ['sometimes', 'boolean'],
             'email_verified' => ['sometimes', 'boolean'],
             'account_access' => ['sometimes', 'string', 'in:active,suspended'],
+            // Explicit admin decision: a completion caused by an admin action
+            // should not surprise the member with a welcome email unless the
+            // admin asked for it.
+            'send_welcome_email' => ['sometimes', 'boolean'],
         ]);
 
         // An admin must not lock themselves out of the console.
@@ -132,7 +137,10 @@ class AdminController extends Controller
             }
         }
 
-        DB::transaction(function () use ($user, $validated) {
+        // Admin completion/welcome email is opt-in (defaults to no email).
+        $sendWelcome = (bool) ($validated['send_welcome_email'] ?? false);
+
+        DB::transaction(function () use ($user, $validated, $sendWelcome) {
             foreach (['first_name', 'last_name'] as $field) {
                 if (array_key_exists($field, $validated)) {
                     $user->{$field} = $validated[$field];
@@ -193,7 +201,8 @@ class AdminController extends Controller
             if (array_key_exists('onboarding_completed', $validated)) {
                 app(MemberAccountService::class)->markOnboardingComplete(
                     $user,
-                    (bool) $validated['onboarding_completed']
+                    (bool) $validated['onboarding_completed'],
+                    $sendWelcome
                 );
             }
 
@@ -201,7 +210,9 @@ class AdminController extends Controller
             // (sign-in) are deliberately separate controls.
             if (array_key_exists('status', $validated)) {
                 if ($validated['status'] === 'active') {
-                    app(MemberAccountService::class)->activateMembership($user);
+                    // Activation also completes onboarding (see the service) so
+                    // an activated member always lands on the dashboard.
+                    app(MemberAccountService::class)->activateMembership($user, $sendWelcome);
                     $this->logAdminAction('activate_membership', $user->id);
                 } else {
                     app(MemberAccountService::class)->deactivateMembership($user);
@@ -241,6 +252,18 @@ class AdminController extends Controller
 
         $profile = app(ProfileSaveService::class)->save($user, $request->validated());
 
+        // An admin filling in a member's profile is an explicit "setup done"
+        // action — otherwise the member could still be trapped in onboarding
+        // with a complete profile. Email stays opt-in for admin actions; the
+        // admin can also opt out of marking completion.
+        if ((bool) $request->input('mark_onboarding_complete', true)) {
+            app(MemberAccountService::class)->markOnboardingComplete(
+                $user,
+                true,
+                $request->boolean('send_welcome_email')
+            );
+        }
+
         $this->logAdminAction('update_user_profile', $user->id);
 
         $user->refresh()->load('profile');
@@ -270,6 +293,7 @@ class AdminController extends Controller
             'email_verified' => ['sometimes', 'boolean'],
             'account_access' => ['sometimes', Rule::in(['active', 'suspended'])],
             'campaign_code' => ['nullable', 'string', 'max:50'],
+            'send_welcome_email' => ['sometimes', 'boolean'],
         ]);
 
         $campaignCode = $validated['campaign_code'] ?? null;
@@ -286,8 +310,9 @@ class AdminController extends Controller
         $onboardingComplete = (bool) ($validated['onboarding_completed'] ?? true);
         $activate = ($validated['status'] ?? 'draft') === 'active';
         $suspend = ($validated['account_access'] ?? 'active') === 'suspended';
+        $sendWelcome = (bool) ($validated['send_welcome_email'] ?? false);
 
-        $user = DB::transaction(function () use ($validated, $campaignCode, $campaignId, $role, $onboardingComplete, $activate, $suspend) {
+        $user = DB::transaction(function () use ($validated, $campaignCode, $campaignId, $role, $onboardingComplete, $activate, $suspend, $sendWelcome) {
             $user = User::create([
                 'first_name' => $validated['first_name'],
                 'last_name' => $validated['last_name'],
@@ -317,11 +342,11 @@ class AdminController extends Controller
             $accounts = app(MemberAccountService::class);
 
             if ($onboardingComplete) {
-                $accounts->markOnboardingComplete($user);
+                $accounts->markOnboardingComplete($user, true, $sendWelcome);
             }
 
             if ($activate) {
-                $accounts->activateMembership($user);
+                $accounts->activateMembership($user, $sendWelcome);
             }
 
             if ($suspend) {
@@ -347,6 +372,28 @@ class AdminController extends Controller
             'user' => $this->adminUserPayload($user, true),
             'message' => 'User created successfully',
         ], 201);
+    }
+
+    /** Send a password-reset link so a new member can set their own password. */
+    public function sendPasswordReset(string $id): JsonResponse
+    {
+        $user = User::findOrFail($id);
+
+        if (! $user->email) {
+            return response()->json(['message' => 'This account has no email address'], 422);
+        }
+
+        $status = Password::sendResetLink(['email' => $user->email]);
+
+        if ($status !== Password::RESET_LINK_SENT) {
+            return response()->json([
+                'message' => 'Unable to send the password reset link right now.',
+            ], $status === Password::RESET_THROTTLED ? 429 : 422);
+        }
+
+        $this->logAdminAction('send_password_reset', $user->id);
+
+        return response()->json(['message' => 'Password reset link sent']);
     }
 
     /** Upload/replace a member's avatar from the admin console. */

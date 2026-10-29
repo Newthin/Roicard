@@ -26,6 +26,7 @@ import {
   getAdminUser,
   getAdminUsers,
   registerSmartCard,
+  sendAdminUserPasswordReset,
   unassignSmartCard,
   updateAdminUser,
   uploadAdminUserAvatar,
@@ -51,6 +52,10 @@ type MutationResult = { ok: true } | { ok: false; error: string };
 export type AdminUserSaveInput = Partial<AdminUser> & {
   password?: string;
   password_confirmation?: string;
+  /** Explicit opt-in for the once-only welcome email on admin completion. */
+  sendWelcomeEmail?: boolean;
+  /** Whether the profile save should mark onboarding complete (defaults true). */
+  markOnboardingComplete?: boolean;
 };
 
 export type AdminRegisterInput = {
@@ -66,7 +71,12 @@ export type AdminRegisterInput = {
   onboarding_completed?: boolean;
   email_verified?: boolean;
   account_access?: "active" | "suspended";
+  send_welcome_email?: boolean;
 };
+
+type RegisterResult =
+  | { ok: true; userId: string }
+  | { ok: false; error: string };
 
 type AdminContextValue = {
   users: AdminUser[];
@@ -79,10 +89,11 @@ type AdminContextValue = {
     updates: AdminUserSaveInput
   ) => Promise<MutationResult>;
   deleteUser: (userId: string) => Promise<MutationResult>;
-  registerUser: (data: AdminRegisterInput) => Promise<MutationResult>;
+  registerUser: (data: AdminRegisterInput) => Promise<RegisterResult>;
   getUserDetail: (userId: string) => Promise<AdminUserDetail | null>;
   uploadAvatar: (userId: string, file: File) => Promise<MutationResult>;
   removeAvatar: (userId: string) => Promise<MutationResult>;
+  sendPasswordReset: (userId: string) => Promise<MutationResult>;
   assignNfc: (nfcId: string, userId: string) => void;
   unassignNfc: (nfcId: string) => void;
   activateNfc: (nfcId: string) => void;
@@ -120,6 +131,13 @@ function mapApiUser(u: ApiAdminUser): AdminUser {
     whatsapp: u.profile?.whatsapp_phone ?? "",
     seeking: u.profile?.seeking ?? "",
     offering: u.profile?.offering ?? "",
+    dateOfBirth: u.profile?.date_of_birth?.slice(0, 10) ?? "",
+    gender: u.profile?.gender ?? "",
+    interests: u.profile?.interests ?? [],
+    socialLinks: u.profile?.social_links ?? [],
+    education: u.profile?.education ?? [],
+    experience: u.profile?.experience ?? [],
+    achievements: u.profile?.achievements ?? [],
     campaignCode: u.campaign_code ?? null,
     emailVerified: !!u.email_verified_at,
     onboardingCompleted: !!u.onboarding_completed,
@@ -265,6 +283,9 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       if (updates.status !== undefined && updates.status !== "suspended") {
         accountBody.status = updates.status === "active" ? "active" : "draft";
       }
+      if (updates.sendWelcomeEmail) {
+        accountBody.send_welcome_email = true;
+      }
 
       // Profile fields go through the dedicated profile endpoint so admins
       // edit with the exact same validation/persistence as member settings.
@@ -280,6 +301,46 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       if (updates.whatsapp !== undefined) profileBody.whatsapp_phone = updates.whatsapp;
       if (updates.seeking !== undefined) profileBody.seeking = updates.seeking;
       if (updates.offering !== undefined) profileBody.offering = updates.offering;
+      if (updates.dateOfBirth !== undefined) {
+        profileBody.date_of_birth = updates.dateOfBirth || null;
+      }
+      if (updates.gender !== undefined) {
+        profileBody.gender = updates.gender || null;
+      }
+      if (updates.interests !== undefined) {
+        profileBody.interests = JSON.stringify(updates.interests);
+      }
+      if (updates.socialLinks !== undefined) {
+        const links: Record<string, string> = {};
+        for (const link of updates.socialLinks) {
+          if (link.platform && link.value?.trim()) {
+            links[link.platform] = link.value.trim();
+          }
+        }
+        profileBody.social_links = JSON.stringify(links);
+      }
+      if (updates.education !== undefined) {
+        profileBody.education = updates.education;
+      }
+      if (updates.experience !== undefined) {
+        profileBody.experience = updates.experience;
+      }
+      if (updates.achievements !== undefined) {
+        profileBody.achievements = updates.achievements;
+      }
+      if (updates.sendWelcomeEmail) {
+        profileBody.send_welcome_email = true;
+      }
+      // Editing a member's profile is an explicit setup action: complete
+      // onboarding unless the admin is deliberately leaving it open. Never
+      // add this marker for access-only updates (e.g. suspending an account),
+      // otherwise an unrelated change would silently finish onboarding.
+      const hasProfileChanges = Object.keys(profileBody).length > 0;
+      if (updates.markOnboardingComplete !== undefined) {
+        profileBody.mark_onboarding_complete = updates.markOnboardingComplete;
+      } else if (hasProfileChanges) {
+        profileBody.mark_onboarding_complete = true;
+      }
 
       try {
         if (Object.keys(accountBody).length > 0) {
@@ -298,11 +359,11 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   );
 
   const registerUser = useCallback(
-    async (data: AdminRegisterInput): Promise<MutationResult> => {
+    async (data: AdminRegisterInput): Promise<RegisterResult> => {
       try {
-        await createAdminUser(data);
+        const response = await createAdminUser(data);
         await refresh();
-        return { ok: true };
+        return { ok: true, userId: String(response.user.id) };
       } catch (e) {
         return { ok: false, error: errorMessage(e, "Failed to create user") };
       }
@@ -373,8 +434,19 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     [refresh]
   );
 
-  const deleteUser = useCallback(
-    async (userId: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+  const sendPasswordReset = useCallback(
+    async (userId: string): Promise<MutationResult> => {
+      try {
+        await sendAdminUserPasswordReset(Number(userId));
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, error: errorMessage(e, "Failed to send password reset") };
+      }
+    },
+    []
+  );
+
+  const deleteUser = useCallback(    async (userId: string): Promise<{ ok: true } | { ok: false; error: string }> => {
       try {
         await deleteAdminUser(Number(userId));
         await refresh();
@@ -468,6 +540,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       getUserDetail,
       uploadAvatar,
       removeAvatar,
+      sendPasswordReset,
       assignNfc,
       unassignNfc,
       activateNfc,
@@ -486,6 +559,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       getUserDetail,
       uploadAvatar,
       removeAvatar,
+      sendPasswordReset,
       assignNfc,
       unassignNfc,
       activateNfc,

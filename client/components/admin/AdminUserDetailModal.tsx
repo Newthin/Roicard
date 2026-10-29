@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { Modal } from "@/components/ui/Modal";
 import type { AdminUser, AdminUserDetail } from "@/lib/admin/types";
-import { Camera, CheckCircle2, CreditCard, ShieldAlert, Trash2 } from "lucide-react";
+import { Camera, CheckCircle2, CreditCard, KeyRound, ShieldAlert, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 function Badge({
@@ -46,7 +46,8 @@ export function AdminUserDetailModal({
   onClose: () => void;
   onEdit: (user: AdminUser) => void;
 }) {
-  const { getUserDetail, updateUser, uploadAvatar, removeAvatar } = useAdmin();
+  const { getUserDetail, updateUser, uploadAvatar, removeAvatar, sendPasswordReset } =
+    useAdmin();
   const { confirm } = useConfirm();
   const [detail, setDetail] = useState<AdminUserDetail | null>(null);
   const [loading, setLoading] = useState(false);
@@ -121,6 +122,16 @@ export function AdminUserDetailModal({
     await perform(() =>
       updateUser(user.id, { onboardingCompleted: complete })
     );
+  };
+
+  const handlePasswordReset = async () => {
+    const confirmed = await confirm({
+      title: "Send password reset email?",
+      description: `${current.firstName} ${current.lastName} will receive a secure link at ${current.email} to set a new password. No password is ever emailed in plain text.`,
+      confirmLabel: "Send reset link",
+    });
+    if (!confirmed) return;
+    await perform(() => sendPasswordReset(user.id));
   };
 
   const handleAvatar = async (file: File | undefined) => {
@@ -317,6 +328,16 @@ export function AdminUserDetailModal({
               {current.onboardingCompleted
                 ? "Reopen onboarding"
                 : "Mark onboarding complete"}
+            </Button>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={acting}
+              onClick={handlePasswordReset}
+            >
+              <KeyRound className="h-3.5 w-3.5" aria-hidden />
+              Send password reset
             </Button>
           </div>
           <p className="text-xs text-roicard-text-muted">

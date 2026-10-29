@@ -2,10 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\ProcessActivationJob;
+use App\Mail\WelcomeMemberMail;
 use App\Models\Payment;
 use App\Models\User;
+use App\Services\MemberAccessService;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -90,6 +96,24 @@ class MemberRoutingTest extends TestCase
 
         $this->withToken($token)
             ->postJson('/api/profile/complete')
+            ->assertOk()
+            ->assertJsonPath('user.onboarding_completed', true)
+            ->assertJsonPath('user.next_step', 'dashboard');
+
+        $this->assertNotNull($user->fresh()->onboarding_completed_at);
+    }
+
+    public function test_skip_path_completes_onboarding_with_an_empty_profile(): void
+    {
+        Mail::fake();
+
+        $user = $this->member();
+        $token = $user->createToken('auth-token')->plainTextToken;
+
+        // The member skipped every optional step: no profile data is sent at
+        // all. Completion must still be recorded so they are not looped.
+        $this->withToken($token)
+            ->postJson('/api/profile/complete', [])
             ->assertOk()
             ->assertJsonPath('user.onboarding_completed', true)
             ->assertJsonPath('user.next_step', 'dashboard');
@@ -196,8 +220,13 @@ class MemberRoutingTest extends TestCase
 
         $this->assertSame('active', $target->status);
         $this->assertTrue((bool) $target->profile->fresh()->is_live);
-        // Activation is a membership control, not an onboarding override.
-        $this->assertNull($target->onboarding_completed_at);
+        // Activation also clears onboarding so an activated member can never
+        // be bounced back into the journey after signing in.
+        $this->assertNotNull($target->onboarding_completed_at);
+        $this->assertSame(
+            MemberAccessService::NEXT_DASHBOARD,
+            app(MemberAccessService::class)->nextStep($target->fresh())
+        );
 
         // Activation is an explicit admin override, not a fake sale.
         $this->assertSame(0, Payment::where('user_id', $target->id)->count());
@@ -392,5 +421,270 @@ class MemberRoutingTest extends TestCase
 
         $this->assertNotNull($completed->fresh()->onboarding_completed_at);
         $this->assertNull($empty->fresh()->onboarding_completed_at);
+    }
+
+    public function test_login_with_unknown_email_returns_a_clean_401_with_signup_hint(): void
+    {
+        $this->postJson('/api/auth/login', [
+            'email' => 'nobody@example.com',
+            'password' => 'Secret123!',
+        ])
+            ->assertStatus(401)
+            ->assertJsonPath('error', 'invalid_credentials')
+            ->assertJsonPath('signup_url', '/auth/register');
+    }
+
+    public function test_login_is_case_insensitive_for_the_email(): void
+    {
+        $user = $this->member(['password' => bcrypt('Secret123!')]);
+
+        $this->postJson('/api/auth/login', [
+            'email' => strtoupper($user->email),
+            'password' => 'Secret123!',
+        ])
+            ->assertOk()
+            ->assertJsonPath('user.id', $user->id);
+    }
+
+    public function test_account_with_a_malformed_password_hash_gets_401_not_500(): void
+    {
+        $user = $this->member();
+        // Bypass the hashed cast to simulate legacy/imported rows.
+        \Illuminate\Support\Facades\DB::table('users')
+            ->where('id', $user->id)
+            ->update(['password' => 'not-a-valid-hash']);
+
+        $this->postJson('/api/auth/login', [
+            'email' => $user->email,
+            'password' => 'anything',
+        ])->assertStatus(401);
+    }
+
+    public function test_payment_activation_marks_onboarding_complete_and_lands_on_dashboard(): void
+    {
+        Mail::fake();
+
+        $user = $this->member();
+        $user->profile()->create([]);
+
+        $payment = Payment::create([
+            'user_id' => $user->id,
+            'amount' => 100,
+            'currency' => 'GHS',
+            'method' => 'card',
+            'status' => 'pending',
+            'provider' => 'mock',
+            'provider_reference' => 'pay-ref-onboarding',
+        ]);
+
+        ProcessActivationJob::dispatchSync($payment);
+
+        $user->refresh();
+
+        $this->assertSame('active', $user->status);
+        $this->assertNotNull($user->onboarding_completed_at);
+        $this->assertSame(
+            MemberAccessService::NEXT_DASHBOARD,
+            app(MemberAccessService::class)->nextStep($user)
+        );
+
+        Mail::assertQueued(WelcomeMemberMail::class, 1);
+    }
+
+    public function test_completing_onboarding_sends_the_welcome_email_only_once(): void
+    {
+        Mail::fake();
+
+        $user = $this->member();
+        $user->profile()->create([]);
+        $token = $user->createToken('auth-token')->plainTextToken;
+
+        $this->withToken($token)->postJson('/api/profile/complete')->assertOk();
+        $this->withToken($token)->postJson('/api/profile/complete')->assertOk();
+
+        Mail::assertQueued(WelcomeMemberMail::class, 1);
+    }
+
+    public function test_saving_profile_then_completing_does_not_duplicate_the_welcome_email(): void
+    {
+        Mail::fake();
+
+        $user = $this->member();
+        $user->profile()->create([]);
+        $token = $user->createToken('auth-token')->plainTextToken;
+
+        $this->withToken($token)
+            ->putJson('/api/profile', ['title' => 'Engineer'])
+            ->assertOk();
+
+        $this->withToken($token)->postJson('/api/profile/complete')->assertOk();
+
+        Mail::assertQueued(WelcomeMemberMail::class, 1);
+    }
+
+    public function test_admin_profile_setup_completes_onboarding_without_emailing_by_default(): void
+    {
+        Mail::fake();
+
+        $admin = $this->admin();
+        $adminToken = $admin->createToken('admin')->plainTextToken;
+        $target = $this->member();
+        $target->profile()->create([]);
+
+        $this->withToken($adminToken)
+            ->patchJson("/api/admin/users/{$target->id}/profile", [
+                'first_name' => 'Ama',
+                'last_name' => 'Mensah',
+                'title' => 'Product Designer',
+                'organisation' => 'Roicard',
+                'role_description' => 'Designs member experiences.',
+                'bio' => 'Building delightful identity products.',
+                'location' => 'Accra',
+                'phone' => '+233200000000',
+                'whatsapp_phone' => '+233200000000',
+                'seeking' => 'Partners',
+                'offering' => 'Product design',
+                'interests' => json_encode(['Design', 'Technology']),
+                'social_links' => json_encode([
+                    'linkedin' => 'https://linkedin.com/in/ama',
+                    'youtube' => 'https://youtube.com/@ama',
+                ]),
+                'education' => [[
+                    'institution' => 'University of Ghana',
+                    'degree' => 'BSc Computer Science',
+                    'start_year' => 2016,
+                    'end_year' => 2020,
+                ]],
+                'experience' => [[
+                    'title' => 'Product Designer',
+                    'company' => 'Roicard',
+                    'start_date' => '2021-01-01',
+                ]],
+                'achievements' => [[
+                    'title' => 'Design Award',
+                    'issuer' => 'Ghana Design Council',
+                    'date' => '2024-01-01',
+                ]],
+            ])
+            ->assertOk()
+            ->assertJsonPath('user.onboarding_completed', true);
+
+        $target->refresh();
+
+        $this->assertNotNull($target->onboarding_completed_at);
+        $this->assertDatabaseHas('profiles', [
+            'user_id' => $target->id,
+            'title' => 'Product Designer',
+            'organisation' => 'Roicard',
+        ]);
+        $this->assertDatabaseHas('education_entries', [
+            'profile_id' => $target->profile->id,
+            'institution' => 'University of Ghana',
+        ]);
+        $this->assertDatabaseHas('experience_entries', [
+            'profile_id' => $target->profile->id,
+            'company' => 'Roicard',
+        ]);
+        $this->assertDatabaseHas('achievement_entries', [
+            'profile_id' => $target->profile->id,
+            'title' => 'Design Award',
+        ]);
+        $this->assertDatabaseHas('social_links', [
+            'profile_id' => $target->profile->id,
+            'platform' => 'youtube',
+        ]);
+
+        // Admin completion is explicit and does not email the member unless
+        // the admin opted in.
+        Mail::assertNothingQueued();
+    }
+
+    public function test_admin_created_and_activated_member_reaches_dashboard_and_public_profile(): void
+    {
+        $admin = $this->admin();
+        $adminToken = $admin->createToken('admin')->plainTextToken;
+
+        $created = $this->withToken($adminToken)->postJson('/api/admin/users', [
+            'first_name' => 'Yaw',
+            'last_name' => 'Owusu',
+            'email' => 'yaw@example.com',
+            'username' => 'yaw-owusu',
+            'password' => 'Secret123!',
+            'password_confirmation' => 'Secret123!',
+            'status' => 'active',
+        ])->assertCreated();
+
+        $userId = $created->json('user.id');
+
+        $this->withToken($adminToken)
+            ->patchJson("/api/admin/users/{$userId}/profile", [
+                'title' => 'Architect',
+                'bio' => 'Designing spaces.',
+                'location' => 'Kumasi',
+                'interests' => json_encode(['Architecture']),
+            ])
+            ->assertOk();
+
+        $login = $this->postJson('/api/auth/login', [
+            'email' => 'yaw@example.com',
+            'password' => 'Secret123!',
+        ]);
+
+        $login->assertOk()
+            ->assertJsonPath('user.next_step', 'dashboard')
+            ->assertJsonPath('user.onboarding_completed', true)
+            ->assertJsonPath('user.role', 'member');
+
+        $this->getJson('/api/public/yaw-owusu')
+            ->assertOk()
+            ->assertJsonPath('title', 'Architect')
+            ->assertJsonPath('location', 'Kumasi');
+    }
+
+    public function test_admin_can_send_a_password_reset_link_instead_of_sharing_plaintext(): void
+    {
+        Notification::fake();
+
+        $admin = $this->admin();
+        $adminToken = $admin->createToken('admin')->plainTextToken;
+        $target = $this->member();
+
+        $this->withToken($adminToken)
+            ->postJson("/api/admin/users/{$target->id}/password-reset")
+            ->assertOk();
+
+        Notification::assertSentTo($target, ResetPassword::class);
+    }
+
+    public function test_admin_can_flip_onboarding_state_without_touching_payment(): void
+    {
+        $admin = $this->admin();
+        $adminToken = $admin->createToken('admin')->plainTextToken;
+        $target = $this->member(['status' => 'draft']);
+
+        $this->withToken($adminToken)
+            ->patchJson("/api/admin/users/{$target->id}", ['onboarding_completed' => false])
+            ->assertOk()
+            ->assertJsonPath('user.onboarding_completed', false)
+            ->assertJsonPath('user.next_step', 'onboarding');
+
+        $this->withToken($adminToken)
+            ->patchJson("/api/admin/users/{$target->id}", ['onboarding_completed' => true])
+            ->assertOk()
+            ->assertJsonPath('user.onboarding_completed', true)
+            ->assertJsonPath('user.next_step', 'dashboard');
+
+        $this->assertSame('draft', $target->fresh()->status);
+        $this->assertSame(0, Payment::where('user_id', $target->id)->count());
+    }
+
+    public function test_user_creation_survives_unseeded_spatie_roles(): void
+    {
+        Role::where('name', 'member')->delete();
+
+        $user = User::factory()->create(['role' => 'member']);
+
+        $this->assertSame('member', $user->fresh()->role);
+        $this->assertSame(0, $user->roles()->count());
     }
 }

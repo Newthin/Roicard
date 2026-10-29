@@ -2,8 +2,11 @@
 
 namespace App\Services;
 
+use App\Mail\WelcomeMemberMail;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 /**
  * The only writer for membership + access state.
@@ -17,9 +20,9 @@ class MemberAccountService
     public function __construct(protected SlugService $slugs) {}
 
     /** Mark membership as paid/active and publish the public profile. */
-    public function activateMembership(User $user): void
+    public function activateMembership(User $user, bool $sendWelcome = true): void
     {
-        DB::transaction(function () use ($user) {
+        DB::transaction(function () use ($user, $sendWelcome) {
             $profile = $user->profile()->firstOrCreate([]);
 
             if ($profile->slug === null) {
@@ -33,6 +36,12 @@ class MemberAccountService
             $profile->save();
 
             $user->forceFill(['status' => 'active'])->save();
+
+            // An active membership always clears onboarding: a member who has
+            // paid (or been activated by an admin) must never be bounced back
+            // into the journey. The welcome email is only sent on the first
+            // completion, so this can be called repeatedly without duplicating.
+            $this->markOnboardingComplete($user, true, $sendWelcome);
         });
     }
 
@@ -85,13 +94,50 @@ class MemberAccountService
         });
     }
 
-    /** Set (or clear) the onboarding-completed timestamp. */
-    public function markOnboardingComplete(User $user, bool $complete = true): void
+    /**
+     * The single writer for "onboarding finished".
+     *
+     * Returns true only when the state actually changed, which is what keeps
+     * the welcome email once-only across the member flow, the payment
+     * activation path and the admin console.
+     *
+     * @param  bool  $sendWelcome  Only used on the first null -> complete
+     *                             transition. Member flows pass true; admin
+     *                             flows pass their explicit flag.
+     */
+    public function markOnboardingComplete(User $user, bool $complete = true, bool $sendWelcome = false): bool
     {
+        $user->refresh();
+
+        $wasComplete = $user->onboarding_completed_at !== null;
+
+        if ($complete === $wasComplete) {
+            return false;
+        }
+
         $user->forceFill([
-            'onboarding_completed_at' => $complete
-                ? ($user->onboarding_completed_at ?? now())
-                : null,
+            'onboarding_completed_at' => $complete ? now() : null,
         ])->save();
+
+        if ($complete && $sendWelcome) {
+            $this->sendWelcomeEmail($user);
+        }
+
+        return true;
+    }
+
+    /** Welcome email variant matches the membership state at completion time. */
+    protected function sendWelcomeEmail(User $user): void
+    {
+        try {
+            Mail::to($user)->queue(
+                new WelcomeMemberMail($user, $user->status === 'active' ? 'member' : 'draft')
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Failed to queue welcome email', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

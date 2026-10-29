@@ -174,6 +174,7 @@ Route::middleware(['auth:sanctum', 'prevent_leak'])->group(function () {
         Route::post('/users', [AdminController::class, 'storeUser']);
         Route::patch('/users/{id}', [AdminController::class, 'updateUser']);
         Route::patch('/users/{id}/profile', [AdminController::class, 'updateUserProfile']);
+        Route::post('/users/{id}/password-reset', [AdminController::class, 'sendPasswordReset']);
         Route::post('/users/{id}/avatar', [AdminController::class, 'uploadUserAvatar']);
         Route::delete('/users/{id}/avatar', [AdminController::class, 'deleteUserAvatar']);
         Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);

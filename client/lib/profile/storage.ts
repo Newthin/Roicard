@@ -94,34 +94,42 @@ export async function getProfileByUsername(username: string): Promise<UserProfil
   }
 }
 
-export async function updateCurrentUserProfile(updates: Partial<UserProfile>): Promise<UserProfile | null> {
-  try {
-    const payload: Record<string, unknown> = {};
-    if (updates.firstName !== undefined) payload.first_name = updates.firstName;
-    if (updates.lastName !== undefined) payload.last_name = updates.lastName;
-    if (updates.email !== undefined) payload.email = updates.email;
-    if (updates.bio !== undefined) payload.bio = updates.bio;
-    if (updates.phone !== undefined) payload.phone = updates.phone;
-    if (updates.seeking !== undefined) payload.seeking = updates.seeking;
-    if (updates.offering !== undefined) payload.offering = updates.offering;
-    if (updates.location !== undefined) payload.location = updates.location;
-    if (updates.professionalTitle !== undefined) payload.title = updates.professionalTitle;
-    if (updates.roleDescription !== undefined) payload.role_description = updates.roleDescription;
-    if (updates.organization !== undefined) payload.organisation = updates.organization;
-    if (updates.whatsapp !== undefined) payload.whatsapp_phone = updates.whatsapp;
-    if (updates.dateOfBirth !== undefined) payload.date_of_birth = updates.dateOfBirth;
-    if (updates.gender !== undefined) payload.gender = updates.gender;
-    if (updates.interests !== undefined) payload.interests = JSON.stringify(updates.interests);
-    if (updates.social !== undefined) payload.social_links = JSON.stringify(updates.social);
-    if (updates.username !== undefined) payload.slug = updates.username;
+/**
+ * Persist profile changes to the server.
+ *
+ * Deliberately rethrows on failure: a swallowed error here made the final
+ * onboarding save fail silently, leaving `onboarding_completed_at` null and
+ * bouncing the member back into onboarding with no visible reason. Callers
+ * must surface the error and offer a retry.
+ */
+export async function updateCurrentUserProfile(
+  updates: Partial<UserProfile>
+): Promise<UserProfile> {
+  const payload: Record<string, unknown> = {};
+  if (updates.firstName !== undefined) payload.first_name = updates.firstName;
+  if (updates.lastName !== undefined) payload.last_name = updates.lastName;
+  if (updates.email !== undefined) payload.email = updates.email;
+  if (updates.bio !== undefined) payload.bio = updates.bio;
+  if (updates.phone !== undefined) payload.phone = updates.phone;
+  if (updates.seeking !== undefined) payload.seeking = updates.seeking;
+  if (updates.offering !== undefined) payload.offering = updates.offering;
+  if (updates.location !== undefined) payload.location = updates.location;
+  if (updates.professionalTitle !== undefined) payload.title = updates.professionalTitle;
+  if (updates.roleDescription !== undefined) payload.role_description = updates.roleDescription;
+  if (updates.organization !== undefined) payload.organisation = updates.organization;
+  if (updates.whatsapp !== undefined) payload.whatsapp_phone = updates.whatsapp;
+  if (updates.dateOfBirth !== undefined) payload.date_of_birth = updates.dateOfBirth;
+  if (updates.gender !== undefined) payload.gender = updates.gender;
+  if (updates.interests !== undefined) payload.interests = JSON.stringify(updates.interests);
+  if (updates.social !== undefined) payload.social_links = JSON.stringify(updates.social);
+  if (updates.username !== undefined) payload.slug = updates.username;
 
-    const res = await apiUpdateProfile(payload);
-    const profile = mapApiProfileToUserProfile(res.profile as unknown as Record<string, unknown>);
-    syncCurrentUserKey(profile);
-    return profile;
-  } catch {
-    return null;
-  }
+  const res = await apiUpdateProfile(payload);
+  const profile = mapApiProfileToUserProfile(
+    res.profile as unknown as Record<string, unknown>
+  );
+  syncCurrentUserKey(profile);
+  return profile;
 }
 
 export function createAndSaveProfile(data: UserProfile): UserProfile {

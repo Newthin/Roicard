@@ -90,11 +90,59 @@ class ProfileSaveService
             }
         }
 
+        // Replace-all entry collections (admin complete-setup flow). Only
+        // touched when the key is present, so normal edits never wipe them.
+        $this->syncEntries($profile, $data);
+
         $profile->recalculateCompletion();
 
         // Bust the public profile cache so changes are visible immediately
         $profile->bustPublicCache();
 
         return $profile->fresh() ?? $profile;
+    }
+
+    /**
+     * Replace education/experience/achievement rows when the admin payload
+     * includes them. Validation has already filtered the allowed keys.
+     */
+    protected function syncEntries(Profile $profile, array $data): void
+    {
+        if (array_key_exists('education', $data)) {
+            $profile->education()->delete();
+            foreach ((array) $data['education'] as $row) {
+                $profile->education()->create([
+                    'institution' => $row['institution'] ?? null,
+                    'degree' => $row['degree'] ?? null,
+                    'start_year' => $row['start_year'] ?? null,
+                    'end_year' => $row['end_year'] ?? null,
+                    'honours' => $row['honours'] ?? null,
+                ]);
+            }
+        }
+
+        if (array_key_exists('experience', $data)) {
+            $profile->experience()->delete();
+            foreach ((array) $data['experience'] as $row) {
+                $profile->experience()->create([
+                    'title' => $row['title'] ?? null,
+                    'company' => $row['company'] ?? null,
+                    'start_date' => $row['start_date'] ?? null,
+                    'end_date' => $row['end_date'] ?? null,
+                    'location' => $row['location'] ?? null,
+                ]);
+            }
+        }
+
+        if (array_key_exists('achievements', $data)) {
+            $profile->achievements()->delete();
+            foreach ((array) $data['achievements'] as $row) {
+                $profile->achievements()->create([
+                    'title' => $row['title'] ?? null,
+                    'issuer' => $row['issuer'] ?? null,
+                    'date' => $row['date'] ?? null,
+                ]);
+            }
+        }
     }
 }

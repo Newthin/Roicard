@@ -11,6 +11,7 @@
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/contexts/AuthContext";
 import { getPaymentStatus } from "@/lib/api/payments";
+import { destinationForUser } from "@/lib/authRouting";
 import {
   clearPaymentSnapshot,
   createAndSaveProfile,
@@ -78,8 +79,18 @@ function PaymentCallbackContent() {
               createAndSaveProfile(snapshot);
             }
             clearPaymentSnapshot();
-            // Pull the activated status + next_step from the server.
-            await refreshUser().catch(() => null);
+            // Pull the activated status + next_step from the server before
+            // deciding where to go. Activation marks onboarding complete, so
+            // a completed member must not be sent back into the journey.
+            const freshUser = await refreshUser().catch(() => null);
+            if (
+              freshUser &&
+              destinationForUser(freshUser, "/dashboard") === "/dashboard"
+            ) {
+              router.replace("/dashboard");
+              return;
+            }
+
             setState("success");
             return;
           }

@@ -6,12 +6,53 @@ import { Modal } from "@/components/ui/Modal";
 import { PasswordStrengthChecklist } from "@/components/ui/PasswordStrengthChecklist";
 import { Textarea } from "@/components/ui/Textarea";
 import type { AdminUser } from "@/lib/admin/types";
+import type {
+  AdminAchievementEntry,
+  AdminEducationEntry,
+  AdminExperienceEntry,
+} from "@/lib/api/admin";
 import { arePasswordRulesMet } from "@/lib/validation/password";
-import { useEffect, useState } from "react";
-import { useAdmin } from "@/components/admin/AdminProvider";
+import { Camera, Plus, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useAdmin, type AdminUserSaveInput } from "@/components/admin/AdminProvider";
 
 const selectClassName =
   "h-11 w-full rounded-lg border border-roicard-border bg-roicard-bg-muted px-4 text-sm text-roicard-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-roicard-accent/50 focus-visible:border-roicard-accent/50";
+
+const SOCIAL_PLATFORMS = [
+  "linkedin",
+  "instagram",
+  "twitter",
+  "facebook",
+  "youtube",
+  "tiktok",
+  "snapchat",
+  "website",
+] as const;
+
+type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number];
+
+type EducationRow = {
+  institution: string;
+  degree: string;
+  start_year: string;
+  end_year: string;
+  honours: string;
+};
+
+type ExperienceRow = {
+  title: string;
+  company: string;
+  start_date: string;
+  end_date: string;
+  location: string;
+};
+
+type AchievementRow = {
+  title: string;
+  issuer: string;
+  date: string;
+};
 
 type FormState = {
   first_name: string;
@@ -25,6 +66,7 @@ type FormState = {
   account_access: "active" | "suspended";
   onboarding_completed: boolean;
   email_verified: boolean;
+  send_welcome_email: boolean;
   campaign_code: string;
   title: string;
   organisation: string;
@@ -35,6 +77,24 @@ type FormState = {
   whatsapp_phone: string;
   seeking: string;
   offering: string;
+  date_of_birth: string;
+  gender: string;
+  interests: string;
+  social: Record<SocialPlatform, string>;
+  education: EducationRow[];
+  experience: ExperienceRow[];
+  achievements: AchievementRow[];
+};
+
+const EMPTY_SOCIAL: Record<SocialPlatform, string> = {
+  linkedin: "",
+  instagram: "",
+  twitter: "",
+  facebook: "",
+  youtube: "",
+  tiktok: "",
+  snapchat: "",
+  website: "",
 };
 
 const EMPTY_FORM: FormState = {
@@ -49,6 +109,7 @@ const EMPTY_FORM: FormState = {
   account_access: "active",
   onboarding_completed: true,
   email_verified: true,
+  send_welcome_email: false,
   campaign_code: "",
   title: "",
   organisation: "",
@@ -59,9 +120,35 @@ const EMPTY_FORM: FormState = {
   whatsapp_phone: "",
   seeking: "",
   offering: "",
+  date_of_birth: "",
+  gender: "",
+  interests: "",
+  social: { ...EMPTY_SOCIAL },
+  education: [],
+  experience: [],
+  achievements: [],
 };
 
+function emptyEducation(): EducationRow {
+  return { institution: "", degree: "", start_year: "", end_year: "", honours: "" };
+}
+
+function emptyExperience(): ExperienceRow {
+  return { title: "", company: "", start_date: "", end_date: "", location: "" };
+}
+
+function emptyAchievement(): AchievementRow {
+  return { title: "", issuer: "", date: "" };
+}
+
 function fromUser(user: AdminUser): FormState {
+  const social = { ...EMPTY_SOCIAL };
+  for (const link of user.socialLinks ?? []) {
+    if ((SOCIAL_PLATFORMS as readonly string[]).includes(link.platform)) {
+      social[link.platform as SocialPlatform] = link.value ?? "";
+    }
+  }
+
   return {
     ...EMPTY_FORM,
     first_name: user.firstName,
@@ -83,6 +170,29 @@ function fromUser(user: AdminUser): FormState {
     whatsapp_phone: user.whatsapp,
     seeking: user.seeking,
     offering: user.offering,
+    date_of_birth: user.dateOfBirth ?? "",
+    gender: user.gender ?? "",
+    interests: (user.interests ?? []).join(", "),
+    social,
+    education: (user.education ?? []).map((row) => ({
+      institution: row.institution ?? "",
+      degree: row.degree ?? "",
+      start_year: row.start_year ? String(row.start_year) : "",
+      end_year: row.end_year ? String(row.end_year) : "",
+      honours: row.honours ?? "",
+    })),
+    experience: (user.experience ?? []).map((row) => ({
+      title: row.title ?? "",
+      company: row.company ?? "",
+      start_date: row.start_date ? String(row.start_date).slice(0, 10) : "",
+      end_date: row.end_date ? String(row.end_date).slice(0, 10) : "",
+      location: row.location ?? "",
+    })),
+    achievements: (user.achievements ?? []).map((row) => ({
+      title: row.title ?? "",
+      issuer: row.issuer ?? "",
+      date: row.date ? String(row.date).slice(0, 10) : "",
+    })),
   };
 }
 
@@ -97,22 +207,41 @@ export function AdminUserFormModal({
   user: AdminUser | null;
   onClose: () => void;
 }) {
-  const { registerUser, updateUser } = useAdmin();
+  const { registerUser, updateUser, uploadAvatar } = useAdmin();
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  // Once the account row exists, a failed profile/avatar save must not create
+  // a duplicate account when the admin presses the button again.
+  const [createdUserId, setCreatedUserId] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
     setForm(mode === "edit" && user ? fromUser(user) : EMPTY_FORM);
     setErrors({});
     setError("");
+    setAvatarFile(null);
+    setCreatedUserId(null);
+    setAvatarPreview(mode === "edit" ? user?.profilePhotoUrl ?? null : null);
   }, [isOpen, mode, user]);
 
   const setField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: "" }));
+  };
+
+  const setSocial = (platform: SocialPlatform, value: string) => {
+    setForm((prev) => ({ ...prev, social: { ...prev.social, [platform]: value } }));
+  };
+
+  const handleAvatarFile = (file: File | undefined) => {
+    if (!file) return;
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
   };
 
   const validate = (): Record<string, string> => {
@@ -130,7 +259,88 @@ export function AdminUserFormModal({
     if (form.password && !arePasswordRulesMet(form.password, form.password_confirmation)) {
       next.password = "Password doesn't meet the requirements below";
     }
+
+    for (const row of form.education) {
+      if (!row.institution.trim() && !row.degree.trim() && !row.start_year) continue;
+      if (!row.institution.trim() || !row.degree.trim() || !row.start_year) {
+        next.education = "Complete each education entry (institution, degree, start year) or remove it.";
+        break;
+      }
+    }
+    for (const row of form.experience) {
+      if (!row.title.trim() && !row.company.trim() && !row.start_date) continue;
+      if (!row.title.trim() || !row.company.trim() || !row.start_date) {
+        next.experience = "Complete each experience entry (title, company, start date) or remove it.";
+        break;
+      }
+    }
+    for (const row of form.achievements) {
+      if (!row.title.trim() && !row.issuer.trim() && !row.date) continue;
+      if (!row.title.trim()) {
+        next.achievements = "Each achievement needs a title (or remove the row).";
+        break;
+      }
+    }
+
     return next;
+  };
+
+  const buildProfileUpdates = (): AdminUserSaveInput => {
+    const links = (Object.entries(form.social) as [SocialPlatform, string][])
+      .filter(([, value]) => value.trim())
+      .map(([platform, value]) => ({ platform, value: value.trim() }));
+
+    const education: AdminEducationEntry[] = form.education
+      .filter((row) => row.institution.trim() || row.degree.trim() || row.start_year)
+      .map((row) => ({
+        institution: row.institution.trim(),
+        degree: row.degree.trim(),
+        start_year: Number(row.start_year),
+        end_year: row.end_year ? Number(row.end_year) : null,
+        honours: row.honours.trim() || null,
+      }));
+
+    const experience: AdminExperienceEntry[] = form.experience
+      .filter((row) => row.title.trim() || row.company.trim() || row.start_date)
+      .map((row) => ({
+        title: row.title.trim(),
+        company: row.company.trim(),
+        start_date: row.start_date,
+        end_date: row.end_date || null,
+        location: row.location.trim() || null,
+      }));
+
+    const achievements: AdminAchievementEntry[] = form.achievements
+      .filter((row) => row.title.trim() || row.issuer.trim() || row.date)
+      .map((row) => ({
+        title: row.title.trim(),
+        issuer: row.issuer.trim() || null,
+        date: row.date || null,
+      }));
+
+    return {
+      professionalTitle: form.title,
+      organization: form.organisation,
+      roleDescription: form.role_description,
+      bio: form.bio,
+      location: form.location,
+      phone: form.phone,
+      whatsapp: form.whatsapp_phone,
+      seeking: form.seeking,
+      offering: form.offering,
+      dateOfBirth: form.date_of_birth,
+      gender: form.gender,
+      interests: form.interests
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean),
+      socialLinks: links,
+      education,
+      experience,
+      achievements,
+      sendWelcomeEmail: form.send_welcome_email,
+      markOnboardingComplete: form.onboarding_completed,
+    };
   };
 
   const handleSubmit = async () => {
@@ -152,61 +362,93 @@ export function AdminUserFormModal({
       onboarding_completed: form.onboarding_completed,
       email_verified: form.email_verified,
       account_access: form.account_access,
+      send_welcome_email: form.send_welcome_email,
     };
 
-    const result =
-      mode === "create"
-        ? await registerUser({
-            ...common,
-            password: form.password,
-            password_confirmation: form.password_confirmation,
-          })
-        : await updateUser(user!.id, {
-            firstName: form.first_name.trim(),
-            lastName: form.last_name.trim(),
-            email: form.email.trim(),
-            username: form.username.trim(),
-            campaignCode: form.campaign_code.trim() || null,
-            ...(form.role !== user!.role ? { role: form.role } : {}),
-            // Only send stateful controls when the admin actually changed
-            // them, so saving an unrelated field can't re-publish a suspended
-            // profile or revoke sessions as a side effect.
-            ...(form.status !== (user!.status === "active" ? "active" : "draft")
-              ? { status: form.status }
-              : {}),
-            ...(form.account_access !== user!.accessState
-              ? { accessState: form.account_access }
-              : {}),
-            ...(form.onboarding_completed !== user!.onboardingCompleted
-              ? { onboardingCompleted: form.onboarding_completed }
-              : {}),
-            ...(form.email_verified !== user!.emailVerified
-              ? { emailVerified: form.email_verified }
-              : {}),
-            ...(form.password
-              ? {
-                  password: form.password,
-                  password_confirmation: form.password_confirmation,
-                }
-              : {}),
-            professionalTitle: form.title,
-            organization: form.organisation,
-            roleDescription: form.role_description,
-            bio: form.bio,
-            location: form.location,
-            phone: form.phone,
-            whatsapp: form.whatsapp_phone,
-            seeking: form.seeking,
-            offering: form.offering,
-          });
+    if (mode === "create") {
+      let userId = createdUserId;
 
-    setSaving(false);
+      if (!userId) {
+        const created = await registerUser({
+          ...common,
+          password: form.password,
+          password_confirmation: form.password_confirmation,
+        });
 
-    if (!result.ok) {
-      setError(result.error);
-      return;
+        if (!created.ok) {
+          setSaving(false);
+          setError(created.error);
+          return;
+        }
+
+        userId = created.userId;
+        setCreatedUserId(userId);
+      }
+
+      const profileResult = await updateUser(userId, buildProfileUpdates());
+      if (!profileResult.ok) {
+        setSaving(false);
+        setError(profileResult.error);
+        return;
+      }
+
+      if (avatarFile) {
+        const uploaded = await uploadAvatar(userId, avatarFile);
+        if (!uploaded.ok) {
+          setSaving(false);
+          setError(uploaded.error);
+          return;
+        }
+      }
+    } else {
+      const result = await updateUser(user!.id, {
+        firstName: common.first_name,
+        lastName: common.last_name,
+        email: common.email,
+        username: form.username.trim(),
+        campaignCode: form.campaign_code.trim() || null,
+        ...(form.role !== user!.role ? { role: form.role } : {}),
+        // Only send stateful controls when the admin actually changed
+        // them, so saving an unrelated field can't re-publish a suspended
+        // profile or revoke sessions as a side effect.
+        ...(form.status !== (user!.status === "active" ? "active" : "draft")
+          ? { status: form.status }
+          : {}),
+        ...(form.account_access !== user!.accessState
+          ? { accessState: form.account_access }
+          : {}),
+        ...(form.onboarding_completed !== user!.onboardingCompleted
+          ? { onboardingCompleted: form.onboarding_completed }
+          : {}),
+        ...(form.email_verified !== user!.emailVerified
+          ? { emailVerified: form.email_verified }
+          : {}),
+        ...(form.password
+          ? {
+              password: form.password,
+              password_confirmation: form.password_confirmation,
+            }
+          : {}),
+        ...buildProfileUpdates(),
+      });
+
+      if (!result.ok) {
+        setSaving(false);
+        setError(result.error);
+        return;
+      }
+
+      if (avatarFile) {
+        const uploaded = await uploadAvatar(user!.id, avatarFile);
+        if (!uploaded.ok) {
+          setSaving(false);
+          setError(uploaded.error);
+          return;
+        }
+      }
     }
 
+    setSaving(false);
     onClose();
   };
 
@@ -217,10 +459,10 @@ export function AdminUserFormModal({
       title={mode === "create" ? "Add User" : "Edit User"}
       description={
         mode === "create"
-          ? "Create a member account. Admin-created accounts skip onboarding by default."
-          : "Update login, access, membership and profile details."
+          ? "Create a member and optionally complete their profile in the same pass."
+          : "Update login, access, membership and the full public profile."
       }
-      className="max-w-2xl"
+      className="max-w-3xl"
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={saving}>
@@ -243,6 +485,38 @@ export function AdminUserFormModal({
           <p className="text-xs font-semibold uppercase tracking-wider text-roicard-accent">
             Identity
           </p>
+
+          <div className="flex items-center gap-4">
+            {avatarPreview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={avatarPreview}
+                alt="Profile photo preview"
+                className="h-16 w-16 rounded-full object-cover"
+              />
+            ) : (
+              <span className="flex h-16 w-16 items-center justify-center rounded-full roicard-gradient text-sm font-bold text-roicard-on-primary">
+                {`${form.first_name?.[0] ?? ""}${form.last_name?.[0] ?? ""}`.toUpperCase() || "U"}
+              </span>
+            )}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={(e) => handleAvatarFile(e.target.files?.[0])}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => fileRef.current?.click()}
+            >
+              <Camera className="h-3.5 w-3.5" aria-hidden />
+              {avatarPreview ? "Change photo" : "Upload photo"}
+            </Button>
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
               label="First Name"
@@ -298,11 +572,11 @@ export function AdminUserFormModal({
               onChange={(e) => setField("password_confirmation", e.target.value)}
             />
           </div>
-          {mode === "edit" && (
-            <p className="text-xs text-roicard-text-muted">
-              Changing the password signs the member out of all existing sessions.
-            </p>
-          )}
+          <p className="text-xs text-roicard-text-muted">
+            Set a temporary password and share it securely, or send the member a
+            password-reset email from their detail panel. Plaintext passwords are
+            never emailed.
+          </p>
         </section>
 
         <section className="space-y-3">
@@ -393,7 +667,7 @@ export function AdminUserFormModal({
                   Onboarding complete
                 </span>
                 <span className="block text-xs text-roicard-text-muted">
-                  When off, the member is routed to /onboarding after sign-in.
+                  Checked: the member lands on the dashboard after sign-in.
                 </span>
               </span>
             </label>
@@ -413,72 +687,395 @@ export function AdminUserFormModal({
                 </span>
               </span>
             </label>
+            <label className="flex items-start gap-3 rounded-lg border border-roicard-border bg-roicard-bg-muted px-3 py-3 sm:col-span-2">
+              <input
+                type="checkbox"
+                checked={form.send_welcome_email}
+                onChange={(e) =>
+                  setField("send_welcome_email", e.target.checked)
+                }
+                className="mt-0.5 h-4 w-4 rounded border-roicard-border"
+              />
+              <span>
+                <span className="block text-sm font-medium text-roicard-text">
+                  Send the welcome email when completion changes
+                </span>
+                <span className="block text-xs text-roicard-text-muted">
+                  Off by default for admin actions. It is only ever sent once.
+                </span>
+              </span>
+            </label>
           </div>
         </section>
 
-        {mode === "edit" && (
-          <section className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-roicard-accent">
-              Public Profile
-            </p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Input
-                label="Professional Title"
-                value={form.title}
-                onChange={(e) => setField("title", e.target.value)}
-              />
-              <Input
-                label="Organisation"
-                value={form.organisation}
-                onChange={(e) => setField("organisation", e.target.value)}
-              />
-              <Input
-                label="Location"
-                value={form.location}
-                onChange={(e) => setField("location", e.target.value)}
-              />
-              <Input
-                label="Phone"
-                value={form.phone}
-                onChange={(e) => setField("phone", e.target.value)}
-              />
-              <Input
-                label="WhatsApp"
-                value={form.whatsapp_phone}
-                onChange={(e) => setField("whatsapp_phone", e.target.value)}
-              />
+        <section className="space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-roicard-accent">
+            Public Profile
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="Professional Title"
+              value={form.title}
+              onChange={(e) => setField("title", e.target.value)}
+            />
+            <Input
+              label="Organisation"
+              value={form.organisation}
+              onChange={(e) => setField("organisation", e.target.value)}
+            />
+            <Input
+              label="Location"
+              value={form.location}
+              onChange={(e) => setField("location", e.target.value)}
+            />
+            <Input
+              label="Phone"
+              value={form.phone}
+              onChange={(e) => setField("phone", e.target.value)}
+            />
+            <Input
+              label="WhatsApp"
+              value={form.whatsapp_phone}
+              onChange={(e) => setField("whatsapp_phone", e.target.value)}
+            />
+            <Input
+              label="Date of birth"
+              type="date"
+              value={form.date_of_birth}
+              onChange={(e) => setField("date_of_birth", e.target.value)}
+            />
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-roicard-text">
+                Gender
+              </label>
+              <select
+                value={form.gender}
+                onChange={(e) => setField("gender", e.target.value)}
+                className={selectClassName}
+              >
+                <option value="">Not specified</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="prefer_not_to_say">Prefer not to say</option>
+              </select>
             </div>
+          </div>
+          <Textarea
+            label="Role Description"
+            rows={2}
+            maxLength={1000}
+            value={form.role_description}
+            onChange={(e) => setField("role_description", e.target.value)}
+          />
+          <Textarea
+            label="Bio"
+            rows={4}
+            value={form.bio}
+            onChange={(e) => setField("bio", e.target.value)}
+          />
+          <div className="grid gap-4 sm:grid-cols-2">
             <Textarea
-              label="Role Description"
+              label="Seeking"
               rows={2}
               maxLength={1000}
-              value={form.role_description}
-              onChange={(e) => setField("role_description", e.target.value)}
+              value={form.seeking}
+              onChange={(e) => setField("seeking", e.target.value)}
             />
             <Textarea
-              label="Bio"
-              rows={4}
-              value={form.bio}
-              onChange={(e) => setField("bio", e.target.value)}
+              label="Offering"
+              rows={2}
+              maxLength={1000}
+              value={form.offering}
+              onChange={(e) => setField("offering", e.target.value)}
             />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Textarea
-                label="Seeking"
-                rows={2}
-                maxLength={1000}
-                value={form.seeking}
-                onChange={(e) => setField("seeking", e.target.value)}
-              />
-              <Textarea
-                label="Offering"
-                rows={2}
-                maxLength={1000}
-                value={form.offering}
-                onChange={(e) => setField("offering", e.target.value)}
-              />
+          </div>
+          <Input
+            label="Interests"
+            hint="Comma-separated, e.g. Design, Technology, Finance."
+            value={form.interests}
+            onChange={(e) => setField("interests", e.target.value)}
+          />
+
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-roicard-text-muted">
+              Social links
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {SOCIAL_PLATFORMS.map((platform) => (
+                <Input
+                  key={platform}
+                  label={platform[0].toUpperCase() + platform.slice(1)}
+                  value={form.social[platform]}
+                  placeholder="https://"
+                  onChange={(e) => setSocial(platform, e.target.value)}
+                />
+              ))}
             </div>
-          </section>
-        )}
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-roicard-accent">
+              Education
+            </p>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                setField("education", [...form.education, emptyEducation()])
+              }
+            >
+              <Plus className="h-3.5 w-3.5" aria-hidden /> Add
+            </Button>
+          </div>
+          {errors.education && (
+            <p className="text-xs text-red-400">{errors.education}</p>
+          )}
+          {form.education.length === 0 && (
+            <p className="text-xs text-roicard-text-muted">No education entries yet.</p>
+          )}
+          {form.education.map((row, index) => (
+            <div
+              key={index}
+              className="space-y-3 rounded-xl border border-roicard-border bg-roicard-bg-muted p-3"
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Input
+                  label="Institution"
+                  value={row.institution}
+                  onChange={(e) => {
+                    const next = [...form.education];
+                    next[index] = { ...row, institution: e.target.value };
+                    setField("education", next);
+                  }}
+                />
+                <Input
+                  label="Degree"
+                  value={row.degree}
+                  onChange={(e) => {
+                    const next = [...form.education];
+                    next[index] = { ...row, degree: e.target.value };
+                    setField("education", next);
+                  }}
+                />
+                <Input
+                  label="Start year"
+                  type="number"
+                  value={row.start_year}
+                  onChange={(e) => {
+                    const next = [...form.education];
+                    next[index] = { ...row, start_year: e.target.value };
+                    setField("education", next);
+                  }}
+                />
+                <Input
+                  label="End year"
+                  type="number"
+                  value={row.end_year}
+                  onChange={(e) => {
+                    const next = [...form.education];
+                    next[index] = { ...row, end_year: e.target.value };
+                    setField("education", next);
+                  }}
+                />
+                <Input
+                  label="Honours"
+                  value={row.honours}
+                  onChange={(e) => {
+                    const next = [...form.education];
+                    next[index] = { ...row, honours: e.target.value };
+                    setField("education", next);
+                  }}
+                />
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-red-400"
+                onClick={() =>
+                  setField(
+                    "education",
+                    form.education.filter((_, i) => i !== index)
+                  )
+                }
+              >
+                <Trash2 className="h-3.5 w-3.5" aria-hidden /> Remove
+              </Button>
+            </div>
+          ))}
+        </section>
+
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-roicard-accent">
+              Experience
+            </p>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                setField("experience", [...form.experience, emptyExperience()])
+              }
+            >
+              <Plus className="h-3.5 w-3.5" aria-hidden /> Add
+            </Button>
+          </div>
+          {errors.experience && (
+            <p className="text-xs text-red-400">{errors.experience}</p>
+          )}
+          {form.experience.length === 0 && (
+            <p className="text-xs text-roicard-text-muted">No experience entries yet.</p>
+          )}
+          {form.experience.map((row, index) => (
+            <div
+              key={index}
+              className="space-y-3 rounded-xl border border-roicard-border bg-roicard-bg-muted p-3"
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Input
+                  label="Title"
+                  value={row.title}
+                  onChange={(e) => {
+                    const next = [...form.experience];
+                    next[index] = { ...row, title: e.target.value };
+                    setField("experience", next);
+                  }}
+                />
+                <Input
+                  label="Company"
+                  value={row.company}
+                  onChange={(e) => {
+                    const next = [...form.experience];
+                    next[index] = { ...row, company: e.target.value };
+                    setField("experience", next);
+                  }}
+                />
+                <Input
+                  label="Start date"
+                  type="date"
+                  value={row.start_date}
+                  onChange={(e) => {
+                    const next = [...form.experience];
+                    next[index] = { ...row, start_date: e.target.value };
+                    setField("experience", next);
+                  }}
+                />
+                <Input
+                  label="End date"
+                  type="date"
+                  value={row.end_date}
+                  onChange={(e) => {
+                    const next = [...form.experience];
+                    next[index] = { ...row, end_date: e.target.value };
+                    setField("experience", next);
+                  }}
+                />
+                <Input
+                  label="Location"
+                  value={row.location}
+                  onChange={(e) => {
+                    const next = [...form.experience];
+                    next[index] = { ...row, location: e.target.value };
+                    setField("experience", next);
+                  }}
+                />
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-red-400"
+                onClick={() =>
+                  setField(
+                    "experience",
+                    form.experience.filter((_, i) => i !== index)
+                  )
+                }
+              >
+                <Trash2 className="h-3.5 w-3.5" aria-hidden /> Remove
+              </Button>
+            </div>
+          ))}
+        </section>
+
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-roicard-accent">
+              Achievements
+            </p>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                setField("achievements", [...form.achievements, emptyAchievement()])
+              }
+            >
+              <Plus className="h-3.5 w-3.5" aria-hidden /> Add
+            </Button>
+          </div>
+          {errors.achievements && (
+            <p className="text-xs text-red-400">{errors.achievements}</p>
+          )}
+          {form.achievements.length === 0 && (
+            <p className="text-xs text-roicard-text-muted">No achievements yet.</p>
+          )}
+          {form.achievements.map((row, index) => (
+            <div
+              key={index}
+              className="space-y-3 rounded-xl border border-roicard-border bg-roicard-bg-muted p-3"
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Input
+                  label="Title"
+                  value={row.title}
+                  onChange={(e) => {
+                    const next = [...form.achievements];
+                    next[index] = { ...row, title: e.target.value };
+                    setField("achievements", next);
+                  }}
+                />
+                <Input
+                  label="Issuer"
+                  value={row.issuer}
+                  onChange={(e) => {
+                    const next = [...form.achievements];
+                    next[index] = { ...row, issuer: e.target.value };
+                    setField("achievements", next);
+                  }}
+                />
+                <Input
+                  label="Date"
+                  type="date"
+                  value={row.date}
+                  onChange={(e) => {
+                    const next = [...form.achievements];
+                    next[index] = { ...row, date: e.target.value };
+                    setField("achievements", next);
+                  }}
+                />
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-red-400"
+                onClick={() =>
+                  setField(
+                    "achievements",
+                    form.achievements.filter((_, i) => i !== index)
+                  )
+                }
+              >
+                <Trash2 className="h-3.5 w-3.5" aria-hidden /> Remove
+              </Button>
+            </div>
+          ))}
+        </section>
       </div>
     </Modal>
   );

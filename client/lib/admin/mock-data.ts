@@ -27,6 +27,13 @@ function adminDefaults(
   | "accessState"
   | "profileCompletionPct"
   | "nextStep"
+  | "dateOfBirth"
+  | "gender"
+  | "interests"
+  | "socialLinks"
+  | "education"
+  | "experience"
+  | "achievements"
 > {
   const suspended = status === "suspended";
 
@@ -38,6 +45,13 @@ function adminDefaults(
     accessState: suspended ? "suspended" : "active",
     profileCompletionPct: 100,
     nextStep: suspended ? "blocked" : "dashboard",
+    dateOfBirth: "",
+    gender: "",
+    interests: [],
+    socialLinks: [],
+    education: [],
+    experience: [],
+    achievements: [],
   };
 }
 

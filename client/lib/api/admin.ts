@@ -33,8 +33,42 @@ export interface AdminUserProfile {
   seeking?: string | null;
   offering?: string | null;
   interests?: string[] | null;
+  social_links?: AdminSocialLink[] | null;
+  education?: AdminEducationEntry[] | null;
+  experience?: AdminExperienceEntry[] | null;
+  achievements?: AdminAchievementEntry[] | null;
   completion_pct?: number;
   is_live?: boolean;
+}
+
+export interface AdminSocialLink {
+  platform: string;
+  value: string;
+}
+
+export interface AdminEducationEntry {
+  id?: number;
+  institution: string;
+  degree: string;
+  start_year: number | string;
+  end_year?: number | string | null;
+  honours?: string | null;
+}
+
+export interface AdminExperienceEntry {
+  id?: number;
+  title: string;
+  company: string;
+  start_date: string;
+  end_date?: string | null;
+  location?: string | null;
+}
+
+export interface AdminAchievementEntry {
+  id?: number;
+  title: string;
+  issuer?: string | null;
+  date?: string | null;
 }
 
 export interface AdminPayment {
@@ -179,6 +213,7 @@ export interface AdminUserUpsertPayload {
   onboarding_completed?: boolean;
   email_verified?: boolean;
   account_access?: "active" | "suspended";
+  send_welcome_email?: boolean;
 }
 
 export async function getAdminUser(
@@ -238,10 +273,17 @@ export interface AdminUserProfilePayload {
   location?: string;
   phone?: string;
   whatsapp_phone?: string;
+  date_of_birth?: string | null;
+  gender?: string | null;
   seeking?: string;
   offering?: string;
   interests?: string;
   social_links?: string;
+  education?: AdminEducationEntry[];
+  experience?: AdminExperienceEntry[];
+  achievements?: AdminAchievementEntry[];
+  send_welcome_email?: boolean;
+  mark_onboarding_complete?: boolean;
 }
 
 export async function updateAdminUserProfile(
@@ -254,6 +296,13 @@ export async function updateAdminUserProfile(
 
 export async function deleteAdminUser(id: number): Promise<{ message: string }> {
   const { data } = await apiClient.delete(`/admin/users/${id}`);
+  return data;
+}
+
+export async function sendAdminUserPasswordReset(
+  id: number
+): Promise<{ message: string }> {
+  const { data } = await apiClient.post(`/admin/users/${id}/password-reset`);
   return data;
 }
 

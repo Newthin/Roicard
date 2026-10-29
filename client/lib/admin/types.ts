@@ -6,6 +6,13 @@
 
 export type UserStatus = "active" | "draft" | "suspended";
 
+import type {
+  AdminAchievementEntry,
+  AdminEducationEntry,
+  AdminExperienceEntry,
+  AdminSocialLink,
+} from "@/lib/api/admin";
+
 /** Platform user record for admin user management. */
 export type AdminUser = {
   id: string;
@@ -24,6 +31,13 @@ export type AdminUser = {
   location: string;
   phone: string;
   whatsapp: string;
+  dateOfBirth: string;
+  gender: string;
+  interests: string[];
+  socialLinks: AdminSocialLink[];
+  education: AdminEducationEntry[];
+  experience: AdminExperienceEntry[];
+  achievements: AdminAchievementEntry[];
   seeking: string;
   offering: string;
   campaignCode?: string | null;
