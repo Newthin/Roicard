@@ -77,6 +77,10 @@ sudo php artisan route:clear
 sudo php artisan view:clear
 sudo php artisan migrate --force
 
+# Idempotent and production-safe: only ensures the member/admin roles exist.
+# Prevents OAuth/registration failures on databases where the seeder never ran.
+sudo php artisan db:seed --class=RoleSeeder --force
+
 echo "==> Restarting PHP-FPM"
 sudo systemctl restart php8.3-fpm
 
