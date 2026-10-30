@@ -84,8 +84,8 @@ class SendAdminMessageRecipientJob implements ShouldQueue, ShouldBeUnique
         $message = $recipient->message;
         $user = $recipient->user;
 
-        $subject = $renderer->subject($message->subject, $user, $recipient->email);
-        $rendered = $renderer->render($message->body, $user, $recipient->email);
+        $subject = $renderer->subject($message->subject, $user, $recipient->email, $recipient->name);
+        $rendered = $renderer->render($message->body, $user, $recipient->email, $recipient->name);
 
         try {
             Mail::to($recipient->email)->send(new AdminMessageMail(

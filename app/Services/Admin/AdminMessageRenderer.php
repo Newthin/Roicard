@@ -47,12 +47,29 @@ class AdminMessageRenderer
         return array_keys($unknown);
     }
 
-    public function personalize(string $text, ?User $user, string $fallbackEmail = ''): string
-    {
-        $firstName = $user?->first_name ?? '';
-        $lastName = $user?->last_name ?? '';
+    /**
+     * Substitute the allow-listed placeholders for one recipient.
+     *
+     * $fallbackName is used when the account no longer resolves (for example a
+     * soft-deleted member): the name captured when the message was queued is
+     * still a real name, so the recipient never sees "Hi ,".
+     */
+    public function personalize(
+        string $text,
+        ?User $user,
+        string $fallbackEmail = '',
+        ?string $fallbackName = null,
+    ): string {
+        [$firstName, $lastName] = $this->names($user, $fallbackName);
         $fullName = trim($firstName . ' ' . $lastName);
-        $email = $user?->email ?? $fallbackEmail;
+
+        if ($fullName === '') {
+            // Nothing to personalise with — a neutral greeting beats "Hi ,".
+            $firstName = 'there';
+            $fullName = 'there';
+        }
+
+        $email = $user?->email ?: $fallbackEmail;
 
         return strtr($text, [
             '{first_name}' => $firstName,
@@ -62,22 +79,54 @@ class AdminMessageRenderer
         ]);
     }
 
-    public function subject(string $subject, ?User $user, string $fallbackEmail = ''): string
-    {
-        return trim(str_replace(["\r", "\n"], ' ', $this->personalize($subject, $user, $fallbackEmail)));
+    public function subject(
+        string $subject,
+        ?User $user,
+        string $fallbackEmail = '',
+        ?string $fallbackName = null,
+    ): string {
+        return trim(str_replace(
+            ["\r", "\n"],
+            ' ',
+            $this->personalize($subject, $user, $fallbackEmail, $fallbackName),
+        ));
     }
 
     /**
      * @return array{text: string, html: string}
      */
-    public function render(string $body, ?User $user, string $fallbackEmail = ''): array
-    {
-        $text = $this->personalize($body, $user, $fallbackEmail);
+    public function render(
+        string $body,
+        ?User $user,
+        string $fallbackEmail = '',
+        ?string $fallbackName = null,
+    ): array {
+        $text = $this->personalize($body, $user, $fallbackEmail, $fallbackName);
 
         return [
             'text' => $text,
             'html' => $this->toHtml($text),
         ];
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private function names(?User $user, ?string $fallbackName): array
+    {
+        $firstName = trim((string) ($user?->first_name ?? ''));
+        $lastName = trim((string) ($user?->last_name ?? ''));
+
+        if ($firstName === '' && $lastName === '' && $fallbackName !== null) {
+            $parts = preg_split('/\s+/', trim($fallbackName)) ?: [];
+
+            if ($parts !== [] && $parts[0] !== '') {
+                $firstName = (string) array_shift($parts);
+                $lastName = implode(' ', $parts);
+            }
+        }
+
+        return [$firstName, $lastName];
     }
 
     public function toHtml(string $text): string

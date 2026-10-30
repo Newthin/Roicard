@@ -491,6 +491,105 @@ class AdminMessageTest extends TestCase
         $this->assertStringContainsString('Hi Jane', $text);
     }
 
+    public function test_each_recipient_is_greeted_with_their_own_full_name(): void
+    {
+        Mail::fake();
+        [, $token] = $this->admin();
+
+        $ebenezer = User::factory()->create([
+            'first_name' => 'Ebenezer',
+            'last_name' => 'Akparibo',
+            'email' => 'ebenezer@example.test',
+            'status' => 'active',
+        ]);
+
+        $ama = User::factory()->create([
+            'first_name' => 'Ama',
+            'last_name' => 'Mensah',
+            'email' => 'ama@example.test',
+            'status' => 'active',
+        ]);
+
+        $this->withToken($token)->postJson('/api/admin/messages', [
+            'subject' => 'A reminder for {full_name}',
+            'body' => "Hi {full_name},\n\nThis is a reminder about your Roicard membership.",
+            'category' => 'service',
+            'expected_recipient_count' => 2,
+        ], ['Idempotency-Key' => 'personalize-1'])->assertStatus(201);
+
+        Mail::assertSent(AdminMessageMail::class, function (AdminMessageMail $mail) use ($ebenezer) {
+            if (! $mail->hasTo($ebenezer->email)) {
+                return false;
+            }
+
+            $html = $mail->render();
+
+            return str_contains($html, 'Hi Ebenezer Akparibo,')
+                && $mail->envelope()->subject === 'A reminder for Ebenezer Akparibo'
+                && ! str_contains($html, 'Ama Mensah');
+        });
+
+        Mail::assertSent(AdminMessageMail::class, function (AdminMessageMail $mail) use ($ama) {
+            if (! $mail->hasTo($ama->email)) {
+                return false;
+            }
+
+            $html = $mail->render();
+
+            return str_contains($html, 'Hi Ama Mensah,')
+                && $mail->envelope()->subject === 'A reminder for Ama Mensah'
+                && ! str_contains($html, 'Ebenezer Akparibo');
+        });
+    }
+
+    public function test_personalization_falls_back_to_the_name_captured_at_send_time(): void
+    {
+        Mail::fake();
+
+        $message = AdminMessage::create([
+            'sent_by' => null,
+            'subject' => 'Still saved as a draft',
+            'body' => "Hi {full_name},\n\nYour profile is saved privately as a draft.",
+            'category' => 'nudge',
+            'recipient_count' => 1,
+            'queued_count' => 1,
+            'status' => AdminMessage::STATUS_QUEUED,
+        ]);
+
+        // The account was soft-deleted after the message was queued, so the
+        // relation no longer resolves; the stored name must still be used.
+        $recipient = AdminMessageRecipient::create([
+            'admin_message_id' => $message->id,
+            'user_id' => null,
+            'email' => 'gone@example.test',
+            'name' => 'Ebenezer Akparibo',
+            'status' => AdminMessageRecipient::STATUS_QUEUED,
+        ]);
+
+        (new \App\Jobs\SendAdminMessageRecipientJob($recipient->id))
+            ->handle(app(AdminMessageRenderer::class));
+
+        Mail::assertSent(AdminMessageMail::class, function (AdminMessageMail $mail) {
+            return $mail->hasTo('gone@example.test')
+                && str_contains($mail->render(), 'Hi Ebenezer Akparibo,');
+        });
+
+        $this->assertSame(
+            AdminMessageRecipient::STATUS_SENT,
+            $recipient->fresh()->status,
+        );
+    }
+
+    public function test_recipient_without_any_name_still_gets_a_natural_greeting(): void
+    {
+        $renderer = app(AdminMessageRenderer::class);
+
+        $this->assertSame(
+            'Hi there,',
+            $renderer->render('Hi {full_name},', null, 'nameless@example.test')['text'],
+        );
+    }
+
     public function test_each_recipient_gets_an_individually_addressed_email(): void
     {
         Mail::fake();

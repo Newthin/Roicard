@@ -90,7 +90,7 @@ const TEMPLATES: Template[] = [
     label: "Service disruption",
     category: "service",
     subject: "Roicard service disruption",
-    body: `Hi {first_name},
+    body: `Hi {full_name},
 
 We are currently investigating a disruption affecting Roicard. You may be unable to access your profile or dashboard for a short time.
 
@@ -104,7 +104,7 @@ The Roicard Team`,
     label: "Service restored",
     category: "service",
     subject: "Roicard service restored",
-    body: `Hi {first_name},
+    body: `Hi {full_name},
 
 Roicard is back online. You can sign in and use your profile and dashboard as usual.
 
@@ -118,7 +118,7 @@ The Roicard Team`,
     label: "Draft nudge",
     category: "nudge",
     subject: "Your Roicard draft is still saved",
-    body: `Hi {first_name},
+    body: `Hi {full_name},
 
 Your Roicard profile is saved privately as a draft — it is not visible to anyone yet.
 
@@ -240,6 +240,7 @@ export function MessagesManagementView() {
   const [sendError, setSendError] = useState<string | null>(null);
   const [lastSent, setLastSent] = useState<AdminMessage | null>(null);
   const sendKeyRef = useRef("");
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   /* ------------------------------- sent -------------------------------- */
   const [messages, setMessages] = useState<AdminMessage[]>([]);
@@ -465,6 +466,21 @@ export function MessagesManagementView() {
     return {};
   };
 
+  const insertPlaceholder = (token: string) => {
+    const element = bodyRef.current;
+    const start = element?.selectionStart ?? body.length;
+    const end = element?.selectionEnd ?? start;
+
+    setBody(body.slice(0, start) + token + body.slice(end));
+
+    requestAnimationFrame(() => {
+      if (!element) return;
+      element.focus();
+      const position = start + token.length;
+      element.setSelectionRange(position, position);
+    });
+  };
+
   const applyTemplate = (template: Template) => {
     setActiveTemplate(template.id === activeTemplate ? null : template.id);
     if (template.id === activeTemplate) return;
@@ -590,11 +606,19 @@ export function MessagesManagementView() {
     setPreviewLoading(true);
     setComposerError(null);
 
+    // Preview with a real recipient when one is available, so the placeholder
+    // substitution can be checked against an actual member's name.
+    const previewUserId =
+      scope === "selected"
+        ? Array.from(selectedIds)[0]
+        : recipients[0]?.id;
+
     try {
       const result = await previewAdminMessage({
         subject: subject.trim(),
         body,
         category,
+        user_id: previewUserId,
       });
       setPreview(result);
       setPreviewOpen(true);
@@ -1149,14 +1173,37 @@ export function MessagesManagementView() {
             </div>
 
             <Textarea
+              ref={bodyRef}
               label="Message"
               rows={12}
               value={body}
               onChange={(event) => setBody(event.target.value)}
               maxLength={20000}
-              placeholder={"Hi {first_name},\n\n…"}
-              hint="Placeholders: {first_name}, {last_name}, {full_name}, {email}. Blank lines become paragraphs."
+              placeholder={"Hi {full_name},\n\n…"}
+              hint="Each recipient gets their own copy with their own details filled in. Blank lines become paragraphs."
             />
+
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="text-roicard-text-muted">Insert:</span>
+              {(["full_name", "first_name", "last_name", "email"] as const).map(
+                (token) => (
+                  <button
+                    key={token}
+                    type="button"
+                    onClick={() => insertPlaceholder(`{${token}}`)}
+                    className="rounded-full border border-roicard-border px-2.5 py-1 font-mono text-roicard-text-muted transition hover:border-roicard-accent/50 hover:text-roicard-text"
+                    title={`Insert {${token}} at the cursor`}
+                  >
+                    {`{${token}}`}
+                  </button>
+                )
+              )}
+            </div>
+            <p className="-mt-2 text-xs text-roicard-text-muted">
+              Tip: start with <code className="font-mono">Hi {"{full_name}"},</code> and
+              Ebenezer Akparibo gets “Hi Ebenezer Akparibo,” — every member sees their
+              own name.
+            </p>
 
             {composerError && (
               <p className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-400">
