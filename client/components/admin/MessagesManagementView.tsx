@@ -372,6 +372,47 @@ export function MessagesManagementView() {
     setScope(next.size === 0 ? "none" : "selected");
   };
 
+  // Page-scoped select-all: toggles every row currently visible in the table.
+  const pageIds = useMemo(() => recipients.map((recipient) => recipient.id), [recipients]);
+  const allOnPageSelected =
+    pageIds.length > 0 && pageIds.every((id) => isChecked(id));
+  const someOnPageSelected =
+    !allOnPageSelected && pageIds.some((id) => isChecked(id));
+
+  const togglePageSelection = () => {
+    if (pageIds.length === 0) return;
+
+    const selectPage = !allOnPageSelected;
+
+    if (scope === "all") {
+      setExcludedIds((previous) => {
+        const next = new Set(previous);
+        for (const id of pageIds) {
+          if (selectPage) next.delete(id);
+          else next.add(id);
+        }
+        return next;
+      });
+      return;
+    }
+
+    if (scope === "none") {
+      if (!selectPage) return;
+      setSelectedIds(new Set(pageIds));
+      setScope("selected");
+      return;
+    }
+
+    setSelectedIds((previous) => {
+      const next = new Set(previous);
+      for (const id of pageIds) {
+        if (selectPage) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
+  };
+
   const selectAllMatching = () => {
     setScope("all");
     setExcludedIds(new Set());
@@ -780,7 +821,7 @@ export function MessagesManagementView() {
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button variant="secondary" size="sm" onClick={selectAllMatching}>
-                  Select all {matchingCount}
+                  Select all {matchingCount} matching
                 </Button>
                 <Button variant="ghost" size="sm" onClick={clearSelection}>
                   Clear
@@ -907,7 +948,20 @@ export function MessagesManagementView() {
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-roicard-bg-muted text-xs uppercase tracking-wide text-roicard-text-muted">
                   <tr>
-                    <th className="px-3 py-2"> </th>
+                    <th className="px-3 py-2">
+                      <input
+                        type="checkbox"
+                        checked={allOnPageSelected}
+                        ref={(element) => {
+                          if (element) element.indeterminate = someOnPageSelected;
+                        }}
+                        onChange={togglePageSelection}
+                        disabled={recipients.length === 0}
+                        className="h-4 w-4 rounded border-roicard-border disabled:opacity-40"
+                        aria-label="Select all members on this page"
+                        title="Select all on this page"
+                      />
+                    </th>
                     <th className="px-3 py-2">Member</th>
                     <th className="px-3 py-2">Status</th>
                     <th className="px-3 py-2">Campaign</th>
