@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Connection;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Services\Growth\ReferralAttributionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -51,8 +52,11 @@ class SocialAuthController extends Controller
      * Handle the provider callback, find-or-create the user by email, and hand
      * the browser back to the frontend with a Sanctum token.
      */
-    public function callback(string $provider, Request $request)
-    {
+    public function callback(
+        string $provider,
+        Request $request,
+        ReferralAttributionService $attribution
+    ) {
         if (!isset(self::PROVIDERS[$provider])) {
             return $this->frontendRedirect(['error' => 'unsupported_provider']);
         }
@@ -71,8 +75,10 @@ class SocialAuthController extends Controller
         $email = $socialUser->getEmail();
         $providerId = $socialUser->getId();
 
+        $created = false;
+
         try {
-            $user = DB::transaction(function () use ($socialUser, $provider, $email, $providerId) {
+            $user = DB::transaction(function () use ($socialUser, $provider, $email, $providerId, &$created) {
                 // 1) Try to attach to an existing social account.
                 $socialAccount = SocialAccount::where('provider', $provider)
                     ->where('provider_id', $providerId)
@@ -118,6 +124,7 @@ class SocialAuthController extends Controller
                         'email_verified_at' => now(),
                     ]);
 
+                    $created = true;
                     $user->profile()->create([]);
 
                     // The `role` column is the routing source of truth. The
@@ -174,11 +181,20 @@ class SocialAuthController extends Controller
         }
 
         $token = $user->createToken('auth-token', ['*'], now()->addDays(30))->plainTextToken;
+        $appliedReferral = $created
+            ? $attribution->attributeRegistration($user, $request)
+            : null;
 
-        return $this->frontendRedirect([
+        $response = $this->frontendRedirect([
             'token' => $token,
             'user' => json_encode(app(\App\Services\MemberAccessService::class)->payload($user)),
         ]);
+
+        if ($appliedReferral) {
+            $response->withCookie($attribution->forgetCookie());
+        }
+
+        return $response;
     }
 
     protected function frontendRedirect(array $params)

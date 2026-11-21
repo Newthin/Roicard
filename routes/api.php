@@ -73,8 +73,9 @@ Route::post('/meetings/cancel/{token}', [\App\Http\Controllers\Api\MeetingBookin
 Route::get('/qr/image/{slug}', [QRController::class, 'image'])->middleware('cache.get');
 Route::get('/qr/{slug}', [QRController::class, 'show']);
 
-// Executive referral QR asset (public — encodes the /r/CODE short link)
+// Executive referral assets (public — the short link is served by the frontend)
 Route::get('/referrals/{code}/qr', [ReferralController::class, 'qr'])->middleware('cache.get');
+Route::post('/referrals/{code}/click', [ReferralController::class, 'click']);
 
 // Payment webhook (no auth, signature-verified)
 Route::post('/payments/webhook/{provider}', [PaymentController::class, 'webhook']);
@@ -204,6 +205,7 @@ Route::middleware(['auth:sanctum', 'prevent_leak'])->group(function () {
         // Growth Network — executive referral directory
         Route::get('/executives', [AdminExecutiveController::class, 'index']);
         Route::get('/executives/{id}', [AdminExecutiveController::class, 'show'])->whereNumber('id');
+        Route::get('/referral-clicks', [AdminExecutiveController::class, 'clicks']);
 
         Route::get('/users', [AdminController::class, 'users']);
         Route::get('/users/{id}', [AdminController::class, 'showUser']);

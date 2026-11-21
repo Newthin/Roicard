@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Connection;
 use App\Models\User;
+use App\Services\Growth\ReferralAttributionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -29,7 +30,7 @@ class GoogleAuthController extends Controller
      * Handle Google's callback, find or create the user, and hand the browser
      * back to the frontend with a Sanctum token.
      */
-    public function callback(Request $request)
+    public function callback(Request $request, ReferralAttributionService $attribution)
     {
         try {
             $googleUser = Socialite::driver('google')->stateless()->user();
@@ -37,8 +38,10 @@ class GoogleAuthController extends Controller
             return $this->frontendRedirect(['error' => 'google_auth_failed']);
         }
 
+        $created = false;
+
         try {
-            $user = DB::transaction(function () use ($googleUser) {
+            $user = DB::transaction(function () use ($googleUser, &$created) {
                 $user = User::where('email', $googleUser->getEmail())->first();
 
                 if (!$user) {
@@ -66,6 +69,7 @@ class GoogleAuthController extends Controller
                         'email_verified_at' => now(),
                     ]);
 
+                    $created = true;
                     $user->profile()->create([]);
 
                     // The `role` column is the routing source of truth. The
@@ -116,11 +120,20 @@ class GoogleAuthController extends Controller
         }
 
         $token = $user->createToken('auth-token', ['*'], now()->addDays(30))->plainTextToken;
+        $appliedReferral = $created
+            ? $attribution->attributeRegistration($user, $request)
+            : null;
 
-        return $this->frontendRedirect([
+        $response = $this->frontendRedirect([
             'token' => $token,
             'user' => json_encode(app(\App\Services\MemberAccessService::class)->payload($user)),
         ]);
+
+        if ($appliedReferral) {
+            $response->withCookie($attribution->forgetCookie());
+        }
+
+        return $response;
     }
 
     protected function frontendRedirect(array $params)

@@ -28,6 +28,9 @@ class RegisterRequest extends FormRequest
             // validated against a known code — that happens server-side so a
             // wrong/unknown code degrades gracefully to the standard fee.
             'campaign_code' => ['nullable', 'string', 'max:40'],
+            // Last-click fallback when the attribution cookie is unavailable.
+            // Validity is checked against active Executive codes server-side.
+            'referral_code' => ['nullable', 'string', 'max:20'],
         ];
     }
 

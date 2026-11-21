@@ -49,6 +49,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'email_verification_code_expires_at' => 'datetime',
             'onboarding_completed_at' => 'datetime',
+            'referred_at' => 'datetime',
             'deactivated_at' => 'datetime',
             'suspended_by_admin' => 'boolean',
             'deleted_at' => 'datetime',

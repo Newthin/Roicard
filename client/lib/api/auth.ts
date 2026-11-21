@@ -43,6 +43,7 @@ export interface RegisterPayload {
   password: string;
   password_confirmation: string;
   campaign_code?: string;
+  referral_code?: string;
 }
 
 export interface LoginPayload {

@@ -7,6 +7,7 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Models\Connection;
 use App\Models\User;
+use App\Services\Growth\ReferralAttributionService;
 use App\Services\MemberAccessService;
 use App\Services\MemberAccountService;
 use Illuminate\Auth\Events\PasswordReset;
@@ -22,8 +23,10 @@ use Illuminate\Validation\Rule;
 
 class AuthController extends Controller
 {
-    public function register(RegisterRequest $request): JsonResponse
-    {
+    public function register(
+        RegisterRequest $request,
+        ReferralAttributionService $attribution
+    ): JsonResponse {
         $campaign = null;
         if ($request->filled('campaign_code')) {
             $code = mb_strtoupper(trim((string) $request->campaign_code));
@@ -73,6 +76,9 @@ class AuthController extends Controller
             throw $e;
         }
 
+        // Only a successful registration can consume the last-click cookie.
+        $appliedReferral = $attribution->attributeRegistration($user, $request);
+
         try {
             $user->sendEmailVerificationNotification();
         } catch (\Throwable $e) {
@@ -82,10 +88,16 @@ class AuthController extends Controller
             ]);
         }
 
-        return response()->json([
+        $response = response()->json([
             'user' => $this->userPayload($user),
             'requires_email_verification' => true,
         ], 201);
+
+        if ($appliedReferral) {
+            $response->withCookie($attribution->forgetCookie());
+        }
+
+        return $response;
     }
 
     public function login(LoginRequest $request): JsonResponse

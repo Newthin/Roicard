@@ -8,7 +8,9 @@ import { PasswordStrengthChecklist } from "@/components/ui/PasswordStrengthCheck
 import { useAuth } from "@/contexts/AuthContext";
 import { arePasswordRulesMet } from "@/lib/validation/password";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
+
+const REFERRAL_PATTERN = /^[A-HJ-NP-Z2-9]{10}$/;
 
 export function RegisterForm() {
   const router = useRouter();
@@ -19,6 +21,17 @@ export function RegisterForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [referralCode, setReferralCode] = useState("");
+
+  // Read the short-link fallback without useSearchParams, which would force a
+  // Suspense boundary on this statically rendered page. The 30-day cookie from
+  // /r/CODE remains the primary attribution source.
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get("ref");
+    if (ref && REFERRAL_PATTERN.test(ref)) {
+      setReferralCode(ref);
+    }
+  }, []);
 
   const allPassed = arePasswordRulesMet(password, confirmPassword);
 
@@ -39,6 +52,7 @@ export function RegisterForm() {
         email,
         password,
         password_confirmation: confirmPassword,
+        referral_code: referralCode || undefined,
       });
       router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err: unknown) {
