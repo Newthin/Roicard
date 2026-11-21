@@ -4,6 +4,7 @@
 
 import {
   BarChart3,
+  Coins,
   Crown,
   CreditCard,
   LayoutDashboard,
@@ -26,6 +27,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { label: "Dashboard Overview", href: "/admin", icon: LayoutDashboard, exact: true },
   { label: "Users", href: "/admin/users", icon: Users },
   { label: "Executives", href: "/admin/executives", icon: Crown },
+  { label: "Commissions", href: "/admin/commissions", icon: Coins },
   { label: "Discounts", href: "/admin/discounts", icon: Percent },
   { label: "Billing", href: "/admin/billing", icon: Receipt },
   { label: "Generate Card", href: "/admin/cards/generate", icon: CreditCard },

@@ -8,6 +8,7 @@ use App\Models\Subscription;
 use App\Models\SubscriptionEvent;
 use App\Models\User;
 use App\Mail\MembershipLapsedMail;
+use App\Services\Growth\CommissionService;
 use App\Services\Growth\ExecutiveService;
 use App\Services\MemberAccountService;
 use Carbon\Carbon;
@@ -30,7 +31,8 @@ class SubscriptionService
         protected PlanCatalog $catalog,
         protected EntitlementService $entitlements,
         protected MemberAccountService $accounts,
-        protected ExecutiveService $executives
+        protected ExecutiveService $executives,
+        protected CommissionService $commissions
     ) {}
 
     /**
@@ -94,6 +96,11 @@ class SubscriptionService
             $this->accounts->activateMembership($user, true);
 
             $this->markApplied($payment, $subscription);
+
+            // Growth Network: credit the referring Executive after the payment
+            // is marked applied, so a duplicate webhook can never double-pay.
+            $this->commissions->creditForPayment($payment, $subscription);
+
             $this->refreshAccess($user);
         });
     }
@@ -296,6 +303,14 @@ class SubscriptionService
                 ])->save();
 
                 $this->recordEvent($subscription, 'revoked', ['reason' => $reason]);
+
+                // A revoked subscription did not deliver its paid period, so any
+                // commission cleared against it is reversed. Natural expiry is
+                // NOT reversed — the member received the full period there.
+                $this->commissions->reverseForSubscription(
+                    $subscription,
+                    'subscription_revoked'
+                );
             }
 
             $this->accounts->deactivateMembership($user);

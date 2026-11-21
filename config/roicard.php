@@ -73,7 +73,7 @@ return [
             'minimum' => (float) env('GROWTH_PAYOUT_MINIMUM', 100),
             'cadence_days' => (int) env('GROWTH_PAYOUT_CADENCE_DAYS', 14),
         ],
-        'cookie_days' => (int) env('GROWTH_ATTRIBUTION_DAYS', 60),
+        'cookie_days' => (int) env('GROWTH_ATTRIBUTION_DAYS', 30),
     ],
 
 ];

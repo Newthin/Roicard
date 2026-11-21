@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AdminBillingController;
+use App\Http\Controllers\Api\AdminCommissionController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AdminExecutiveController;
 use App\Http\Controllers\Api\AdminMessageController;
@@ -206,6 +207,7 @@ Route::middleware(['auth:sanctum', 'prevent_leak'])->group(function () {
         Route::get('/executives', [AdminExecutiveController::class, 'index']);
         Route::get('/executives/{id}', [AdminExecutiveController::class, 'show'])->whereNumber('id');
         Route::get('/referral-clicks', [AdminExecutiveController::class, 'clicks']);
+        Route::get('/commissions', [AdminCommissionController::class, 'index']);
 
         Route::get('/users', [AdminController::class, 'users']);
         Route::get('/users/{id}', [AdminController::class, 'showUser']);

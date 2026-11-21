@@ -22,6 +22,12 @@ class ReferralAttributionService
 
     public const TTL_MINUTES = 30 * 24 * 60;
 
+    /** Read the configured window so config and tests cannot silently diverge. */
+    public static function ttlMinutes(): int
+    {
+        return (int) config('roicard.growth.cookie_days', 30) * 24 * 60;
+    }
+
     public function __construct(protected ExecutiveService $executives) {}
 
     public function recordClick(ExecutiveReferral $referral, Request $request): ReferralClick
@@ -41,7 +47,7 @@ class ReferralAttributionService
         return CookieJar::make(
             self::COOKIE_NAME,
             $code,
-            self::TTL_MINUTES,
+            self::ttlMinutes(),
             '/',
             null,
             app()->environment('production'),

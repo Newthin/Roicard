@@ -9,6 +9,7 @@ use App\Models\Payment;
 use App\Models\Plan;
 use App\Services\Billing\PlanCatalog;
 use App\Services\Billing\SubscriptionService;
+use App\Services\Growth\CommissionService;
 use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,7 +21,8 @@ class PaymentController extends Controller
     public function __construct(
         protected PaymentService $paymentService,
         protected PlanCatalog $catalog,
-        protected SubscriptionService $subscriptions
+        protected SubscriptionService $subscriptions,
+        protected CommissionService $commissions
     ) {}
 
     /**
@@ -321,6 +323,34 @@ class PaymentController extends Controller
                 }
 
                 $payment->update(['status' => 'success']);
+            }
+        }
+
+        // A provider refund reverses any commission cleared against the
+        // original payment. Signature verification above covers these events
+        // too. Reference field names differ between Paystack and Hubtel.
+        if (in_array($event, ['charge.refunded', 'refund.processed', 'refund.successful'], true)) {
+            $refundReference = $request->input('data.reference')
+                ?? $request->input('data.transaction_reference')
+                ?? $request->input('data.charge_reference')
+                ?? '';
+
+            if ($refundReference) {
+                $refunded = Payment::where('provider_reference', $refundReference)->first();
+
+                if ($refunded) {
+                    $reversed = $this->commissions->reverseForPayment(
+                        $refunded,
+                        'payment_refunded'
+                    );
+
+                    if ($reversed > 0) {
+                        Log::info('Commission reversed after refund', [
+                            'payment_id' => $refunded->id,
+                            'count' => $reversed,
+                        ]);
+                    }
+                }
             }
         }
 

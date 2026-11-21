@@ -740,3 +740,49 @@ export async function getAdminExecutive(
   return data;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Growth Network: commission ledger                                          */
+/* -------------------------------------------------------------------------- */
+
+export interface AdminCommissionUser {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
+
+export interface AdminCommission {
+  id: number;
+  executive_user_id: number;
+  executive: AdminCommissionUser | null;
+  member_user_id: number;
+  member: AdminCommissionUser | null;
+  type: "first_annual" | "annual_upgrade" | "discounted_annual";
+  amount: string;
+  collected_amount: string | null;
+  currency: string;
+  status: "cleared" | "cancelled";
+  payment: {
+    id: number;
+    reference: string | null;
+    amount: string;
+    purpose: string;
+  } | null;
+  subscription: { id: number; status: string } | null;
+  cleared_at: string | null;
+  cancelled_at: string | null;
+  cancellation_reason: string | null;
+  created_at: string | null;
+}
+
+export async function getAdminCommissions(params?: {
+  executive_user_id?: number;
+  member_user_id?: number;
+  status?: string;
+  type?: string;
+  per_page?: number;
+}): Promise<PaginatedResponse<AdminCommission>> {
+  const { data } = await apiClient.get("/admin/commissions", { params });
+  return data;
+}
+
