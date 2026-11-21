@@ -193,6 +193,7 @@ export async function getAdminStats(): Promise<AdminStats> {
 export async function getAdminUsers(params?: {
   page?: number;
   per_page?: number;
+  search?: string;
   filter?: Record<string, string>;
   sort?: string;
 }): Promise<AdminUserListResponse> {
@@ -618,6 +619,88 @@ export async function retryAdminMessage(
     `/admin/messages/${id}/retry`,
     {},
     { headers: { "Idempotency-Key": idempotencyKey } }
+  );
+  return data;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Billing: plans and internal role grants                                     */
+/* -------------------------------------------------------------------------- */
+
+export interface AdminPlan {
+  code: string;
+  name: string;
+  description: string | null;
+  currency: string;
+  initial_price: number;
+  price: number;
+  interval: string;
+  includes_card: boolean;
+  is_active: boolean;
+  is_public: boolean;
+  sort_order: number;
+  features: Record<string, unknown>;
+  subscribers_count: number;
+}
+
+export interface AdminSubscriptionUser {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  status: string;
+}
+
+export interface AdminSubscription {
+  id: number;
+  user: AdminSubscriptionUser | null;
+  plan: { code: string; name: string; interval: string; price: number } | null;
+  status: string;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  grace_ends_at: string | null;
+  cancel_at_period_end: boolean;
+  days_remaining: number | null;
+  started_at: string | null;
+}
+
+export async function getAdminPlans(): Promise<{ plans: AdminPlan[] }> {
+  const { data } = await apiClient.get("/admin/plans");
+  return data;
+}
+
+export async function getAdminSubscriptions(params?: {
+  plan?: string;
+  status?: string;
+  search?: string;
+  per_page?: number;
+}): Promise<{
+  data: AdminSubscription[];
+  current_page?: number;
+  last_page?: number;
+  total?: number;
+}> {
+  const { data } = await apiClient.get("/admin/subscriptions", { params });
+  return data;
+}
+
+export async function grantAdminSubscription(
+  userId: number,
+  plan: string,
+  sendWelcomeEmail = false
+): Promise<{ message: string }> {
+  const { data } = await apiClient.post(
+    `/admin/users/${userId}/subscription`,
+    { plan, send_welcome_email: sendWelcomeEmail }
+  );
+  return data;
+}
+
+export async function revokeAdminSubscription(
+  userId: number
+): Promise<{ message: string }> {
+  const { data } = await apiClient.delete(
+    `/admin/users/${userId}/subscription`
   );
   return data;
 }

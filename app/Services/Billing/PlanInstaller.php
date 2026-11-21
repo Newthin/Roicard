@@ -183,7 +183,9 @@ class PlanInstaller
                 'card' => true,
                 'cv_entries' => null,
                 'experience_entries' => null,
-                'earns_commission' => true,
+                // Commission payouts are planned, not active. Executive is the
+                // only internal role currently flagged as eligible.
+                'earns_commission' => false,
             ],
         ],
     ];

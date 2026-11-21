@@ -54,7 +54,11 @@ class InternalPlansTest extends TestCase
             $this->assertEquals(0, $plan->initial_price);
             $this->assertEquals(0, $plan->price);
             $this->assertTrue($plan->includes_card);
-            $this->assertTrue($plan->earnsCommission());
+            $this->assertSame(
+                $code === Plan::EXECUTIVE,
+                $plan->earnsCommission(),
+                "Unexpected commission eligibility for {$code}"
+            );
 
             foreach ([
                 'meetings', 'full_analytics', 'ai_enrichment',
@@ -66,6 +70,19 @@ class InternalPlansTest extends TestCase
             $this->assertNull($plan->feature('cv_entries'));
             $this->assertNull($plan->feature('experience_entries'));
         }
+    }
+
+    public function test_only_executive_is_commission_eligible_for_now(): void
+    {
+        $this->assertTrue(Plan::where('code', Plan::EXECUTIVE)->firstOrFail()->earnsCommission());
+        $this->assertFalse(Plan::where('code', Plan::STAFF)->firstOrFail()->earnsCommission());
+
+        $user = $this->member();
+        $user->profile()->create([]);
+        app(SubscriptionService::class)->grantPlan($user, Plan::STAFF, null, false, 'test_grant');
+
+        $this->assertFalse(app(EntitlementService::class)
+            ->allows($user->fresh(), 'earns_commission'));
     }
 
     public function test_internal_plans_are_excluded_from_public_and_purchasable_catalogues(): void

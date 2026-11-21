@@ -9,6 +9,7 @@ import {
   Mail,
   Nfc,
   Percent,
+  Receipt,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -24,6 +25,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { label: "Dashboard Overview", href: "/admin", icon: LayoutDashboard, exact: true },
   { label: "Users", href: "/admin/users", icon: Users },
   { label: "Discounts", href: "/admin/discounts", icon: Percent },
+  { label: "Billing", href: "/admin/billing", icon: Receipt },
   { label: "Generate Card", href: "/admin/cards/generate", icon: CreditCard },
   { label: "Roicard Management", href: "/admin/nfc", icon: Nfc },
   { label: "Messages", href: "/admin/messages", icon: Mail },
