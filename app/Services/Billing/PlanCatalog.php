@@ -6,6 +6,8 @@ use App\Models\DiscountCampaign;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\Growth\MemberReferralCreditService;
+use App\Services\Growth\MemberReferralService;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
@@ -90,8 +92,12 @@ class PlanCatalog
      *
      * @return array<string, mixed>
      */
-    public function quote(User $user, ?string $planCode = null, ?DiscountCampaign $campaign = null): array
-    {
+    public function quote(
+        User $user,
+        ?string $planCode = null,
+        ?DiscountCampaign $campaign = null,
+        ?int $includeReservedPaymentId = null
+    ): array {
         $planCode = $planCode ?: Plan::ANNUAL;
         $plan = $this->find($planCode);
 
@@ -167,6 +173,32 @@ class PlanCatalog
             }
         }
 
+        // Member referral discounts never stack with a live campaign and never
+        // apply to renewals/upgrades. They are computed here, not accepted from
+        // the client, so a shopper cannot invent their own discount.
+        $memberReferral = null;
+
+        if ($blocked === null && (!$campaign || !$campaign->isLive())) {
+            $memberReferral = $this->memberReferrals()->discountForQuote($user, [
+                'purpose' => $purpose,
+                'amount' => $amount,
+                'campaign' => $campaign && $campaign->isLive() ? $campaign : null,
+            ]);
+
+            if ($memberReferral) {
+                $amount = round(max(0, $amount - $memberReferral['amount']), 2);
+            }
+        }
+
+        // Available referral credit is applied last, after all discounts.
+        $creditAvailable = round(max(0, $this->memberCredits()->availableBalance($user, $includeReservedPaymentId)), 2);
+        $creditApplied = 0.0;
+
+        if ($blocked === null && $creditAvailable > 0) {
+            $creditApplied = round(min($creditAvailable, $amount), 2);
+            $amount = round(max(0, $amount - $creditApplied), 2);
+        }
+
         $amount = round(max(0, $amount), 2);
         $original = round(max(0, $original), 2);
 
@@ -197,6 +229,9 @@ class PlanCatalog
                 'name' => $campaign->name,
                 'amount' => (float) $campaign->amount,
             ] : null,
+            'referral_discount' => $memberReferral,
+            'referral_credit_available' => $creditAvailable,
+            'referral_credit_applied' => $creditApplied,
             'schedule' => $this->schedule($plan),
         ];
     }
@@ -309,5 +344,19 @@ class PlanCatalog
         $quote = $this->quote($user, Plan::ANNUAL);
 
         return (float) $quote['amount'];
+    }
+
+    /**
+     * Resolved lazily to avoid a constructor cycle: ExecutiveService uses
+     * EntitlementService, which resolves plans through this catalog.
+     */
+    protected function memberReferrals(): MemberReferralService
+    {
+        return app(MemberReferralService::class);
+    }
+
+    protected function memberCredits(): MemberReferralCreditService
+    {
+        return app(MemberReferralCreditService::class);
     }
 }

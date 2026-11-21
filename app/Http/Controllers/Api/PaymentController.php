@@ -10,6 +10,7 @@ use App\Models\Plan;
 use App\Services\Billing\PlanCatalog;
 use App\Services\Billing\SubscriptionService;
 use App\Services\Growth\CommissionService;
+use App\Services\Growth\MemberReferralCreditService;
 use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,7 +23,8 @@ class PaymentController extends Controller
         protected PaymentService $paymentService,
         protected PlanCatalog $catalog,
         protected SubscriptionService $subscriptions,
-        protected CommissionService $commissions
+        protected CommissionService $commissions,
+        protected MemberReferralCreditService $credits
     ) {}
 
     /**
@@ -57,32 +59,8 @@ class PaymentController extends Controller
             }
         }
 
-        $quote = $this->catalog->quote($user, $request->input('plan') ?: Plan::ANNUAL);
-
-        if (!empty($quote['blocked_reason'])) {
-            return response()->json([
-                'message' => $quote['blocked_reason'],
-                'error' => $quote['blocked_code'],
-                'quote' => $this->quotePayload($quote),
-            ], 422);
-        }
-
-        // Nothing to charge (full credit or a 100% campaign). Apply the plan
-        // through the same lifecycle service instead of creating a fake sale.
-        if (!$quote['requires_payment']) {
-            $this->subscriptions->applyQuoteWithoutPayment($user, $quote);
-            $user->refresh();
-
-            return response()->json([
-                'activated' => true,
-                'payment' => null,
-                'quote' => $this->quotePayload($quote),
-                'membership' => $this->subscriptions->summary($user),
-            ]);
-        }
-
-        /** @var Plan $plan */
-        $plan = $quote['plan'];
+        $planCode = $request->input('plan') ?: Plan::ANNUAL;
+        $plan = $this->catalog->find($planCode);
 
         // Guard against duplicate pending payments for this user within the
         // last hour (retry storm / double-tap protection). Instead of blocking,
@@ -99,6 +77,7 @@ class PaymentController extends Controller
             // A different plan was chosen while an old checkout was open; the
             // stale attempt must not be resumed or it would charge the wrong
             // amount.
+            $this->credits->releaseForPayment($recentPending);
             $recentPending->update(['status' => 'failed']);
             $recentPending = null;
         }
@@ -108,8 +87,62 @@ class PaymentController extends Controller
         // choosing monthly must start a fresh, correctly priced attempt.
         if ($recentPending && $recentPending->plan_id === null
             && $plan->code !== Plan::ANNUAL) {
+            $this->credits->releaseForPayment($recentPending);
             $recentPending->update(['status' => 'failed']);
             $recentPending = null;
+        }
+
+        // Credits held by the checkout being resumed are still spendable for
+        // that same attempt, so include them in the quote.
+        $quote = $this->catalog->quote($user, $planCode, null, $recentPending?->id);
+
+        if (!empty($quote['blocked_reason'])) {
+            return response()->json([
+                'message' => $quote['blocked_reason'],
+                'error' => $quote['blocked_code'],
+                'quote' => $this->quotePayload($quote),
+            ], 422);
+        }
+
+        /** @var Plan $plan */
+        $plan = $quote['plan'];
+
+        // Hold referral credit before deciding whether a payment is needed.
+        // A token lets the same reservation follow either the zero-charge or
+        // the provider checkout path without being spendable twice.
+        $expectedCredit = round((float) ($quote['referral_credit_applied'] ?? 0), 2);
+        $reservationToken = null;
+
+        if ($expectedCredit > 0 && !$recentPending) {
+            $reservationToken = (string) Str::uuid();
+            $reserved = $this->credits->reserve($user, $expectedCredit, null, $reservationToken);
+
+            if ($reserved < $expectedCredit) {
+                // A concurrent checkout consumed some credit after quoting.
+                // Charge the difference rather than under-charge the member.
+                $shortfall = round($expectedCredit - $reserved, 2);
+                $quote['amount'] = round((float) $quote['amount'] + $shortfall, 2);
+                $quote['referral_credit_applied'] = $reserved;
+                $quote['requires_payment'] = $quote['amount'] > 0;
+            }
+        }
+
+        // Nothing to charge (full credit or a 100% campaign). Apply the plan
+        // through the same lifecycle service instead of creating a fake sale.
+        if (!$quote['requires_payment']) {
+            if ($reservationToken) {
+                $this->credits->commitReservation($user, $reservationToken);
+            }
+
+            $this->subscriptions->applyQuoteWithoutPayment($user, $quote);
+            $user->refresh();
+
+            return response()->json([
+                'activated' => true,
+                'payment' => null,
+                'quote' => $this->quotePayload($quote),
+                'membership' => $this->subscriptions->summary($user),
+            ]);
         }
 
         if ($recentPending) {
@@ -154,7 +187,8 @@ class PaymentController extends Controller
             }
 
             // Providers can reject a reused reference. On failure, void the
-            // stale attempt and fall through to create a fresh payment.
+            // stale attempt and fall through to create a fresh payment while
+            // carrying its credit reservation across.
             try {
                 $result = $this->paymentService->initiate($recentPending);
 
@@ -176,10 +210,14 @@ class PaymentController extends Controller
         // user_id is hardcoded to the authenticated user. The amount and the
         // covered period come from the server-side quote; the client's
         // $request->amount is deliberately ignored.
+        $referral = $quote['referral_discount'] ?? null;
         $payment = Payment::create([
             'user_id' => $user->id,
             'plan_id' => $plan->id,
+            'referral_user_id' => $referral['user_id'] ?? null,
             'amount' => $quote['amount'],
+            'referral_discount_amount' => $referral['amount'] ?? 0,
+            'referral_credit_applied' => $quote['referral_credit_applied'] ?? 0,
             'currency' => $quote['currency'],
             'method' => $request->method ?? 'mobile_money',
             'purpose' => $quote['purpose'],
@@ -194,6 +232,12 @@ class PaymentController extends Controller
             'provider' => config('app.payment_provider', 'mock'),
         ]);
 
+        if ($reservationToken) {
+            $this->credits->attachReservationToPayment($user, $reservationToken, $payment);
+        } elseif ($recentPending) {
+            $this->credits->reassignReservation($recentPending, $payment);
+        }
+
         try {
             $result = $this->paymentService->initiate($payment);
         } catch (\Throwable $e) {
@@ -202,6 +246,10 @@ class PaymentController extends Controller
                 'provider' => $payment->provider,
                 'error' => $e->getMessage(),
             ]);
+            $this->credits->releaseForPayment($payment);
+            if ($reservationToken) {
+                $this->credits->releaseReservation($user, $reservationToken);
+            }
             $payment->update(['status' => 'failed']);
 
             return response()->json([
@@ -348,6 +396,15 @@ class PaymentController extends Controller
                         Log::info('Commission reversed after refund', [
                             'payment_id' => $refunded->id,
                             'count' => $reversed,
+                        ]);
+                    }
+
+                    $creditsReversed = $this->credits->reverseForRefund($refunded);
+
+                    if ($creditsReversed > 0) {
+                        Log::info('Referral credits reversed after refund', [
+                            'payment_id' => $refunded->id,
+                            'count' => $creditsReversed,
                         ]);
                     }
                 }

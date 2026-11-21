@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\Growth\ExecutiveService;
+use App\Services\Growth\MemberReferralService;
 use App\Services\Growth\ReferralAttributionService;
 use App\Services\QRService;
 use Illuminate\Http\Request;
@@ -13,6 +14,7 @@ class ReferralController extends Controller
 {
     public function __construct(
         protected ExecutiveService $executives,
+        protected MemberReferralService $memberReferrals,
         protected ReferralAttributionService $attribution,
         protected QRService $qrService
     ) {}
@@ -23,7 +25,7 @@ class ReferralController extends Controller
      */
     public function click(string $code, Request $request): Response
     {
-        $referral = $this->executives->findByCode($code);
+        $referral = $this->memberReferrals->findByCode($code);
 
         if (!$referral) {
             abort(404);
@@ -42,7 +44,7 @@ class ReferralController extends Controller
      */
     public function qr(string $code): Response
     {
-        $referral = $this->executives->findByCode($code);
+        $referral = $this->memberReferrals->findByCode($code);
 
         if (!$referral) {
             abort(404);

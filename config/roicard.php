@@ -73,6 +73,12 @@ return [
             'minimum' => (float) env('GROWTH_PAYOUT_MINIMUM', 100),
             'cadence_days' => (int) env('GROWTH_PAYOUT_CADENCE_DAYS', 14),
         ],
+        'member_referral' => [
+            // 10% of the first successful membership payment, capped at GHS 50.
+            'discount_rate' => (float) env('MEMBER_REFERRAL_DISCOUNT_RATE', 0.10),
+            'discount_cap' => (float) env('MEMBER_REFERRAL_DISCOUNT_CAP', 50),
+            'credit_months' => (int) env('MEMBER_REFERRAL_CREDIT_MONTHS', 12),
+        ],
         'cookie_days' => (int) env('GROWTH_ATTRIBUTION_DAYS', 30),
     ],
 

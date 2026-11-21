@@ -18,7 +18,10 @@ class Payment extends Model
         'user_id',
         'plan_id',
         'subscription_id',
+        'referral_user_id',
         'amount',
+        'referral_discount_amount',
+        'referral_credit_applied',
         'currency',
         'method',
         'purpose',
@@ -35,6 +38,8 @@ class Payment extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'referral_discount_amount' => 'decimal:2',
+            'referral_credit_applied' => 'decimal:2',
             'period_start' => 'datetime',
             'period_end' => 'datetime',
             'meta' => 'array',
@@ -54,6 +59,11 @@ class Payment extends Model
     public function subscription(): BelongsTo
     {
         return $this->belongsTo(Subscription::class);
+    }
+
+    public function referralUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'referral_user_id');
     }
 
     public function isCompleted(): bool

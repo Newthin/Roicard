@@ -118,6 +118,21 @@ class User extends Authenticatable
         return $this->hasMany(Payment::class);
     }
 
+    public function referralCredits()
+    {
+        return $this->hasMany(MemberReferralCredit::class);
+    }
+
+    public function referredMembers()
+    {
+        return $this->hasMany(User::class, 'referred_by_user_id');
+    }
+
+    public function referralCode()
+    {
+        return $this->hasOne(ExecutiveReferral::class);
+    }
+
     /** The member's current billing subscription (one row per member). */
     public function subscription()
     {

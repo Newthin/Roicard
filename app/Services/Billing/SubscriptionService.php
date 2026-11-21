@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Mail\MembershipLapsedMail;
 use App\Services\Growth\CommissionService;
 use App\Services\Growth\ExecutiveService;
+use App\Services\Growth\MemberReferralCreditService;
 use App\Services\MemberAccountService;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -32,7 +33,8 @@ class SubscriptionService
         protected EntitlementService $entitlements,
         protected MemberAccountService $accounts,
         protected ExecutiveService $executives,
-        protected CommissionService $commissions
+        protected CommissionService $commissions,
+        protected MemberReferralCreditService $memberCredits
     ) {}
 
     /**
@@ -100,6 +102,11 @@ class SubscriptionService
             // Growth Network: credit the referring Executive after the payment
             // is marked applied, so a duplicate webhook can never double-pay.
             $this->commissions->creditForPayment($payment, $subscription);
+
+            // Normal-member referral credits and held checkout credits settle
+            // on the same successful, already-applied payment.
+            $this->memberCredits->earnForPayment($payment);
+            $this->memberCredits->markUsedForPayment($payment);
 
             $this->refreshAccess($user);
         });

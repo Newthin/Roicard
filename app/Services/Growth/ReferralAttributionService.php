@@ -28,7 +28,10 @@ class ReferralAttributionService
         return (int) config('roicard.growth.cookie_days', 30) * 24 * 60;
     }
 
-    public function __construct(protected ExecutiveService $executives) {}
+    public function __construct(
+        protected ExecutiveService $executives,
+        protected MemberReferralService $memberReferrals
+    ) {}
 
     public function recordClick(ExecutiveReferral $referral, Request $request): ReferralClick
     {
@@ -83,7 +86,7 @@ class ReferralAttributionService
 
         $referral = $this->executives->findByCode($code);
 
-        if (!$referral || !$this->executives->isExecutive($referral->user)) {
+        if (!$referral || !$this->memberReferrals->canUseReferralCode($referral->user)) {
             return null;
         }
 
@@ -99,6 +102,13 @@ class ReferralAttributionService
         $referral = $this->attributedReferral($request);
 
         if (!$referral || $user->referred_by_user_id) {
+            return null;
+        }
+
+        // Block the identifiable self-referral case: a member cannot claim a
+        // discount by registering their own referral link with their own email.
+        if ($referral->user->email
+            && strcasecmp($referral->user->email, $user->email) === 0) {
             return null;
         }
 

@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\DiscountCampaignController;
 use App\Http\Controllers\Api\ExecutiveController;
 use App\Http\Controllers\Api\GoogleAuthController;
 use App\Http\Controllers\Api\InterestOptionController;
+use App\Http\Controllers\Api\MemberReferralController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PlansController;
@@ -149,6 +150,10 @@ Route::middleware(['auth:sanctum', 'prevent_leak'])->group(function () {
     // Growth Network — executive referral assets and dashboard (plan-based identity)
     Route::get('/executive/referral', [ExecutiveController::class, 'referral']);
     Route::get('/executive/dashboard', [ExecutiveController::class, 'dashboard']);
+
+    // Growth Network — verified member referrals (non-cash credit)
+    Route::get('/referrals/me', [MemberReferralController::class, 'me']);
+    Route::get('/referrals/dashboard', [MemberReferralController::class, 'dashboard']);
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);

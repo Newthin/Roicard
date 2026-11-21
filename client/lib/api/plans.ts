@@ -30,6 +30,15 @@ export interface PlanQuote {
   blocked_reason: string | null;
   blocked_code: string | null;
   campaign: { code: string; name: string; amount: number } | null;
+  referral_discount: {
+    user_id: number;
+    code: string;
+    amount: number;
+    rate: number;
+    cap: number;
+  } | null;
+  referral_credit_available: number;
+  referral_credit_applied: number;
   schedule: PlanSchedule;
 }
 
