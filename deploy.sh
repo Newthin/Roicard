@@ -87,6 +87,18 @@ sudo systemctl restart php8.3-fpm
 echo "==> Restarting queue worker"
 sudo systemctl restart roicard-worker
 
+# Laravel schedules are only definitions; a non-root systemd timer must invoke
+# schedule:run every minute. Install the units from the repository so a server
+# rebuild cannot silently lose payout/billing automation. Cache directories are
+# re-owned because the cache-clear commands above run as root.
+echo "==> Installing Laravel scheduler timer"
+sudo install -o root -g root -m 0644 "$BACKEND_DIR/deploy/systemd/roicard-scheduler.service" /etc/systemd/system/roicard-scheduler.service
+sudo install -o root -g root -m 0644 "$BACKEND_DIR/deploy/systemd/roicard-scheduler.timer" /etc/systemd/system/roicard-scheduler.timer
+sudo chown -R www-data:www-data "$BACKEND_DIR/storage" "$BACKEND_DIR/bootstrap/cache"
+sudo systemctl daemon-reload
+sudo systemctl enable roicard-scheduler.timer
+sudo systemctl restart roicard-scheduler.timer
+
 echo "==> Deploying frontend"
 cd "$FRONTEND_DIR"
 sudo git pull origin main
