@@ -40,8 +40,8 @@ class DataRetentionTest extends TestCase
         $user->delete();
 
         $this->getJson('/api/public/retained-user')
-            ->assertStatus(403)
-            ->assertJson(['status' => 'draft']);
+            ->assertStatus(404)
+            ->assertJson(['message' => 'Profile not found']);
     }
 
     public function test_purge_removes_only_users_past_retention_window(): void

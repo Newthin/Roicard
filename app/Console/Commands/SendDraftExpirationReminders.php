@@ -121,6 +121,9 @@ class SendDraftExpirationReminders extends Command
     {
         return User::query()
             ->where('status', 'draft')
+            // Completed onboarding means a free-tier member, not an abandoned
+            // signup. Only accounts that never finished the journey expire.
+            ->whereNull('onboarding_completed_at')
             ->where('role', 'member')
             ->whereNull('deleted_at')
             ->whereDate('created_at', '=', now()->subDays($daysAgo)->toDateString());

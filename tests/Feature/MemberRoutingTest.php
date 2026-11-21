@@ -8,6 +8,7 @@ use App\Models\Payment;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\MemberAccessService;
+use App\Services\ProfileSaveService;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -195,8 +196,21 @@ class MemberRoutingTest extends TestCase
             ])
             ->assertOk();
 
+        // The client-supplied field is ignored; publication happens because
+        // saving the profile completes onboarding for the free tier.
         $this->assertSame('draft', $user->fresh()->status);
-        $this->assertFalse((bool) $user->profile->fresh()->is_live);
+        $this->assertNotNull($user->fresh()->onboarding_completed_at);
+        $this->assertTrue((bool) $user->profile->fresh()->is_live);
+
+        // A raw save that does not complete onboarding must still never publish.
+        $other = $this->member();
+        $otherProfile = $other->profile()->create([]);
+        app(ProfileSaveService::class)->save($other, [
+            'title' => 'Engineer',
+            'is_live' => true,
+        ]);
+
+        $this->assertFalse((bool) $otherProfile->fresh()->is_live);
     }
 
     public function test_admin_created_user_skips_onboarding_and_can_sign_in(): void
@@ -531,7 +545,9 @@ class MemberRoutingTest extends TestCase
             'amount' => 100,
             'currency' => 'GHS',
             'method' => 'card',
-            'status' => 'pending',
+            // The activation job only applies verified payments; this test
+            // invokes it directly, so the row represents a settled charge.
+            'status' => 'success',
             'provider' => 'mock',
             'provider_reference' => 'pay-ref-onboarding',
         ]);

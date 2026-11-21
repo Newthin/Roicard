@@ -8,6 +8,7 @@
 "use client";
 
 import { AccountSettingsSection } from "@/components/settings/AccountSettingsSection";
+import { BillingPanel } from "@/components/settings/BillingPanel";
 import { DangerZoneCard } from "@/components/settings/DangerZoneCard";
 import {
   getDefaultProfileFormData,
@@ -47,6 +48,21 @@ export function SettingsView() {
 
   useEffect(() => {
     loadProfile();
+
+    // Deep link support: /dashboard/settings?tab=billing (used by emails and
+    // upgrade prompts).
+    if (typeof window !== "undefined") {
+      const tab = new URLSearchParams(window.location.search).get("tab");
+      if (
+        tab === "profile" ||
+        tab === "account" ||
+        tab === "billing" ||
+        tab === "security" ||
+        tab === "danger"
+      ) {
+        setActiveTab(tab as import("@/lib/settings/types").SettingsTab);
+      }
+    }
   }, [loadProfile]);
 
   /** Renders the active tab panel content. */
@@ -61,6 +77,8 @@ export function SettingsView() {
         );
       case "account":
         return <AccountSettingsSection />;
+      case "billing":
+        return <BillingPanel />;
       case "security":
         return <SecuritySettingsSection />;
       case "danger":

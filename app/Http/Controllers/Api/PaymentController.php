@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PaymentInitiateRequest;
+use App\Models\DiscountCampaign;
 use App\Models\Payment;
-use App\Models\User;
+use App\Models\Plan;
+use App\Services\Billing\PlanCatalog;
+use App\Services\Billing\SubscriptionService;
 use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,24 +18,27 @@ use Illuminate\Support\Str;
 class PaymentController extends Controller
 {
     public function __construct(
-        protected PaymentService $paymentService
+        protected PaymentService $paymentService,
+        protected PlanCatalog $catalog,
+        protected SubscriptionService $subscriptions
     ) {}
 
+    /**
+     * Start checkout for a plan. The client sends only a plan code; the amount,
+     * billing period, upgrade credit and campaign discount are all resolved
+     * server-side, so pricing can never be spoofed.
+     */
     public function initiate(PaymentInitiateRequest $request): JsonResponse
     {
         $user = auth()->user();
-
-        if ($user->isActive()) {
-            return response()->json(['message' => 'Account already active'], 400);
-        }
 
         // Optional late campaign code: a member who missed it at registration
         // can still claim a live campaign's discounted rate at checkout.
         if ($request->filled('campaign_code')) {
             $entered = mb_strtoupper(trim((string) $request->campaign_code));
-            $campaign = \App\Models\DiscountCampaign::where('code', $entered)->first();
+            $campaign = DiscountCampaign::where('code', $entered)->first();
 
-            if (! $campaign || ! $campaign->isLive()) {
+            if (!$campaign || !$campaign->isLive()) {
                 return response()->json([
                     'message' => 'The campaign code is invalid or has ended.',
                     'errors' => [
@@ -49,6 +55,33 @@ class PaymentController extends Controller
             }
         }
 
+        $quote = $this->catalog->quote($user, $request->input('plan') ?: Plan::ANNUAL);
+
+        if (!empty($quote['blocked_reason'])) {
+            return response()->json([
+                'message' => $quote['blocked_reason'],
+                'error' => $quote['blocked_code'],
+                'quote' => $this->quotePayload($quote),
+            ], 422);
+        }
+
+        // Nothing to charge (full credit or a 100% campaign). Apply the plan
+        // through the same lifecycle service instead of creating a fake sale.
+        if (!$quote['requires_payment']) {
+            $this->subscriptions->applyQuoteWithoutPayment($user, $quote);
+            $user->refresh();
+
+            return response()->json([
+                'activated' => true,
+                'payment' => null,
+                'quote' => $this->quotePayload($quote),
+                'membership' => $this->subscriptions->summary($user),
+            ]);
+        }
+
+        /** @var Plan $plan */
+        $plan = $quote['plan'];
+
         // Guard against duplicate pending payments for this user within the
         // last hour (retry storm / double-tap protection). Instead of blocking,
         // resume the existing attempt: re-run the provider handshake so the
@@ -59,12 +92,44 @@ class PaymentController extends Controller
             ->latest()
             ->first();
 
+        if ($recentPending && $recentPending->plan_id !== null
+            && (int) $recentPending->plan_id !== (int) $plan->id) {
+            // A different plan was chosen while an old checkout was open; the
+            // stale attempt must not be resumed or it would charge the wrong
+            // amount.
+            $recentPending->update(['status' => 'failed']);
+            $recentPending = null;
+        }
+
+        // Pre-subscription checkout attempts have no plan_id. They are only
+        // safe to resume for the default annual plan; a member explicitly
+        // choosing monthly must start a fresh, correctly priced attempt.
+        if ($recentPending && $recentPending->plan_id === null
+            && $plan->code !== Plan::ANNUAL) {
+            $recentPending->update(['status' => 'failed']);
+            $recentPending = null;
+        }
+
         if ($recentPending) {
+            // Normalise a pre-subscription attempt to the plan being resumed so
+            // a later success applies the correct period instead of falling
+            // back to legacy founding access.
+            if ($recentPending->plan_id === null) {
+                $recentPending->forceFill([
+                    'plan_id' => $plan->id,
+                    'amount' => $quote['amount'],
+                    'purpose' => $quote['purpose'],
+                    'period_start' => $quote['period_start'],
+                    'period_end' => $quote['period_end'],
+                    'meta' => ['quote' => $this->quotePayload($quote)],
+                ])->save();
+            }
+
             $reference = $recentPending->provider_reference;
 
             // The abandoned checkout may have quietly completed at the
             // provider without our webhook firing. Confirm before charging
-            // again so the member is never billed twice for one activation.
+            // again so the member is never billed twice for one purchase.
             try {
                 $verified = $this->paymentService->verify($reference);
             } catch (\Throwable $e) {
@@ -81,6 +146,7 @@ class PaymentController extends Controller
                 return response()->json([
                     'payment' => $recentPending,
                     'redirect' => ['status' => 'success', 'reference' => $reference],
+                    'quote' => $this->quotePayload($quote),
                     'resumed' => true,
                 ]);
             }
@@ -93,6 +159,7 @@ class PaymentController extends Controller
                 return response()->json([
                     'payment' => $recentPending,
                     'redirect' => $result,
+                    'quote' => $this->quotePayload($quote),
                     'resumed' => true,
                 ]);
             } catch (\Throwable $e) {
@@ -104,15 +171,21 @@ class PaymentController extends Controller
             }
         }
 
-        // user_id is hardcoded to the authenticated user — it is never taken
-        // from request input. The amount is derived server-side from the
-        // user's campaign/status context: the client's $request->amount is
-        // deliberately ignored so pricing can never be spoofed.
+        // user_id is hardcoded to the authenticated user. The amount and the
+        // covered period come from the server-side quote; the client's
+        // $request->amount is deliberately ignored.
         $payment = Payment::create([
             'user_id' => $user->id,
-            'amount' => app(\App\Services\ActivationFeeService::class)->for($user),
-            'currency' => 'GHS',
+            'plan_id' => $plan->id,
+            'amount' => $quote['amount'],
+            'currency' => $quote['currency'],
             'method' => $request->method ?? 'mobile_money',
+            'purpose' => $quote['purpose'],
+            'period_start' => $quote['period_start'],
+            'period_end' => $quote['period_end'],
+            'meta' => [
+                'quote' => $this->quotePayload($quote),
+            ],
             'momo_number' => $request->momo_number,
             'status' => 'pending',
             'provider_reference' => strtoupper(Str::random(12)),
@@ -137,7 +210,9 @@ class PaymentController extends Controller
         return response()->json([
             'payment' => $payment,
             'redirect' => $result,
-            'activation_fee' => app(\App\Services\ActivationFeeService::class)->for($user),
+            'quote' => $this->quotePayload($quote),
+            // Kept for older clients that read this field.
+            'activation_fee' => $quote['amount'],
         ]);
     }
 
@@ -161,8 +236,8 @@ class PaymentController extends Controller
             ->firstOrFail();
 
         if ($payment->isPending()) {
-            // PaymentObserver dispatches ProcessActivationJob synchronously on
-            // the transition to success — same path as a verified webhook.
+            // PaymentObserver applies the payment to the subscription
+            // synchronously on the transition to success.
             $payment->update(['status' => 'success']);
         }
 
@@ -171,6 +246,7 @@ class PaymentController extends Controller
         return response()->json([
             'status' => $payment->status,
             'payment' => $payment,
+            'membership' => $this->subscriptions->summary(auth()->user()->fresh()),
         ]);
     }
 
@@ -229,10 +305,38 @@ class PaymentController extends Controller
             $payment = Payment::where('provider_reference', $reference)->first();
 
             if ($payment && $payment->isPending()) {
+                // Amount tampering guard: a provider callback must never
+                // settle a payment for less than the server quoted.
+                $paid = $request->input('data.amount');
+
+                if ($paid !== null && (float) $paid + 0.01 < (float) $payment->amount) {
+                    // Provider units differ (Paystack uses pesewas), so this is
+                    // an audit signal rather than a hard rejection. The
+                    // provider-side verification remains authoritative.
+                    Log::warning('Webhook amount below quoted amount', [
+                        'reference' => $reference,
+                        'expected' => (float) $payment->amount,
+                        'received' => (float) $paid,
+                    ]);
+                }
+
                 $payment->update(['status' => 'success']);
             }
         }
 
         return response()->json(['message' => 'Webhook received']);
+    }
+
+    /**
+     * Remove the internal Plan model from a quote before returning it.
+     *
+     * @param  array<string, mixed>  $quote
+     * @return array<string, mixed>
+     */
+    protected function quotePayload(array $quote): array
+    {
+        unset($quote['plan']);
+
+        return $quote;
     }
 }

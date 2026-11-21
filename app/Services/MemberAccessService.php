@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Services\Billing\SubscriptionService;
 
 /**
  * Single source of truth for "where should this member go next?".
@@ -58,6 +59,8 @@ class MemberAccessService
      */
     public function payload(User $user): array
     {
+        $membership = app(SubscriptionService::class)->summary($user);
+
         return $user->only(['id', 'first_name', 'last_name', 'email', 'status', 'role'])
             + [
                 'email_verified' => (bool) $user->hasVerifiedEmail(),
@@ -68,6 +71,11 @@ class MemberAccessService
                 'campaign_code' => $user->campaign_code,
                 'activation_fee' => app(ActivationFeeService::class)->for($user),
                 'draft_closes_at' => $user->draftClosesAt()?->toISOString(),
+                'plan' => $membership['plan'],
+                'membership_status' => $membership['status'],
+                'is_founding_member' => $membership['is_founding'],
+                'has_active_subscription' => $membership['is_active'],
+                'subscription' => $membership,
             ];
     }
 }

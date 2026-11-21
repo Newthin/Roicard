@@ -3,9 +3,13 @@ import apiClient from "./client";
 export interface Payment {
   id: number;
   user_id: number;
-  amount: string;
+  plan_id?: number | null;
+  amount: string | number;
   currency: string;
   method: string | null;
+  purpose?: string;
+  period_start?: string | null;
+  period_end?: string | null;
   momo_number: string | null;
   status: "pending" | "success" | "failed";
   provider_reference: string;
@@ -26,11 +30,20 @@ function generateIdempotencyKey(): string {
 }
 
 export async function initiatePayment(payload: {
-  amount: number;
+  /** Plan code. The server resolves the amount; `amount` is ignored. */
+  plan?: string;
+  amount?: number;
   currency?: string;
   method?: string;
   momo_number?: string;
-}): Promise<{ payment: Payment; redirect: Record<string, unknown> }> {
+  campaign_code?: string;
+}): Promise<{
+  payment: Payment | null;
+  redirect?: Record<string, unknown>;
+  quote?: unknown;
+  activated?: boolean;
+  membership?: unknown;
+}> {
   const { data } = await apiClient.post("/payments/initiate", payload, {
     headers: { "Idempotency-Key": generateIdempotencyKey() },
   });

@@ -9,7 +9,9 @@ use App\Models\EducationEntry;
 use App\Models\ExperienceEntry;
 use App\Models\Profile;
 use App\Models\SocialLink;
+use App\Services\Billing\EntitlementService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
@@ -18,6 +20,25 @@ class ProfileEnrichmentController extends Controller
     protected function profile()
     {
         return auth()->user()->profile()->firstOrFail();
+    }
+
+    /**
+     * Enforce a numeric plan limit (null means unlimited). Returns a 403 with a
+     * stable error code the client can turn into an upgrade prompt.
+     */
+    protected function enforceLimit(string $key, int $current): void
+    {
+        $limit = app(EntitlementService::class)->limit(auth()->user(), $key);
+
+        if ($limit !== null && $current >= $limit) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'You have reached your plan limit. Upgrade to add more.',
+                'error' => 'plan_limit_reached',
+                'limit_key' => $key,
+                'limit' => $limit,
+                'upgrade_url' => '/pricing',
+            ], 403));
+        }
     }
 
     public function uploadCv(Request $request): JsonResponse
@@ -64,6 +85,9 @@ class ProfileEnrichmentController extends Controller
 
     public function storeEducation(Request $request): JsonResponse
     {
+        $profile = $this->profile();
+        $this->enforceLimit('cv_entries', $profile->education()->count());
+
         $validated = $request->validate([
             'institution' => ['required', 'string', 'max:255'],
             'degree' => ['required', 'string', 'max:255'],
@@ -105,6 +129,9 @@ class ProfileEnrichmentController extends Controller
 
     public function storeExperience(Request $request): JsonResponse
     {
+        $profile = $this->profile();
+        $this->enforceLimit('experience_entries', $profile->experience()->count());
+
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'company' => ['required', 'string', 'max:255'],

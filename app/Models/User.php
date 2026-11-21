@@ -117,6 +117,51 @@ class User extends Authenticatable
         return $this->hasMany(Payment::class);
     }
 
+    /** The member's current billing subscription (one row per member). */
+    public function subscription()
+    {
+        return $this->hasOne(Subscription::class);
+    }
+
+    /** Access-bearing subscription, including grace and founding. */
+    public function activeSubscription(): ?Subscription
+    {
+        $subscription = $this->subscription;
+
+        return $subscription && $subscription->isActive() ? $subscription : null;
+    }
+
+    /**
+     * Legacy active accounts (paid before subscriptions existed) are treated
+     * as founding members even before the backfill command runs.
+     */
+    public function isFoundingMember(): bool
+    {
+        $subscription = $this->subscription;
+
+        if ($subscription) {
+            return $subscription->status === Subscription::STATUS_FOUNDING;
+        }
+
+        return $this->status === 'active' && ! $this->isAdmin();
+    }
+
+    public function planCode(): string
+    {
+        $subscription = $this->subscription;
+
+        if (!$subscription || !$subscription->isActive()) {
+            return Plan::FREE;
+        }
+
+        return $subscription->plan?->code ?? ($subscription->isFounding() ? Plan::FOUNDING : Plan::FREE);
+    }
+
+    public function hasFeature(string $feature): bool
+    {
+        return app(\App\Services\Billing\EntitlementService::class)->allows($this, $feature);
+    }
+
     public function smartCard()
     {
         return $this->hasOne(SmartCard::class);
@@ -176,7 +221,9 @@ class User extends Authenticatable
      */
     public function draftClosesAt(): ?\Carbon\CarbonInterface
     {
-        if ($this->status !== 'draft' || !$this->created_at) {
+        // Free members who finished onboarding are not drafts in the
+        // "abandoned signup" sense and are never closed by the sequence.
+        if ($this->status !== 'draft' || $this->onboarding_completed_at !== null || !$this->created_at) {
             return null;
         }
 

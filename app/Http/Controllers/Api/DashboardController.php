@@ -9,6 +9,7 @@ use App\Models\MeetingBooking;
 use App\Models\MeetingType;
 use App\Models\Profile;
 use App\Models\SmartCard;
+use App\Services\MemberAccessService;
 use Illuminate\Http\JsonResponse;
 
 class DashboardController extends Controller
@@ -58,11 +59,10 @@ class DashboardController extends Controller
         }
 
         return response()->json([
-            'user' => $user->only(['id', 'first_name', 'last_name', 'email', 'status', 'role'])
-                + [
-                    // Countdown support for draft accounts (null when active)
-                    'draft_closes_at' => $user->draftClosesAt()?->toISOString(),
-                ],
+            // Canonical member payload: account status stays separate from the
+            // billing membership state so the dashboard can show the right plan
+            // and upgrade prompt after an expiry or downgrade.
+            'user' => app(MemberAccessService::class)->payload($user),
             'profile' => $profilePayload,
             'smart_card' => $smartCard,
             'stats' => [

@@ -102,11 +102,11 @@ class AvailabilityEngine
             $dayBookingsCount = $this->countReservationsOnDay($allBookings, $rescheduleReservations, $dayDate);
             $maxPerDay = $type->max_bookings_per_day;
 
-            // Constraint 15: Capacity
+            // Capacity is per overlapping slot; max_bookings_per_day is the
+            // separate daily cap. Conflating them would emit only one slot per
+            // day on a capacity-1 meeting type.
             $capacity = $type->capacity;
-            $effectiveDailyCap = $maxPerDay !== null
-                ? min($maxPerDay, $capacity)
-                : $capacity;
+            $effectiveDailyCap = $maxPerDay;
 
             // Constraint 2: Multiple availability periods per day
             foreach ($dayRules as $rule) {
@@ -153,11 +153,10 @@ class AvailabilityEngine
                         continue;
                     }
 
-                    // Constraint 6-8: Existing bookings, pending requests, reschedule reservations
-                    if ($this->hasConflict($allBookings, $rescheduleReservations, $slotStartUtc, $slotEndUtc)) {
-                        $cursor->addMinutes($step);
-                        continue;
-                    }
+                    // Constraints 6-8, 15: overlapping reservations only block
+                    // the slot once the meeting type's capacity is consumed.
+                    // A blanket "any overlap" check here would make capacity > 1
+                    // meaningless.
 
                     // Constraint 9: Max bookings per day
                     if ($effectiveDailyCap !== null && $dayBookingsCount >= $effectiveDailyCap) {
@@ -231,19 +230,21 @@ class AvailabilityEngine
             return ['available' => false, 'reason' => 'Date is blocked.'];
         }
 
-        // Constraint 1: Weekly recurring availability
-        $dayOfWeek = (int) $slotStart->timezone($hostTz)->format('w');
+        // Constraint 1: Weekly recurring availability. Work on copies so the
+        // caller's Carbon instances are never mutated — BookingEngine uses them
+        // again to persist the booking after this check.
         $availability = $type->availability;
         $slotStartLocal = $slotStart->copy()->timezone($hostTz);
         $slotEndLocal = $slotEnd->copy()->timezone($hostTz);
+        $dayOfWeek = (int) $slotStartLocal->format('w');
 
-        $coversSlot = $availability->contains(function (MeetingTypeAvailability $rule) use ($dayOfWeek, $slotStartLocal, $slotEndLocal) {
+        $coversSlot = $availability->contains(function (MeetingTypeAvailability $rule) use ($hostTz, $dayOfWeek, $slotStartLocal, $slotEndLocal) {
             if ((int) $rule->day_of_week !== $dayOfWeek) {
                 return false;
             }
-            $periodStart = Carbon::parse($rule->start_time, $rule->meetingType->user->timezone ?? 'UTC')
+            $periodStart = Carbon::parse($rule->start_time, $hostTz)
                 ->setDate($slotStartLocal->year, $slotStartLocal->month, $slotStartLocal->day);
-            $periodEnd = Carbon::parse($rule->end_time, $rule->meetingType->user->timezone ?? 'UTC')
+            $periodEnd = Carbon::parse($rule->end_time, $hostTz)
                 ->setDate($slotStartLocal->year, $slotStartLocal->month, $slotStartLocal->day);
 
             if ($periodEnd->lte($periodStart)) {
@@ -257,20 +258,18 @@ class AvailabilityEngine
             return ['available' => false, 'reason' => 'Slot is outside availability hours.'];
         }
 
-        // Constraints 6-8, 15: Conflict check
+        // Constraints 6-8, 15: overlapping reservations only block the slot
+        // once the meeting type's capacity is consumed.
         $allBookings = $this->loadReservingBookings($type);
         $rescheduleReservations = $this->loadRescheduleReservations($type);
 
-        if ($this->hasConflict($allBookings, $rescheduleReservations, $slotStart, $slotEnd)) {
-            return ['available' => false, 'reason' => 'Slot conflicts with an existing reservation.'];
-        }
-
-        // Constraint 15: Capacity
         $overlapCount = $this->countOverlappingReservations(
             $allBookings, $rescheduleReservations, $slotStart, $slotEnd
         );
         if ($overlapCount >= $type->capacity) {
-            return ['available' => false, 'reason' => 'Slot has reached capacity.'];
+            return ['available' => false, 'reason' => $overlapCount > 0
+                ? 'Slot conflicts with an existing reservation.'
+                : 'Slot has reached capacity.'];
         }
 
         // Constraint 9: Max bookings per day

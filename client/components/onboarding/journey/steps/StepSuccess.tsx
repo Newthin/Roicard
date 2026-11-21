@@ -19,9 +19,12 @@ export function StepSuccess() {
   const items = [
     { label: "Profile Created", done: true },
     { label: "Profile Link Generated", done: true },
-    { label: "Roicard Smart Card Reserved", done: true },
     {
-      label: isActive ? "Membership Activated" : "Membership — Pending Activation",
+      label: isActive ? "Roicard Smart Card Reserved" : "Public Profile Live",
+      done: true,
+    },
+    {
+      label: isActive ? "Membership Activated" : "Free Plan - Upgrade Anytime",
       done: isActive,
     },
   ];
@@ -39,7 +42,7 @@ export function StepSuccess() {
           description={
             isActive
               ? "Your membership is active. Your profile is live and your professional identity is taking shape."
-              : "Your profile is created — saved privately as a draft. Activate anytime from your dashboard to go live."
+              : "Your free profile is ready to go live. Upgrade anytime to add the physical card, meeting booking and full analytics."
           }
         />
       </div>

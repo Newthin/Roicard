@@ -115,7 +115,7 @@ class PublicBookingFlowTest extends TestCase
     {
         $slotStart = Carbon::now('UTC')->addDays(3)->setTime(14, 0);
 
-        $response = $this->postJson("/api/public/testmember/meeting-types/{$this->type->id}/book", [
+        $response = $this->postJsonWithIdempotency("/api/public/testmember/meeting-types/{$this->type->id}/book", [
             'guest_name' => 'Jane Smith',
             'guest_email' => 'jane@example.com',
             'guest_phone' => '+1234567890',
@@ -142,7 +142,7 @@ class PublicBookingFlowTest extends TestCase
         $existingUser = User::factory()->create(['email' => 'member@example.com']);
         $slotStart = Carbon::now('UTC')->addDays(3)->setTime(14, 0);
 
-        $response = $this->postJson("/api/public/testmember/meeting-types/{$this->type->id}/book", [
+        $response = $this->postJsonWithIdempotency("/api/public/testmember/meeting-types/{$this->type->id}/book", [
             'guest_name' => 'Existing Member',
             'guest_email' => 'member@example.com',
             'start_time' => $slotStart->toIso8601String(),
@@ -162,7 +162,7 @@ class PublicBookingFlowTest extends TestCase
         $slotStart = Carbon::now('UTC')->addDays(3)->setTime(14, 0);
 
         // First booking
-        $this->postJson("/api/public/testmember/meeting-types/{$this->type->id}/book", [
+        $this->postJsonWithIdempotency("/api/public/testmember/meeting-types/{$this->type->id}/book", [
             'guest_name' => 'First Guest',
             'guest_email' => 'first@example.com',
             'start_time' => $slotStart->toIso8601String(),
@@ -170,7 +170,7 @@ class PublicBookingFlowTest extends TestCase
         ]);
 
         // Second booking on same slot
-        $response = $this->postJson("/api/public/testmember/meeting-types/{$this->type->id}/book", [
+        $response = $this->postJsonWithIdempotency("/api/public/testmember/meeting-types/{$this->type->id}/book", [
             'guest_name' => 'Second Guest',
             'guest_email' => 'second@example.com',
             'start_time' => $slotStart->toIso8601String(),
@@ -187,7 +187,7 @@ class PublicBookingFlowTest extends TestCase
         $this->type->update(['is_active' => false]);
         $slotStart = Carbon::now('UTC')->addDays(3)->setTime(14, 0);
 
-        $response = $this->postJson("/api/public/testmember/meeting-types/{$this->type->id}/book", [
+        $response = $this->postJsonWithIdempotency("/api/public/testmember/meeting-types/{$this->type->id}/book", [
             'guest_name' => 'Guest',
             'guest_email' => 'guest@example.com',
             'start_time' => $slotStart->toIso8601String(),
@@ -212,7 +212,7 @@ class PublicBookingFlowTest extends TestCase
 
         $slotStart = Carbon::now('UTC')->addDays(3)->setTime(14, 0);
 
-        $response = $this->postJson("/api/public/testmember/meeting-types/{$otherType->id}/book", [
+        $response = $this->postJsonWithIdempotency("/api/public/testmember/meeting-types/{$otherType->id}/book", [
             'guest_name' => 'Guest',
             'guest_email' => 'guest@example.com',
             'start_time' => $slotStart->toIso8601String(),
@@ -235,7 +235,7 @@ class PublicBookingFlowTest extends TestCase
 
         $slotStart = Carbon::now('UTC')->addDays(3)->setTime(14, 0);
 
-        $response = $this->postJson("/api/public/testmember/meeting-types/{$this->type->id}/book", [
+        $response = $this->postJsonWithIdempotency("/api/public/testmember/meeting-types/{$this->type->id}/book", [
             'guest_name' => 'Guest',
             'guest_email' => 'guest@example.com',
             'start_time' => $slotStart->toIso8601String(),
@@ -266,7 +266,7 @@ class PublicBookingFlowTest extends TestCase
 
         $slotStart = Carbon::now('UTC')->addDays(3)->setTime(14, 0);
 
-        $response = $this->postJson("/api/public/testmember/meeting-types/{$this->type->id}/book", [
+        $response = $this->postJsonWithIdempotency("/api/public/testmember/meeting-types/{$this->type->id}/book", [
             'guest_name' => 'Guest',
             'guest_email' => 'guest@example.com',
             'start_time' => $slotStart->toIso8601String(),
@@ -282,7 +282,7 @@ class PublicBookingFlowTest extends TestCase
 
     public function test_validation_missing_required_fields(): void
     {
-        $response = $this->postJson("/api/public/testmember/meeting-types/{$this->type->id}/book", []);
+        $response = $this->postJsonWithIdempotency("/api/public/testmember/meeting-types/{$this->type->id}/book", []);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['guest_name', 'guest_email', 'start_time', 'timezone']);
@@ -294,7 +294,7 @@ class PublicBookingFlowTest extends TestCase
     {
         $slotStart = Carbon::now('UTC')->addDays(3)->setTime(14, 0);
 
-        $response = $this->postJson("/api/public/testmember/meeting-types/{$this->type->id}/book", [
+        $response = $this->postJsonWithIdempotency("/api/public/testmember/meeting-types/{$this->type->id}/book", [
             'guest_name' => 'Cancelling Guest',
             'guest_email' => 'cancel@example.com',
             'start_time' => $slotStart->toIso8601String(),
@@ -340,7 +340,9 @@ class PublicBookingFlowTest extends TestCase
 
     public function test_inactive_member_profile(): void
     {
-        $this->host->update(['status' => 'inactive']);
+        // Public visibility follows suspension (deactivated_at), not the legacy
+        // onboarding status column.
+        $this->host->update(['deactivated_at' => now()]);
 
         $response = $this->getJson('/api/public/testmember/meeting-types');
 
@@ -351,6 +353,8 @@ class PublicBookingFlowTest extends TestCase
 
     public function test_phone_meeting_type_booking(): void
     {
+        $target = Carbon::now('UTC')->addDays(3)->setTimezone($this->host->timezone);
+
         $phoneType = MeetingType::create([
             'user_id' => $this->host->id,
             'name' => 'Phone Call',
@@ -363,14 +367,14 @@ class PublicBookingFlowTest extends TestCase
 
         MeetingTypeAvailability::create([
             'meeting_type_id' => $phoneType->id,
-            'day_of_week' => 1,
+            'day_of_week' => (int) $target->format('w'),
             'start_time' => '09:00',
             'end_time' => '17:00',
         ]);
 
-        $slotStart = Carbon::now('UTC')->addDays(3)->setTime(14, 0);
+        $slotStart = $target->copy()->setTime(9, 0)->setTimezone('UTC');
 
-        $response = $this->postJson("/api/public/testmember/meeting-types/{$phoneType->id}/book", [
+        $response = $this->postJsonWithIdempotency("/api/public/testmember/meeting-types/{$phoneType->id}/book", [
             'guest_name' => 'Phone Guest',
             'guest_email' => 'phone@example.com',
             'start_time' => $slotStart->toIso8601String(),
@@ -387,6 +391,8 @@ class PublicBookingFlowTest extends TestCase
 
     public function test_in_person_meeting_type_booking(): void
     {
+        $target = Carbon::now('UTC')->addDays(3)->setTimezone($this->host->timezone);
+
         $inPersonType = MeetingType::create([
             'user_id' => $this->host->id,
             'name' => 'In-Person Meeting',
@@ -399,14 +405,14 @@ class PublicBookingFlowTest extends TestCase
 
         MeetingTypeAvailability::create([
             'meeting_type_id' => $inPersonType->id,
-            'day_of_week' => 3,
+            'day_of_week' => (int) $target->format('w'),
             'start_time' => '10:00',
             'end_time' => '16:00',
         ]);
 
-        $slotStart = Carbon::now('UTC')->addDays(3)->setTime(14, 0);
+        $slotStart = $target->copy()->setTime(10, 0)->setTimezone('UTC');
 
-        $response = $this->postJson("/api/public/testmember/meeting-types/{$inPersonType->id}/book", [
+        $response = $this->postJsonWithIdempotency("/api/public/testmember/meeting-types/{$inPersonType->id}/book", [
             'guest_name' => 'InPerson Guest',
             'guest_email' => 'inperson@example.com',
             'start_time' => $slotStart->toIso8601String(),
@@ -494,7 +500,7 @@ class PublicBookingFlowTest extends TestCase
 
         $slotStart = $blockedDate->copy()->setTime(14, 0);
 
-        $response = $this->postJson("/api/public/testmember/meeting-types/{$this->type->id}/book", [
+        $response = $this->postJsonWithIdempotency("/api/public/testmember/meeting-types/{$this->type->id}/book", [
             'guest_name' => 'Guest',
             'guest_email' => 'guest@example.com',
             'start_time' => $slotStart->toIso8601String(),
@@ -510,7 +516,7 @@ class PublicBookingFlowTest extends TestCase
     {
         $slotStart = Carbon::now('UTC')->addDays(3)->setTime(14, 0);
 
-        $response = $this->postJson("/api/public/testmember/meeting-types/{$this->type->id}/book", [
+        $response = $this->postJsonWithIdempotency("/api/public/testmember/meeting-types/{$this->type->id}/book", [
             'guest_name' => 'Format Guest',
             'guest_email' => 'format@example.com',
             'start_time' => $slotStart->toIso8601String(),

@@ -9,7 +9,7 @@
 
 import { cn } from "@/lib/cn";
 import type { SettingsTab } from "@/lib/settings/types";
-import { AlertTriangle, Lock, User, UserCircle } from "lucide-react";
+import { AlertTriangle, CreditCard, Lock, User, UserCircle } from "lucide-react";
 
 const TABS: {
   id: SettingsTab;
@@ -18,6 +18,7 @@ const TABS: {
 }[] = [
   { id: "profile", label: "Profile", icon: UserCircle },
   { id: "account", label: "Account", icon: User },
+  { id: "billing", label: "Billing", icon: CreditCard },
   { id: "security", label: "Security", icon: Lock },
   { id: "danger", label: "Danger Zone", icon: AlertTriangle },
 ];

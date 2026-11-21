@@ -194,6 +194,8 @@ class MeetingTypeCrudTest extends TestCase
 
     public function test_get_available_slots(): void
     {
+        $target = Carbon::now('UTC')->addDays(3);
+
         $type = MeetingType::create([
             'user_id' => $this->host->id,
             'name' => 'Slotted',
@@ -205,15 +207,15 @@ class MeetingTypeCrudTest extends TestCase
 
         MeetingTypeAvailability::create([
             'meeting_type_id' => $type->id,
-            'day_of_week' => 1,
+            'day_of_week' => (int) $target->format('w'),
             'start_time' => '09:00',
             'end_time' => '17:00',
         ]);
 
         $this->actingAs($this->host);
 
-        $from = Carbon::now('UTC')->addDays(3)->startOfDay()->toDateString();
-        $to = Carbon::now('UTC')->addDays(3)->endOfDay()->toDateString();
+        $from = $target->copy()->startOfDay()->toDateString();
+        $to = $target->copy()->endOfDay()->toDateString();
 
         $response = $this->getJson("/api/meeting-types/{$type->id}/slots?from={$from}&to={$to}");
 

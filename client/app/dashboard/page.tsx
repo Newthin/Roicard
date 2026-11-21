@@ -11,9 +11,21 @@ import { useLiveMemberStatus } from "@/hooks/useLiveMemberStatus";
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { status: liveStatus, draftClosesAt, isLoading: liveLoading } = useLiveMemberStatus();
+  const {
+    status: liveStatus,
+    membershipStatus: liveMembership,
+    draftClosesAt,
+    isLoading: liveLoading,
+  } = useLiveMemberStatus();
   const effectiveStatus = liveStatus ?? user?.status;
-  const showPayCard = effectiveStatus !== "active";
+  const membership = liveMembership ?? user?.membership_status;
+  const paidMembership =
+    membership === "active" ||
+    membership === "grace" ||
+    membership === "founding" ||
+    Boolean(user?.has_active_subscription);
+  const onFreePlan = !paidMembership && Boolean(user?.onboarding_completed);
+  const showPayCard = !paidMembership;
 
   return (
     <ConnectionsProvider>
@@ -23,9 +35,9 @@ export default function DashboardPage() {
             <span className="inline-flex w-fit items-center gap-2 rounded-full bg-roicard-primary/15 px-3 py-1 text-xs font-medium text-roicard-accent">
               Dashboard
             </span>
-            {effectiveStatus === "draft" ? (
+            {!paidMembership || effectiveStatus === "draft" ? (
               <span className="inline-flex w-fit items-center rounded bg-amber-500/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-amber-400">
-                Draft
+                {onFreePlan ? "Free" : "Draft"}
               </span>
             ) : (
               <span className="inline-flex w-fit items-center rounded bg-emerald-500/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-400">

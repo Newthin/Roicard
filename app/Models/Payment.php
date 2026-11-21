@@ -3,23 +3,57 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Payment extends Model
 {
+    /** What the payment was for. */
+    public const PURPOSE_INITIAL = 'initial';
+    public const PURPOSE_RENEWAL = 'renewal';
+    public const PURPOSE_UPGRADE = 'upgrade';
+    public const PURPOSE_LEGACY = 'legacy_activation';
+    public const PURPOSE_ADMIN_GRANT = 'admin_grant';
+
     protected $fillable = [
         'user_id',
+        'plan_id',
+        'subscription_id',
         'amount',
         'currency',
         'method',
+        'purpose',
+        'period_start',
+        'period_end',
+        'meta',
         'momo_number',
         'status',
         'provider_reference',
         'provider',
     ];
 
-    public function user()
+    protected function casts(): array
+    {
+        return [
+            'amount' => 'decimal:2',
+            'period_start' => 'datetime',
+            'period_end' => 'datetime',
+            'meta' => 'array',
+        ];
+    }
+
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(Plan::class);
+    }
+
+    public function subscription(): BelongsTo
+    {
+        return $this->belongsTo(Subscription::class);
     }
 
     public function isCompleted(): bool
@@ -30,5 +64,11 @@ class Payment extends Model
     public function isPending(): bool
     {
         return $this->status === 'pending';
+    }
+
+    /** True once the subscription side effects have been applied. */
+    public function isApplied(): bool
+    {
+        return !empty(($this->meta ?? [])['applied_at']);
     }
 }

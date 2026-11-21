@@ -7,6 +7,7 @@ use App\Exceptions\SlotUnavailableException;
 use App\Models\MeetingBooking;
 use App\Models\MeetingRescheduleRequest;
 use App\Models\MeetingType;
+use App\Models\User;
 use App\Notifications\MeetingCancelledNotification;
 use App\Notifications\MeetingConfirmedNotification;
 use App\Notifications\MeetingDeclinedNotification;
@@ -368,8 +369,15 @@ class BookingEngine
 
             DB::afterCommit(function () use ($booking, $request) {
                 $proposerId = $request->requested_by_user_id;
+                $proposer = $proposerId ? User::find($proposerId) : null;
 
-                if ($booking->host_user_id !== $proposerId && $booking->host) {
+                // The proposer gets confirmation that the request was declined,
+                // and the other party gets the same notification.
+                if ($proposer) {
+                    $proposer->notify(new RescheduleDeclinedNotification($booking, $request));
+                }
+
+                if ($booking->host && $booking->host_user_id !== $proposerId) {
                     $booking->host->notify(new RescheduleDeclinedNotification($booking, $request));
                 }
 

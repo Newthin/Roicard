@@ -107,9 +107,10 @@ class AvailabilityEngineTest extends TestCase
 
         $this->assertNotEmpty($slots);
 
-        // Slots should be in two clusters: morning and afternoon
-        $morningSlots = $slots->filter(fn ($s) => $s['start']->hour < 13);
-        $afternoonSlots = $slots->filter(fn ($s) => $s['start']->hour >= 14);
+        // Slots are returned in UTC; evaluate the clusters in the host's
+        // timezone where the 09:00-12:00 and 14:00-17:00 rules were defined.
+        $morningSlots = $slots->filter(fn ($s) => $s['start']->copy()->timezone($this->host->timezone)->hour < 13);
+        $afternoonSlots = $slots->filter(fn ($s) => $s['start']->copy()->timezone($this->host->timezone)->hour >= 14);
 
         $this->assertNotEmpty($morningSlots, 'Should have morning slots');
         $this->assertNotEmpty($afternoonSlots, 'Should have afternoon slots');
@@ -260,7 +261,8 @@ class AvailabilityEngineTest extends TestCase
 
     public function test_active_pending_booking_blocks_slot(): void
     {
-        $slotStart = Carbon::now('UTC')->addDays(3)->setTime(10, 0)->setTimezone('UTC');
+        // 14:00 UTC is 09:00 in the host's America/New_York timezone.
+        $slotStart = Carbon::now('UTC')->addDays(3)->setTime(14, 0)->setTimezone('UTC');
         $slotEnd = $slotStart->copy()->addMinutes(30);
 
         MeetingBooking::create([
@@ -295,7 +297,8 @@ class AvailabilityEngineTest extends TestCase
 
     public function test_expired_pending_booking_does_not_block(): void
     {
-        $slotStart = Carbon::now('UTC')->addDays(3)->setTime(10, 0)->setTimezone('UTC');
+        // 14:00 UTC is 09:00 in the host's America/New_York timezone.
+        $slotStart = Carbon::now('UTC')->addDays(3)->setTime(14, 0)->setTimezone('UTC');
         $slotEnd = $slotStart->copy()->addMinutes(30);
 
         MeetingBooking::create([

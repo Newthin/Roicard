@@ -1,9 +1,11 @@
 <?php
 
+use App\Http\Controllers\Api\AdminBillingController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AdminMessageController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BillingController;
 use App\Http\Controllers\Api\ConnectionController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DiscountCampaignController;
@@ -11,6 +13,7 @@ use App\Http\Controllers\Api\GoogleAuthController;
 use App\Http\Controllers\Api\InterestOptionController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\PlansController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ProfileEnrichmentController;
 use App\Http\Controllers\Api\PublicProfileController;
@@ -73,6 +76,10 @@ Route::post('/payments/webhook/{provider}', [PaymentController::class, 'webhook'
 // Active discount campaigns (public — used by register form)
 Route::get('/discount-campaigns/active', [DiscountCampaignController::class, 'active']);
 
+// Public pricing catalogue (prices are always server-driven). Not cached:
+// the response includes per-member quotes when a token is present.
+Route::get('/plans', [PlansController::class, 'index']);
+
 /*
 |--------------------------------------------------------------------------
 | Authenticated Routes
@@ -119,6 +126,13 @@ Route::middleware(['auth:sanctum', 'prevent_leak'])->group(function () {
     Route::post('/payments/initiate', [PaymentController::class, 'initiate'])->middleware(['throttle:payment-initiate', 'idempotency']);
     Route::post('/payments/mock/confirm', [PaymentController::class, 'confirmMock'])->middleware('throttle:payment-initiate');
     Route::get('/payments/status/{reference}', [PaymentController::class, 'status']);
+
+    // Billing / subscription management
+    Route::get('/billing', [BillingController::class, 'summary']);
+    Route::get('/billing/invoices', [BillingController::class, 'invoices']);
+    Route::post('/billing/quote', [BillingController::class, 'quote']);
+    Route::post('/billing/cancel', [BillingController::class, 'cancel']);
+    Route::post('/billing/resume', [BillingController::class, 'resume']);
 
     // Smart Cards
     Route::post('/smart-cards/delivery', [SmartCardController::class, 'storeDelivery']);
@@ -170,6 +184,14 @@ Route::middleware(['auth:sanctum', 'prevent_leak'])->group(function () {
     Route::middleware('is_admin')->prefix('admin')->group(function () {
         Route::get('/stats', [AdminController::class, 'stats']);
         Route::get('/stats/trends', [AdminController::class, 'trends']);
+
+        // Plans & subscriptions
+        Route::get('/plans', [AdminBillingController::class, 'plans']);
+        Route::patch('/plans/{code}', [AdminBillingController::class, 'updatePlan']);
+        Route::get('/subscriptions', [AdminBillingController::class, 'subscriptions']);
+        Route::post('/users/{id}/subscription', [AdminBillingController::class, 'grantSubscription']);
+        Route::delete('/users/{id}/subscription', [AdminBillingController::class, 'revokeSubscription']);
+
         Route::get('/users', [AdminController::class, 'users']);
         Route::get('/users/{id}', [AdminController::class, 'showUser']);
         Route::post('/users', [AdminController::class, 'storeUser']);

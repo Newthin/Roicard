@@ -3,27 +3,24 @@
 namespace App\Services;
 
 use App\Models\DiscountCampaign;
+use App\Models\Plan;
 use App\Models\User;
+use App\Services\Billing\PlanCatalog;
 
 /**
- * Single source of truth for the membership activation fee.
+ * Backwards-compatible facade over PlanCatalog.
  *
- * Pricing is always derived server-side — the client never supplies the
- * amount. A member stamped with a discount campaign pays that campaign's
- * amount; everyone else pays the standard activation fee. Campaigns live in
- * the database so future discounts need no code changes.
+ * Older clients and admin screens still read a single `activation_fee` value.
+ * It now means "what this member would pay today for the annual plan", which
+ * preserves campaign pricing while the subscription engine owns the truth.
  */
 class ActivationFeeService
 {
+    public function __construct(protected PlanCatalog $catalog) {}
+
     public function for(User $user): float
     {
-        $campaign = $this->campaignFor($user);
-
-        if ($campaign) {
-            return (float) $campaign->amount;
-        }
-
-        return (float) config('roicard.activation_fee');
+        return (float) $this->catalog->quote($user, Plan::ANNUAL)['amount'];
     }
 
     /**

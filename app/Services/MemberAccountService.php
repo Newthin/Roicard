@@ -23,25 +23,46 @@ class MemberAccountService
     public function activateMembership(User $user, bool $sendWelcome = true): void
     {
         DB::transaction(function () use ($user, $sendWelcome) {
-            $profile = $user->profile()->firstOrCreate([]);
-
-            if ($profile->slug === null) {
-                $profile->slug = $this->slugs->generate($user->first_name, $user->last_name);
-            }
-
-            // ProfileObserver recalculates completion and busts the public cache.
-            // A suspended account never publishes, even if an admin activates
-            // the membership while access is still blocked.
-            $profile->is_live = ! $user->isDeactivated();
-            $profile->save();
-
             $user->forceFill(['status' => 'active'])->save();
+
+            // Publishing is shared with the free tier, so the slug and
+            // suspension rules live in one place.
+            $this->publishProfile($user);
 
             // An active membership always clears onboarding: a member who has
             // paid (or been activated by an admin) must never be bounced back
             // into the journey. The welcome email is only sent on the first
             // completion, so this can be called repeatedly without duplicating.
             $this->markOnboardingComplete($user, true, $sendWelcome);
+        });
+    }
+
+    /**
+     * Publish the public profile. Used by paid activation and by onboarding
+     * completion on the free plan. A suspended account never publishes.
+     */
+    public function publishProfile(User $user): void
+    {
+        $profile = $user->profile()->firstOrCreate([]);
+
+        if ($profile->slug === null) {
+            $profile->slug = $this->slugs->generate($user->first_name, $user->last_name);
+        }
+
+        // ProfileObserver recalculates completion and busts the public cache.
+        $profile->is_live = ! $user->isDeactivated();
+        $profile->save();
+    }
+
+    /**
+     * Paid access has ended. The member is downgraded to the free tier: the
+     * account, profile and data stay intact and the public profile remains
+     * live unless the account itself is suspended.
+     */
+    public function downgradeToFree(User $user): void
+    {
+        DB::transaction(function () use ($user) {
+            $this->publishProfile($user);
         });
     }
 
@@ -89,7 +110,10 @@ class MemberAccountService
             ])->save();
 
             $profile = $user->profile()->firstOrCreate([]);
-            $profile->is_live = $user->status === 'active';
+            // Paid members and free-tier members who completed the journey
+            // both have public profiles. Only an unfinished signup stays hidden.
+            $profile->is_live = $user->status === 'active'
+                || $user->onboarding_completed_at !== null;
             $profile->save();
         });
     }
@@ -118,6 +142,13 @@ class MemberAccountService
         $user->forceFill([
             'onboarding_completed_at' => $complete ? now() : null,
         ])->save();
+
+        if ($complete) {
+            // Free members are published as soon as onboarding finishes; paid
+            // activation also routes through here. Data is public, paid
+            // features stay gated by the subscription entitlements.
+            $this->publishProfile($user);
+        }
 
         if ($complete && $sendWelcome) {
             $this->sendWelcomeEmail($user);

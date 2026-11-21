@@ -10,10 +10,12 @@ use App\Models\MeetingBooking;
 use App\Models\MeetingType;
 use App\Models\Payment;
 use App\Models\SmartCard;
+use App\Models\Subscription;
 use App\Models\User;
 use App\Notifications\SmartCardDeliveredNotification;
 use App\Notifications\SmartCardShippedNotification;
 use App\Services\Admin\UserAudienceQuery;
+use App\Services\Billing\SubscriptionService;
 use App\Services\MemberAccessService;
 use App\Services\MemberAccountService;
 use App\Services\ProfileSaveService;
@@ -32,10 +34,31 @@ class AdminController extends Controller
 
     public function stats(): JsonResponse
     {
+        $paying = Subscription::with('plan')
+            ->whereIn('status', [
+                Subscription::STATUS_ACTIVE,
+                Subscription::STATUS_GRACE,
+            ])
+            ->get();
+
+        $mrr = $paying->sum(function (Subscription $subscription) {
+            $price = (float) ($subscription->plan?->price ?? 0);
+
+            return $subscription->plan?->interval === 'year' ? $price / 12 : $price;
+        });
+
         return response()->json([
             'total_users' => User::count(),
             'active_users' => User::where('status', 'active')->count(),
             'draft_users' => User::where('status', 'draft')->count(),
+            'free_members' => User::where('role', 'member')
+                ->whereDoesntHave('subscription', fn ($q) => $q->activeAccess())
+                ->count(),
+            'founding_members' => Subscription::where('status', Subscription::STATUS_FOUNDING)->count(),
+            'paying_members' => $paying->count(),
+            'grace_members' => $paying->where('status', Subscription::STATUS_GRACE)->count(),
+            'expired_members' => Subscription::where('status', Subscription::STATUS_EXPIRED)->count(),
+            'mrr' => round($mrr, 2),
             'total_payments' => Payment::count(),
             'successful_payments' => Payment::where('status', 'success')->count(),
             'total_revenue' => Payment::where('status', 'success')->sum('amount'),
@@ -210,12 +233,27 @@ class AdminController extends Controller
             // (sign-in) are deliberately separate controls.
             if (array_key_exists('status', $validated)) {
                 if ($validated['status'] === 'active') {
-                    // Activation also completes onboarding (see the service) so
-                    // an activated member always lands on the dashboard.
-                    app(MemberAccountService::class)->activateMembership($user, $sendWelcome);
+                    // Activation grants the non-expiring founding plan through
+                    // the billing service (also completes onboarding and
+                    // publishes the profile). No fake payment row is created.
+                    // A member already on a paid recurring plan keeps that
+                    // plan; an admin activation must never silently rewrite an
+                    // annual/monthly subscription into founding.
+                    $current = $user->subscription()->with('plan')->first();
+
+                    if ($current && $current->isActive() && !$current->isFounding()) {
+                        app(MemberAccountService::class)->activateMembership($user, $sendWelcome);
+                    } else {
+                        app(SubscriptionService::class)->grantFounding(
+                            $user,
+                            'admin_activation',
+                            $sendWelcome
+                        );
+                    }
+
                     $this->logAdminAction('activate_membership', $user->id);
                 } else {
-                    app(MemberAccountService::class)->deactivateMembership($user);
+                    app(SubscriptionService::class)->revoke($user, 'admin_deactivation');
                     $this->logAdminAction('deactivate_membership', $user->id);
                 }
             }
@@ -346,7 +384,7 @@ class AdminController extends Controller
             }
 
             if ($activate) {
-                $accounts->activateMembership($user, $sendWelcome);
+                app(SubscriptionService::class)->grantFounding($user, 'admin_created', $sendWelcome);
             }
 
             if ($suspend) {
@@ -448,6 +486,7 @@ class AdminController extends Controller
         $payload['is_deactivated'] = $user->isDeactivated();
         $payload['next_step'] = app(MemberAccessService::class)->nextStep($user);
         $payload['profile_completion_pct'] = (int) ($user->profile?->completion_pct ?? 0);
+        $payload['subscription'] = app(SubscriptionService::class)->summary($user);
 
         if ($withPayments) {
             $payments = $user->relationLoaded('payments')

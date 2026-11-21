@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Payment;
-use App\Services\MemberAccountService;
+use App\Services\Billing\SubscriptionService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Foundation\Queue\Queueable;
@@ -17,12 +17,15 @@ class ProcessActivationJob implements ShouldQueue
     ) {}
 
     /**
-     * A verified payment flips the membership to active and publishes the
-     * public profile through the shared account service, so the payment path
-     * and the admin activation path apply identical side effects.
+     * A verified payment is applied to the member's subscription exactly once.
+     *
+     * Legacy payments (created before plans existed, or by an older client)
+     * carry no plan/period; SubscriptionService converts those into the
+     * non-expiring founding plan. Either way the audit trail and the
+     * membership side effects stay in one place.
      */
-    public function handle(MemberAccountService $accounts): void
+    public function handle(SubscriptionService $subscriptions): void
     {
-        $accounts->activateMembership($this->payment->user);
+        $subscriptions->applyPaidPayment($this->payment);
     }
 }

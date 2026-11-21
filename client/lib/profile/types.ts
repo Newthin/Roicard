@@ -135,12 +135,24 @@ export const INTEREST_OPTIONS = [
   "Creative Arts",
 ] as const;
 
-/** Benefits included with ROICARD membership (shown before payment). */
+/** Benefits included with a paid ROICARD membership (shown before payment). */
 export const MEMBERSHIP_BENEFITS = [
-  "Professional Identity Profile",
-  "Personalized Profile Link",
-  "Smart Networking Features",
-  "Roicard Smart Card",
+  "Everything in the free plan",
+  "Physical Roicard smart card + delivery",
+  "Meeting booking on your public profile",
+  "Full analytics and contact export",
+  "CV review and AI profile enrichment",
+  "Unlimited education, experience and achievements",
+  "Custom branding and no Roicard badge",
+  "Priority support",
+] as const;
+
+/** What every member gets without paying. */
+export const FREE_BENEFITS = [
+  "Public profile and personal link",
+  "QR code and unlimited sharing",
+  "Connections and requests",
+  "Up to 3 education and experience entries",
 ] as const;
 
 /** Supported (mock) payment methods for the membership activation fee. */

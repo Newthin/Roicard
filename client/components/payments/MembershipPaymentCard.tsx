@@ -1,10 +1,9 @@
 /**
  * MembershipPaymentCard
  *
- * Dashboard card offering members who haven't paid to activate their one-time
- * membership fee. Reuses the Paystack payment flow: initiates a payment,
- * persists the user's profile for resume, and redirects to the provider (or
- * advances mock mode when no provider is configured).
+ * Dashboard upgrade card for free-tier members. Prices come from the server
+ * plan catalogue and the client sends only a plan code; the server resolves
+ * the amount, period and any upgrade credit.
  */
 
 "use client";
@@ -17,100 +16,156 @@ import {
   initiatePayment,
   rememberPaymentReference,
 } from "@/lib/api/payments";
+import { getPlans, type Plan } from "@/lib/api/plans";
 import {
   getCurrentUserProfile,
   savePaymentSnapshot,
 } from "@/lib/profile/storage";
-import {
-  MEMBERSHIP_BENEFITS,
-  getActivationPricing,
-} from "@/lib/profile/types";
+import { MEMBERSHIP_BENEFITS } from "@/lib/profile/types";
 import { Check, Loader2, Wallet } from "lucide-react";
-import { useCallback, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+
+const FALLBACK_PLANS: Pick<Plan, "code" | "name" | "initial_price" | "price" | "interval">[] = [
+  {
+    code: "monthly",
+    name: "Monthly",
+    initial_price: 80,
+    price: 30,
+    interval: "month",
+  },
+  {
+    code: "annual",
+    name: "Annual",
+    initial_price: 350,
+    price: 250,
+    interval: "year",
+  },
+];
+
+function planLine(plan: (typeof FALLBACK_PLANS)[number]): string {
+  return plan.interval === "year"
+    ? `GHS ${plan.initial_price} first year, then GHS ${plan.price}/year`
+    : `GHS ${plan.initial_price} today, then GHS ${plan.price}/month`;
+}
 
 export function MembershipPaymentCard() {
   const { user, refreshUser } = useAuth();
-  const { status, isLoading } = useLiveMemberStatus();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { membershipStatus, isLoading } = useLiveMemberStatus();
+  const [plans, setPlans] = useState(FALLBACK_PLANS);
+  const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // The server is the source of truth for pricing (NLF campaign members pay a
-  // discounted rate). Resolve server-first, falling back to the standard fee.
-  const pricing = getActivationPricing(user);
+  useEffect(() => {
+    getPlans()
+      .then((data) => {
+        const paid = data.plans
+          .filter((plan) => plan.code === "monthly" || plan.code === "annual")
+          .map((plan) => ({
+            code: plan.code,
+            name: plan.name,
+            initial_price: plan.initial_price,
+            price: plan.price,
+            interval: plan.interval,
+          }));
 
-  const handlePay = useCallback(async () => {
-    if (isSubmitting) return;
-    setIsSubmitting(true);
-    setError(null);
-
-    try {
-      // Preserve the user's profile so the payment redirect doesn't lose it.
-      const current = await getCurrentUserProfile();
-      if (current) {
-        savePaymentSnapshot({
-          ...current,
-          membershipStatus: "pending",
-        });
-      }
-
-      const { payment, redirect } = await initiatePayment({
-        amount: pricing.fee,
-        currency: "GHS",
-        method: "card",
+        if (paid.length > 0) setPlans(paid);
+      })
+      .catch(() => {
+        // Fallback keeps the card usable; checkout is still priced server-side.
       });
+  }, []);
 
-      rememberPaymentReference(payment.provider_reference);
+  const handlePay = useCallback(
+    async (planCode: string) => {
+      if (busy) return;
+      setBusy(planCode);
+      setError(null);
 
-      const providerRedirect = redirect as {
-        authorization_url?: string;
-        checkout_url?: string;
-        status?: string;
-        mock?: boolean;
-      };
+      try {
+        // Preserve the user's profile so the payment redirect doesn't lose it.
+        const current = await getCurrentUserProfile();
+        if (current) {
+          savePaymentSnapshot({
+            ...current,
+            membershipStatus: "pending",
+          });
+        }
 
-      // The pending attempt already completed at the provider — reload so the
-      // dashboard reflects the activated membership instead of paying again.
-      if (providerRedirect?.status === "success") {
-        await refreshUser().catch(() => null);
-        window.location.reload();
-        return;
+        const { payment, redirect, activated } = await initiatePayment({
+          plan: planCode,
+          currency: "GHS",
+          method: "card",
+        });
+
+        if (activated) {
+          await refreshUser().catch(() => null);
+          window.location.reload();
+          return;
+        }
+
+        if (!payment) {
+          setError("Payment could not be started. Please try again.");
+          setBusy(null);
+          return;
+        }
+
+        rememberPaymentReference(payment.provider_reference);
+
+        const providerRedirect = (redirect ?? {}) as {
+          authorization_url?: string;
+          checkout_url?: string;
+          status?: string;
+          mock?: boolean;
+        };
+
+        if (providerRedirect.status === "success") {
+          await refreshUser().catch(() => null);
+          window.location.reload();
+          return;
+        }
+
+        const checkoutUrl =
+          providerRedirect.authorization_url ?? providerRedirect.checkout_url;
+
+        if (checkoutUrl) {
+          window.location.assign(checkoutUrl);
+          return;
+        }
+
+        if (providerRedirect.mock) {
+          await confirmMockPayment(payment.provider_reference);
+          await refreshUser().catch(() => null);
+          window.location.reload();
+          return;
+        }
+
+        setError("Payment is not available right now. Please try again shortly.");
+        setBusy(null);
+      } catch (e) {
+        const serverMessage = (
+          e as { response?: { data?: { message?: string } } } | null
+        )?.response?.data?.message;
+        setError(
+          serverMessage ??
+            (e instanceof Error ? e.message : "Unable to start payment. Try again.")
+        );
+        setBusy(null);
       }
+    },
+    [busy, refreshUser]
+  );
 
-      const checkoutUrl =
-        providerRedirect?.authorization_url ?? providerRedirect?.checkout_url;
+  // Hide only while a paid/recurring plan is actually active. Expired and
+  // canceled members are on the free plan and need the upgrade choices again.
+  const hasPaidAccess =
+    membershipStatus === "active" ||
+    membershipStatus === "grace" ||
+    membershipStatus === "founding" ||
+    user?.has_active_subscription ||
+    user?.is_founding_member;
 
-      if (checkoutUrl) {
-        window.location.assign(checkoutUrl);
-        return;
-      }
-
-      if (providerRedirect?.mock) {
-        // Mock mode: confirm through the backend so the real activation job
-        // runs. Never mark the membership active from the client.
-        await confirmMockPayment(payment.provider_reference);
-        await refreshUser().catch(() => null);
-        window.location.reload();
-        return;
-      }
-
-      // No provider configured — do not pretend the payment succeeded.
-      setError("Payment is not available right now. Please try again shortly.");
-      setIsSubmitting(false);
-    } catch (e) {
-      const serverMessage = (
-        e as { response?: { data?: { message?: string } } } | null
-      )?.response?.data?.message;
-      setError(
-        serverMessage ??
-          (e instanceof Error ? e.message : "Unable to start payment. Try again.")
-      );
-      setIsSubmitting(false);
-    }
-  }, [isSubmitting, pricing.fee, refreshUser]);
-
-  // Hide entirely once the backend confirms the member is active. Checked
-  // after all hooks so the hook order never changes between renders.
-  if (!isLoading && status === "active") {
+  if (!isLoading && hasPaidAccess) {
     return null;
   }
 
@@ -122,10 +177,10 @@ export function MembershipPaymentCard() {
         </div>
         <div>
           <h2 className="text-base font-bold text-roicard-text">
-            Activate your membership
+            Upgrade your membership
           </h2>
           <p className="text-sm text-roicard-text-muted">
-            Unlock everything Roicard has to offer.
+            Add the physical card and unlock the full Roicard toolkit.
           </p>
         </div>
       </div>
@@ -141,40 +196,45 @@ export function MembershipPaymentCard() {
         ))}
       </ul>
 
-      <div className="mt-6 flex flex-col gap-3 border-t border-roicard-border pt-5 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-wider text-roicard-text-muted">
-            One-time activation fee
-          </p>
-          <div className="mt-1 flex flex-wrap items-baseline gap-2">
-            <p className="text-2xl font-bold text-roicard-text">
-              {pricing.fee === 0 ? "FREE" : `GHS ${pricing.fee}`}
-            </p>
-            {pricing.original !== null && (
-              <p className="text-sm text-roicard-text-muted line-through">
-                GHS {pricing.original}
+      <div className="mt-6 grid gap-3 border-t border-roicard-border pt-5 sm:grid-cols-2">
+        {plans.map((plan) => (
+          <div
+            key={plan.code}
+            className="rounded-xl border border-roicard-border bg-roicard-bg p-4"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold capitalize text-roicard-text">
+                {plan.name}
               </p>
-            )}
-            {pricing.program && (
-              <span className="rounded-full border border-roicard-accent/40 bg-roicard-accent/15 px-2 py-0.5 text-xs font-semibold text-roicard-accent">
-                50% off · Program rate
-              </span>
-            )}
+              {plan.code === "annual" && (
+                <span className="rounded-full bg-roicard-accent/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-roicard-accent">
+                  Best value
+                </span>
+              )}
+            </div>
+            <p className="mt-2 text-xs text-roicard-text-muted">
+              {planLine(plan)}
+            </p>
+            <Button
+              onClick={() => handlePay(plan.code)}
+              disabled={Boolean(busy)}
+              isLoading={busy === plan.code}
+              variant={plan.code === "annual" ? "primary" : "secondary"}
+              className="mt-4 w-full rounded-xl"
+              size="sm"
+            >
+              {plan.code === "annual" ? "Choose annual" : "Choose monthly"}
+            </Button>
           </div>
-        </div>
-
-        <Button
-          onClick={handlePay}
-          disabled={isSubmitting}
-          className="rounded-xl"
-        >
-          {isSubmitting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            "Pay now"
-          )}
-        </Button>
+        ))}
       </div>
+
+      <p className="mt-4 text-center text-xs text-roicard-text-muted">
+        Prices are confirmed at checkout.{" "}
+        <Link href="/pricing" className="font-medium text-roicard-accent">
+          Compare plans
+        </Link>
+      </p>
 
       {error && (
         <p className="mt-3 rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-500">

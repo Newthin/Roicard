@@ -28,6 +28,11 @@ interface User {
   campaign_code?: string | null;
   activation_fee?: number;
   draft_closes_at?: string | null;
+  plan?: string;
+  membership_status?: string;
+  is_founding_member?: boolean;
+  has_active_subscription?: boolean;
+  subscription?: import("@/lib/api/plans").MembershipSummary;
 }
 
 interface AuthContextValue {
@@ -155,21 +160,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           server.is_deactivated !== session.user.is_deactivated
         ) {
           // Same identity, but status/role/etc changed server-side — refresh.
+          // Spread the cached user first so all server-provided fields,
+          // including the plan/subscription payload, survive this refresh.
           const freshUser: User = {
-            id: server.id,
-            first_name: server.first_name,
-            last_name: server.last_name,
-            email: server.email,
-            status: server.status,
-            role: server.role,
-            email_verified: server.email_verified,
-            onboarding_completed: server.onboarding_completed,
-            next_step: server.next_step,
-            is_deactivated: server.is_deactivated,
-            profile_completion_pct: server.profile_completion_pct,
-            campaign_code: server.campaign_code,
-            activation_fee: server.activation_fee,
-            draft_closes_at: server.draft_closes_at,
+            ...session.user,
+            ...server,
           };
           localStorage.setItem(USER_KEY, JSON.stringify(freshUser));
           setUser(freshUser);

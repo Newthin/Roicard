@@ -169,6 +169,9 @@ class MeetingNotificationsTest extends TestCase
         $newStart = Carbon::now('UTC')->addDays(4)->setTime(15, 0);
         $request = $this->engine->proposeReschedule($booking, $this->host->id, $newStart);
 
+        // Clear notifications emitted while setting up the booking; only the
+        // accept-reschedule notifications should be asserted below.
+        Notification::fake();
         Notification::assertNothingSent();
 
         $this->engine->acceptReschedule($request);
@@ -244,7 +247,8 @@ class MeetingNotificationsTest extends TestCase
         $notification = new MeetingConfirmedNotification($booking);
         $mailMessage = $notification->toMail($this->host);
 
-        $this->assertNotEmpty($mailMessage->attachments);
+        // attachData() stores in-memory attachments separately from file paths.
+        $this->assertNotEmpty($mailMessage->rawAttachments);
     }
 
     // ─── ICS generation tests ────────────────────────────────────────────
@@ -402,6 +406,8 @@ class MeetingNotificationsTest extends TestCase
         $this->engine->cancelBookingByHost($booking);
         $booking->update(['start_time' => Carbon::now('UTC')->addHours(24)]);
 
+        Notification::fake();
+
         $job = new SendMeetingReminderJob($booking, '24h');
         $job->handle();
 
@@ -417,6 +423,8 @@ class MeetingNotificationsTest extends TestCase
         $this->engine->declineBooking($booking);
         $booking->update(['start_time' => Carbon::now('UTC')->addHours(24)]);
 
+        Notification::fake();
+
         $job = new SendMeetingReminderJob($booking, '24h');
         $job->handle();
 
@@ -430,6 +438,8 @@ class MeetingNotificationsTest extends TestCase
         $booking = $this->createPendingBooking();
         $this->engine->confirmBooking($booking);
         $booking->update(['start_time' => Carbon::now('UTC')->subHours(1)]);
+
+        Notification::fake();
 
         $job = new SendMeetingReminderJob($booking, '1h');
         $job->handle();
@@ -531,12 +541,18 @@ class MeetingNotificationsTest extends TestCase
     {
         $slotStart = Carbon::now('UTC')->addDays(3)->setTime(14, 0);
 
+        // Link the booking to the guest user so post-booking notifications have
+        // a notifiable guest, matching the public booking controller's lookup.
         return $this->engine->book(
             $this->type,
-            'John Doe',
-            'john@example.com',
+            $this->guest->first_name . ' ' . $this->guest->last_name,
+            $this->guest->email,
             $slotStart,
-            'America/New_York'
+            $this->guest->timezone,
+            null,
+            null,
+            null,
+            $this->guest->id
         );
     }
 

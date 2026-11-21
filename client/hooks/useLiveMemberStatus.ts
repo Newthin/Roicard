@@ -3,9 +3,23 @@
 import { getDashboard } from "@/lib/api/dashboard";
 import { useEffect, useState } from "react";
 
-export function useLiveMemberStatus() {
-  const [status, setStatus] = useState<string | null>(null);
-  const [draftClosesAt, setDraftClosesAt] = useState<string | null>(null);
+type LiveMemberState = {
+  /** Account/onboarding state from users.status. */
+  status: string | null;
+  /** Billing lifecycle: free | active | grace | expired | canceled | founding. */
+  membershipStatus: string | null;
+  plan: string | null;
+  draftClosesAt: string | null;
+  isLoading: boolean;
+};
+
+export function useLiveMemberStatus(): LiveMemberState {
+  const [state, setState] = useState<Omit<LiveMemberState, "isLoading">>({
+    status: null,
+    membershipStatus: null,
+    plan: null,
+    draftClosesAt: null,
+  });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -13,10 +27,13 @@ export function useLiveMemberStatus() {
 
     getDashboard()
       .then((d) => {
-        if (active) {
-          setStatus(d.user.status);
-          setDraftClosesAt(d.user.draft_closes_at ?? null);
-        }
+        if (!active) return;
+        setState({
+          status: d.user.status,
+          membershipStatus: d.user.membership_status ?? null,
+          plan: d.user.plan ?? null,
+          draftClosesAt: d.user.draft_closes_at ?? null,
+        });
       })
       .catch(() => {})
       .finally(() => {
@@ -28,5 +45,5 @@ export function useLiveMemberStatus() {
     };
   }, []);
 
-  return { status, draftClosesAt, isLoading };
+  return { ...state, isLoading };
 }

@@ -3,6 +3,7 @@
 namespace Tests;
 
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
 abstract class TestCase extends BaseTestCase
@@ -19,5 +20,16 @@ abstract class TestCase extends BaseTestCase
             Role::firstOrCreate(['name' => 'member', 'guard_name' => 'web']);
             Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         }
+    }
+
+    /**
+     * POST with a fresh idempotency key. The public booking route requires the
+     * header in production, so tests should exercise the same contract without
+     * accidentally replaying a previous response in the same test.
+     */
+    protected function postJsonWithIdempotency(string $uri, array $data = [])
+    {
+        return $this->withHeader('Idempotency-Key', Str::uuid()->toString())
+            ->postJson($uri, $data);
     }
 }

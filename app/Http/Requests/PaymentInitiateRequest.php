@@ -17,6 +17,7 @@ class PaymentInitiateRequest extends FormRequest
             // `amount` is intentionally NOT accepted: the server derives it
             // from the user's campaign context so pricing can't be spoofed.
             'campaign_code' => ['nullable', 'string', 'max:40'],
+            'plan' => ['nullable', 'string', 'max:40', 'exists:plans,code'],
             'currency' => ['nullable', 'string', 'max:3'],
             'method' => ['nullable', 'string', 'in:card,mobile_money'],
             'momo_number' => ['nullable', 'string', 'max:20'],

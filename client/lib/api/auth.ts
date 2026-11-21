@@ -17,6 +17,11 @@ export interface AuthUser {
   campaign_code?: string | null;
   activation_fee?: number;
   draft_closes_at?: string | null;
+  plan?: string;
+  membership_status?: string;
+  is_founding_member?: boolean;
+  has_active_subscription?: boolean;
+  subscription?: import("./plans").MembershipSummary;
 }
 
 export interface LoginResponse {

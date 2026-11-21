@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\BookingEngine;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class MeetingSecurityTest extends TestCase
@@ -340,8 +341,10 @@ class MeetingSecurityTest extends TestCase
         $booking1 = $this->createBookingForHost($this->host);
         $booking2 = $this->createBookingForHost($this->otherUser);
 
-        // Try to cancel booking2 using booking1's token
-        $response = $this->postJson("/api/meetings/cancel/{$booking1->guest_cancellation_token}");
+        // A token belonging to no booking must be rejected. The cancellation
+        // route identifies the booking solely by token, so an unrelated token
+        // is the correct way to exercise the mismatch case.
+        $response = $this->postJson('/api/meetings/cancel/' . Str::random(64));
 
         $response->assertStatus(404);
         $this->assertDatabaseHas('meeting_bookings', [
@@ -460,7 +463,7 @@ class MeetingSecurityTest extends TestCase
 
     public function test_public_book_requires_valid_profile(): void
     {
-        $response = $this->postJson("/api/public/nonexistent/meeting-types/{$this->type->id}/book", [
+        $response = $this->postJsonWithIdempotency("/api/public/nonexistent/meeting-types/{$this->type->id}/book", [
             'guest_name' => 'Hacker',
             'guest_email' => 'hacker@evil.com',
             'start_time' => Carbon::now('UTC')->addDays(3)->setTime(14, 0)->toIso8601String(),
@@ -474,7 +477,7 @@ class MeetingSecurityTest extends TestCase
     {
         $this->type->update(['is_active' => false]);
 
-        $response = $this->postJson("/api/public/testhost/meeting-types/{$this->type->id}/book", [
+        $response = $this->postJsonWithIdempotency("/api/public/testhost/meeting-types/{$this->type->id}/book", [
             'guest_name' => 'Guest',
             'guest_email' => 'guest@example.com',
             'start_time' => Carbon::now('UTC')->addDays(3)->setTime(14, 0)->toIso8601String(),
@@ -739,7 +742,8 @@ class MeetingSecurityTest extends TestCase
         $response = $this->withToken($token)
             ->getJson('/api/meetings/999999');
 
-        $response->assertStatus(403);
+        // A non-existent booking is indistinguishable from an inaccessible one.
+        $response->assertStatus(404);
     }
 
     public function test_meeting_type_id_manipulation_rejected(): void
@@ -810,7 +814,12 @@ class MeetingSecurityTest extends TestCase
             }
         }
 
-        $slotStart = Carbon::now('UTC')->addDays(3)->setTime(14, 0);
+        // 09:00 in the host's own timezone, so the slot is valid regardless of
+        // daylight-saving offsets (e.g. America/Chicago is UTC-6 in winter).
+        $slotStart = Carbon::now($host->timezone ?? 'UTC')
+            ->addDays(3)
+            ->setTime(9, 0)
+            ->setTimezone('UTC');
 
         return app(BookingEngine::class)->book(
             $type,

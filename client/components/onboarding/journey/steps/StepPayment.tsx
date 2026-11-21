@@ -1,11 +1,9 @@
 /**
- * Step 10 — Payment
+ * Step 10 - Payment
  *
- * Real payment method selection for members who chose to activate now.
- * Submits a payment to the backend, persists the journey snapshot, and
- * redirects to the payment provider (Paystack) to complete checkout.
- * A "pay later" escape hatch keeps payment fully optional.
- * Active users skip this step automatically.
+ * Collects the payment method for the plan selected in the membership step.
+ * The client sends only the plan code: the server resolves the amount and
+ * billing period, so pricing cannot be tampered with in the browser.
  */
 
 "use client";
@@ -20,9 +18,22 @@ import {
   initiatePayment,
   rememberPaymentReference,
 } from "@/lib/api/payments";
+import { getSelectedPlan, type SelectedPlan } from "@/lib/profile/plan-selection";
 import { savePaymentSnapshot } from "@/lib/profile/storage";
-import { PAYMENT_METHODS, getActivationPricing } from "@/lib/profile/types";
+import { PAYMENT_METHODS } from "@/lib/profile/types";
 import { useEffect, useRef, useState } from "react";
+
+const FALLBACK_PLAN: SelectedPlan = {
+  code: "annual",
+  name: "Annual",
+  amount: 350,
+  originalAmount: null,
+  interval: "year",
+  initialPrice: 350,
+  recurringPrice: 250,
+  includesCard: true,
+  purpose: "initial",
+};
 
 export function StepPayment() {
   const { user, refreshUser } = useAuth();
@@ -30,15 +41,14 @@ export function StepPayment() {
   const [method, setMethod] = useState<string>(PAYMENT_METHODS[0].id);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [plan] = useState<SelectedPlan>(
+    () => getSelectedPlan() ?? FALLBACK_PLAN
+  );
   const redirectedRef = useRef(false);
-
-  // The server is the source of truth for pricing (NLF campaign members pay a
-  // discounted rate). Resolve server-first, falling back to the standard fee.
-  const pricing = getActivationPricing(user);
 
   useEffect(() => {
     if (redirectedRef.current) return;
-    if (user?.status === "active") {
+    if (user?.has_active_subscription) {
       redirectedRef.current = true;
       submitPayment();
     }
@@ -50,17 +60,35 @@ export function StepPayment() {
     setError(null);
 
     try {
-      const { payment, redirect } = await initiatePayment({
-        amount: pricing.fee,
+      const { payment, redirect, activated } = await initiatePayment({
+        plan: plan.code,
         currency: "GHS",
-        method: "card",
+        method: method === "card" ? "card" : "mobile_money",
+        campaign_code: plan.campaignCode ?? undefined,
       });
+
+      // Nothing to charge (full credit or 100% discount): the server already
+      // applied the plan through the subscription lifecycle.
+      if (activated) {
+        try {
+          await refreshUser();
+        } catch {
+          // Activation already happened server-side.
+        }
+        submitPayment();
+        return;
+      }
+
+      if (!payment) {
+        setError("Payment could not be started. Please try again.");
+        setIsSubmitting(false);
+        return;
+      }
 
       rememberPaymentReference(payment.provider_reference);
 
       // Persist the journey so the profile survives the provider redirect.
-      // The username/createdAt are set at finalization; empty here is fine.
-      // Membership is NOT marked active locally — the server confirms it.
+      // Membership is NOT marked active locally - the server confirms it.
       const snapshot = {
         ...data,
         email: data.email || user?.email || "",
@@ -70,7 +98,7 @@ export function StepPayment() {
       };
       savePaymentSnapshot(snapshot);
 
-      const providerRedirect = redirect as {
+      const providerRedirect = (redirect ?? {}) as {
         authorization_url?: string;
         checkout_url?: string;
         status?: string;
@@ -78,7 +106,7 @@ export function StepPayment() {
       };
 
       // The pending attempt already completed at the provider.
-      if (providerRedirect?.status === "success") {
+      if (providerRedirect.status === "success") {
         try {
           await refreshUser();
         } catch {
@@ -89,14 +117,14 @@ export function StepPayment() {
       }
 
       const checkoutUrl =
-        providerRedirect?.authorization_url ?? providerRedirect?.checkout_url;
+        providerRedirect.authorization_url ?? providerRedirect.checkout_url;
 
       if (checkoutUrl) {
         window.location.assign(checkoutUrl);
         return;
       }
 
-      if (providerRedirect?.mock) {
+      if (providerRedirect.mock) {
         // Mock provider: confirm explicitly so the backend runs the same
         // activation path as a verified webhook. Nothing is faked client-side.
         await confirmMockPayment(payment.provider_reference);
@@ -124,8 +152,33 @@ export function StepPayment() {
       <StepHeading
         eyebrow="Payment"
         title="Choose a payment method"
-        description="Select how you'd like to complete your one-time membership activation."
+        description={`Complete your ${plan.name} membership payment.`}
       />
+
+      <div className="rounded-2xl border border-roicard-border bg-roicard-bg-elevated/70 p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-roicard-text">
+              {plan.name} membership
+            </p>
+            <p className="mt-1 text-xs text-roicard-text-muted">
+              {plan.includesCard
+                ? "Includes your physical Roicard card and delivery."
+                : "Full paid features."}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-lg font-bold text-roicard-text">
+              GHS {plan.amount}
+            </p>
+            {plan.originalAmount !== null && plan.originalAmount > plan.amount && (
+              <p className="text-xs text-roicard-text-muted line-through">
+                GHS {plan.originalAmount}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
 
       <div className="space-y-3">
         {PAYMENT_METHODS.map((option) => {
@@ -149,9 +202,7 @@ export function StepPayment() {
               <span
                 className={cn(
                   "flex h-5 w-5 items-center justify-center rounded-full border-2",
-                  selected
-                    ? "border-roicard-accent"
-                    : "border-roicard-border"
+                  selected ? "border-roicard-accent" : "border-roicard-border"
                 )}
               >
                 {selected && (
@@ -169,30 +220,13 @@ export function StepPayment() {
         </p>
       )}
 
-      {pricing.program && (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-roicard-accent/40 bg-roicard-accent/10 px-4 py-3">
-          <span className="rounded-full bg-roicard-accent/15 px-2 py-0.5 text-xs font-semibold text-roicard-accent">
-            50% off
-          </span>
-          <p className="text-sm text-roicard-text">
-            You're paying the Program rate.
-            {pricing.original !== null && (
-              <span className="text-roicard-text-muted">
-                {" "}
-                (was GHS {pricing.original})
-              </span>
-            )}
-          </p>
-        </div>
-      )}
-
       <div className="flex flex-col gap-3">
         <Button
           onClick={handlePay}
           disabled={isSubmitting}
           className="w-full rounded-xl"
         >
-          {isSubmitting ? "Starting payment..." : `Pay GHS ${pricing.fee}`}
+          {isSubmitting ? "Starting payment..." : `Pay GHS ${plan.amount}`}
         </Button>
         <button
           type="button"

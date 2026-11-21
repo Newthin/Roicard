@@ -8,8 +8,12 @@ export interface DashboardData {
     email: string;
     status: string;
     role: string;
-    /** ISO timestamp — when the draft account will be closed; null when active */
+    /** ISO timestamp — when an unfinished draft will be closed; null otherwise */
     draft_closes_at?: string | null;
+    plan?: string;
+    membership_status?: string;
+    is_founding_member?: boolean;
+    has_active_subscription?: boolean;
   };
   profile: Record<string, unknown> | null;
   smart_card: Record<string, unknown> | null;

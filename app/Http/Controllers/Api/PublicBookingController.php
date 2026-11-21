@@ -31,8 +31,14 @@ class PublicBookingController extends Controller
             ->where('is_live', true)
             ->first();
 
-        if (!$profile || !$profile->user || $profile->user->trashed() || $profile->user->status !== 'active') {
+        if (!$profile || !$profile->user || $profile->user->trashed() || $profile->user->isDeactivated()) {
             return response()->json(['message' => 'Member not found'], 404);
+        }
+
+        // Meeting booking is a paid feature. Free profiles simply expose no
+        // bookable types (the page renders without the booking section).
+        if (!app(\App\Services\Billing\EntitlementService::class)->allows($profile->user, 'meetings')) {
+            return response()->json(['data' => [], 'meetings_available' => false]);
         }
 
         $types = MeetingType::where('user_id', $profile->user_id)
@@ -68,8 +74,13 @@ class PublicBookingController extends Controller
             ->where('is_live', true)
             ->first();
 
-        if (!$profile || $meetingType->user_id !== $profile->user_id) {
+        if (!$profile || !$profile->user || $profile->user->trashed()
+            || $meetingType->user_id !== $profile->user_id) {
             return response()->json(['message' => 'Meeting type not found'], 404);
+        }
+
+        if (!app(\App\Services\Billing\EntitlementService::class)->allows($profile->user, 'meetings')) {
+            return response()->json(['message' => 'Meeting booking is not available on this profile'], 403);
         }
 
         if (!$meetingType->is_active) {
@@ -78,7 +89,7 @@ class PublicBookingController extends Controller
 
         $request->validate([
             'from' => ['required', 'date'],
-            'to' => ['required', 'date', 'after:from'],
+            'to' => ['required', 'date', 'after_or_equal:from'],
         ]);
 
         $slots = $this->availabilityEngine->getAvailableSlots(
@@ -102,8 +113,13 @@ class PublicBookingController extends Controller
             ->where('is_live', true)
             ->first();
 
-        if (!$profile || $meetingType->user_id !== $profile->user_id) {
+        if (!$profile || !$profile->user || $profile->user->trashed()
+            || $meetingType->user_id !== $profile->user_id) {
             return response()->json(['message' => 'Meeting type not found'], 404);
+        }
+
+        if (!app(\App\Services\Billing\EntitlementService::class)->allows($profile->user, 'meetings')) {
+            return response()->json(['message' => 'Meeting booking is not available on this profile'], 403);
         }
 
         if (!$meetingType->is_active) {
@@ -124,25 +140,25 @@ class PublicBookingController extends Controller
             'custom_answers.*.answer' => ['required_with:custom_answers', 'string', 'max:1000'],
         ]);
 
-        // Validate custom answers against the meeting type's custom questions
-        if (!empty($validated['custom_answers'])) {
-            $requiredQuestions = $meetingType->customQuestions()
-                ->where('is_required', true)
-                ->pluck('id')
-                ->toArray();
+        // Validate custom answers against the meeting type's custom questions.
+        // Required questions must be answered even when the client submits an
+        // empty answers array, so this cannot be gated on !empty().
+        $requiredQuestions = $meetingType->customQuestions()
+            ->where('is_required', true)
+            ->pluck('id')
+            ->toArray();
+        $providedAnswers = $validated['custom_answers'] ?? [];
+        $providedQuestionIds = array_column($providedAnswers, 'question_id');
 
-            $providedQuestionIds = array_column($validated['custom_answers'], 'question_id');
+        $missingRequired = array_diff($requiredQuestions, $providedQuestionIds);
+        if (!empty($missingRequired)) {
+            return response()->json([
+                'message' => 'All required questions must be answered.',
+                'missing_question_ids' => array_values($missingRequired),
+            ], 422);
+        }
 
-            // Check all required questions are answered
-            $missingRequired = array_diff($requiredQuestions, $providedQuestionIds);
-            if (!empty($missingRequired)) {
-                return response()->json([
-                    'message' => 'All required questions must be answered.',
-                    'missing_question_ids' => $missingRequired,
-                ], 422);
-            }
-
-            // Check all provided question IDs belong to this meeting type
+        if (!empty($providedAnswers)) {
             $validQuestionIds = $meetingType->customQuestions()->pluck('id')->toArray();
             $invalidIds = array_diff($providedQuestionIds, $validQuestionIds);
             if (!empty($invalidIds)) {

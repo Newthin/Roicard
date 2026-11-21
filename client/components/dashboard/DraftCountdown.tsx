@@ -11,8 +11,11 @@
 
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/contexts/AuthContext";
-import { initiatePayment } from "@/lib/api/payments";
-import { getActivationPricing } from "@/lib/profile/types";
+import {
+  confirmMockPayment,
+  initiatePayment,
+  rememberPaymentReference,
+} from "@/lib/api/payments";
 import { AlarmClock } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
@@ -55,28 +58,44 @@ export function DraftCountdown({ closesAt }: { closesAt: string }) {
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const { redirect } = await initiatePayment({
-        amount: getActivationPricing(user).fee,
+      const { payment, redirect } = await initiatePayment({
+        plan: "annual",
         currency: "GHS",
         method: "card",
       });
       const providerRedirect = redirect as {
         authorization_url?: string;
+        checkout_url?: string;
         status?: string;
+        mock?: boolean;
       };
+
+      if (payment) rememberPaymentReference(payment.provider_reference);
+
       if (providerRedirect?.status === "success") {
         window.location.reload();
         return;
       }
-      if (providerRedirect?.authorization_url) {
-        window.location.assign(providerRedirect.authorization_url);
-      } else {
-        setIsSubmitting(false);
+
+      const checkoutUrl =
+        providerRedirect?.authorization_url ?? providerRedirect?.checkout_url;
+
+      if (checkoutUrl) {
+        window.location.assign(checkoutUrl);
+        return;
       }
+
+      if (payment && providerRedirect?.mock) {
+        await confirmMockPayment(payment.provider_reference);
+        window.location.reload();
+        return;
+      }
+
+      setIsSubmitting(false);
     } catch {
       setIsSubmitting(false);
     }
-  }, [isSubmitting, user?.activation_fee]);
+  }, [isSubmitting, user]);
 
   if (!remaining) return null;
 

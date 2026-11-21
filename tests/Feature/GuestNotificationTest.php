@@ -305,7 +305,14 @@ class GuestNotificationTest extends TestCase
     public function test_returning_guest_creates_separate_booking_records(): void
     {
         $slotStart1 = Carbon::now('UTC')->addDays(3)->setTime(14, 0);
-        $slotStart2 = Carbon::now('UTC')->addDays(7)->setTime(14, 0);
+        while ($slotStart1->isWeekend()) {
+            $slotStart1->addDay();
+        }
+
+        $slotStart2 = $slotStart1->copy()->addDay();
+        while ($slotStart2->isWeekend()) {
+            $slotStart2->addDay();
+        }
 
         $booking1 = $this->engine->book(
             $this->type,

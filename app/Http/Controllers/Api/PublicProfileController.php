@@ -24,7 +24,7 @@ class PublicProfileController extends Controller
         $data = Cache::remember($cacheKey, 3600, function () use ($slug) {
             $profile = Profile::where('slug', $slug)
                 ->with([
-                    'user:id,first_name,last_name,email,status',
+                    'user:id,first_name,last_name,email,status,deactivated_at',
                     'socialLinks',
                     'education',
                     'experience',
@@ -37,37 +37,48 @@ class PublicProfileController extends Controller
                 return null;
             }
 
-            // Draft or deleted profiles are not publicly visible — only
-            // activated (paid) members can be viewed via their share link.
-            // A deleted account's user row is soft-deleted, so it may be
+            // Draft, deleted or suspended profiles are not publicly visible.
+            // Completed free members are published just like paid members;
+            // a deleted account's user row is soft-deleted, so it may be
             // missing entirely from the eager load.
-            if (!$profile->user || $profile->user->trashed() || $profile->user->status !== 'active') {
+            if (
+                !$profile->user
+                || $profile->user->trashed()
+                || !$profile->is_live
+                || $profile->user->isDeactivated()
+            ) {
                 return ['_draft' => true, 'slug' => $slug];
             }
 
             $cv = $profile->getMedia('cv')->first();
             $avatar = $profile->getFirstMediaUrl('avatar');
 
-            // Load active meeting types with availability and custom questions
-            $meetingTypes = \App\Models\MeetingType::where('user_id', $profile->user_id)
-                ->where('is_active', true)
-                ->with(['availability', 'customQuestions'])
-                ->orderBy('sort_order')
-                ->get()
-                ->map(fn (\App\Models\MeetingType $type) => [
-                    'id' => $type->id,
-                    'name' => $type->name,
-                    'description' => $type->description,
-                    'duration_minutes' => $type->duration_minutes,
-                    'format' => $type->format,
-                    'format_label' => $type->format_label,
-                    'location_detail' => $type->location_detail,
-                    'custom_questions' => $type->customQuestions->map(fn ($q) => [
-                        'id' => $q->id,
-                        'question' => $q->question,
-                        'is_required' => $q->is_required,
-                    ]),
-                ]);
+            // Meeting booking is a paid entitlement. Free profiles still
+            // render perfectly, they simply expose no bookable meeting types.
+            $canBookMeetings = app(\App\Services\Billing\EntitlementService::class)
+                ->allows($profile->user, 'meetings');
+
+            $meetingTypes = $canBookMeetings
+                ? \App\Models\MeetingType::where('user_id', $profile->user_id)
+                    ->where('is_active', true)
+                    ->with(['availability', 'customQuestions'])
+                    ->orderBy('sort_order')
+                    ->get()
+                    ->map(fn (\App\Models\MeetingType $type) => [
+                        'id' => $type->id,
+                        'name' => $type->name,
+                        'description' => $type->description,
+                        'duration_minutes' => $type->duration_minutes,
+                        'format' => $type->format,
+                        'format_label' => $type->format_label,
+                        'location_detail' => $type->location_detail,
+                        'custom_questions' => $type->customQuestions->map(fn ($q) => [
+                            'id' => $q->id,
+                            'question' => $q->question,
+                            'is_required' => $q->is_required,
+                        ]),
+                    ])
+                : collect();
 
             return [
                 'id' => $profile->id,
@@ -108,12 +119,10 @@ class PublicProfileController extends Controller
             return response()->json(['message' => 'Profile not found'], 404);
         }
 
-        // Draft profile — profile exists but user hasn't activated yet
+        // Draft, unpublished or suspended profiles are indistinguishable from
+        // missing profiles to the public.
         if (!empty($data['_draft'])) {
-            return response()->json([
-                'message' => 'This profile is not yet available',
-                'status' => 'draft',
-            ], 403);
+            return response()->json(['message' => 'Profile not found'], 404);
         }
 
         // Skip analytics when the request is a server-side metadata/OG-image
@@ -179,7 +188,7 @@ class PublicProfileController extends Controller
 
     /**
      * Public sitemap feed — slugs of all publicly viewable profiles (same
-     * visibility rule as show(): activated member, not deleted). Consumed by
+     * visibility rule as show(): live profile, not deleted or suspended). Consumed by
      * the Next.js sitemap route; cached for an hour and busted alongside the
      * per-profile cache.
      */
@@ -189,7 +198,7 @@ class PublicProfileController extends Controller
             return Profile::query()
                 ->join('users', 'users.id', '=', 'profiles.user_id')
                 ->whereNull('users.deleted_at')
-                ->where('users.status', 'active')
+                ->whereNull('users.deactivated_at')
                 ->where('profiles.is_live', true)
                 ->whereNotNull('profiles.slug')
                 ->orderBy('profiles.id')

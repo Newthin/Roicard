@@ -14,3 +14,12 @@ Schedule::command('drafts:expiration-reminders')->daily();
 // Meeting reminders — dispatch reminders for bookings starting in 24h and 1h.
 // Runs every 15 minutes; idempotent via cache dedup in SendMeetingReminderJob.
 Schedule::command('meetings:reminders')->everyFifteenMinutes();
+
+// Subscription lifecycle — ended periods enter grace immediately; expired
+// grace windows downgrade the member to the free plan. Runs hourly so access
+// changes within an hour of the boundary.
+Schedule::command('billing:sync-lifecycle')->hourly();
+
+// Renewal reminders at 14/7/3/1 days before the paid period ends. The command
+// dedupes per subscription period, so daily execution is safe.
+Schedule::command('billing:renewals')->dailyAt('08:00');

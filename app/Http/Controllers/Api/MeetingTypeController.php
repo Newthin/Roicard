@@ -162,7 +162,7 @@ class MeetingTypeController extends Controller
     {
         $request->validate([
             'from' => ['required', 'date'],
-            'to' => ['required', 'date', 'after:from'],
+            'to' => ['required', 'date', 'after_or_equal:from'],
             'limit' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
