@@ -11,7 +11,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { getPlans, type PlansResponse } from "@/lib/api/plans";
 import { cn } from "@/lib/cn";
-import { Check, Sparkles } from "lucide-react";
+import { Check } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -141,10 +141,7 @@ export function PricingView() {
 
       <main className="mx-auto w-full max-w-6xl px-5 pb-20">
         <section className="mx-auto max-w-2xl pt-8 text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-roicard-accent/30 bg-roicard-accent/10 px-3 py-1 text-xs font-semibold text-roicard-accent">
-            <Sparkles className="h-3.5 w-3.5" /> Simple, honest pricing
-          </span>
-          <h1 className="mt-5 text-4xl font-bold tracking-tight text-roicard-text sm:text-5xl">
+          <h1 className="text-4xl font-bold tracking-tight text-roicard-text sm:text-5xl">
             Your identity, your network, your card.
           </h1>
           <p className="mt-4 text-base leading-relaxed text-roicard-text-muted">
