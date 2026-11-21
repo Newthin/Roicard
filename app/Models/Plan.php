@@ -24,6 +24,8 @@ class Plan extends Model
     public const MONTHLY = 'monthly';
     public const ANNUAL = 'annual';
     public const FOUNDING = 'founding';
+    public const EXECUTIVE = 'executive';
+    public const STAFF = 'staff';
 
     protected $fillable = [
         'code',
@@ -62,7 +64,7 @@ class Plan extends Model
     {
         return $query->where('is_active', true)
             ->where('is_public', true)
-            ->whereNotIn('code', [self::FREE, self::FOUNDING]);
+            ->whereNotIn('code', [self::FREE, self::FOUNDING, self::EXECUTIVE, self::STAFF]);
     }
 
     public function scopePubliclyVisible($query)
@@ -78,6 +80,24 @@ class Plan extends Model
     public function isFounding(): bool
     {
         return $this->code === self::FOUNDING;
+    }
+
+    /** Internal roles are assigned by an administrator, never purchased. */
+    public function isInternal(): bool
+    {
+        return in_array($this->code, [self::EXECUTIVE, self::STAFF], true);
+    }
+
+    /** Lifetime plans never expire and are never renewed or charged again. */
+    public function isLifetime(): bool
+    {
+        return $this->isFounding() || $this->isInternal();
+    }
+
+    /** Consumed by Growth Network v1 when commission payouts are enabled. */
+    public function earnsCommission(): bool
+    {
+        return (bool) $this->feature('earns_commission', false);
     }
 
     public function isRecurring(): bool

@@ -123,6 +123,11 @@ class PlanCatalog
             $blockedCode = 'plan_not_purchasable';
             $amount = 0;
             $purpose = 'none';
+        } elseif ($plan->isInternal()) {
+            $blocked = 'This plan is assigned by an administrator and cannot be purchased.';
+            $blockedCode = 'plan_not_purchasable';
+            $amount = 0;
+            $purpose = 'none';
         } elseif ($existing && $existing->isFounding()) {
             $blocked = 'Your account already has lifetime founding access.';
             $blockedCode = 'already_founding';

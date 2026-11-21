@@ -166,7 +166,12 @@ class SubscriptionService
 
         $plan = $this->catalog->find($planCode);
         $periodStart = now();
-        $periodEnd = $endAt ? Carbon::parse($endAt) : $this->catalog->periodEnd($plan, $periodStart);
+
+        // Lifetime roles are permanent: an admin-supplied end date is ignored
+        // so they can never silently expire or enter renewal/grace flows.
+        $periodEnd = $plan->isLifetime()
+            ? null
+            : ($endAt ? Carbon::parse($endAt) : $this->catalog->periodEnd($plan, $periodStart));
 
         return DB::transaction(function () use ($user, $plan, $periodStart, $periodEnd, $source, $sendWelcome) {
             $subscription = $this->writeSubscription(
@@ -208,6 +213,12 @@ class SubscriptionService
         if ($subscription->isFounding()) {
             throw ValidationException::withMessages([
                 'subscription' => ['Founding members have lifetime access and no recurring subscription.'],
+            ]);
+        }
+
+        if ($subscription->isInternal()) {
+            throw ValidationException::withMessages([
+                'subscription' => ['Internal roles have permanent access and no recurring subscription.'],
             ]);
         }
 
@@ -400,6 +411,7 @@ class SubscriptionService
             'status' => $entitlements['status'],
             'is_active' => $entitlements['is_active'],
             'is_founding' => $entitlements['is_founding'],
+            'is_internal' => $entitlements['is_internal'] ?? false,
             'started_at' => $subscription?->started_at?->toIso8601String(),
             'current_period_start' => $subscription?->current_period_start?->toIso8601String(),
             'current_period_end' => $subscription?->current_period_end?->toIso8601String(),
@@ -407,7 +419,7 @@ class SubscriptionService
             'cancel_at_period_end' => (bool) ($subscription?->cancel_at_period_end ?? false),
             'canceled_at' => $subscription?->canceled_at?->toIso8601String(),
             'ended_at' => $subscription?->ended_at?->toIso8601String(),
-            'renews_at' => $subscription && !$subscription->isFounding()
+            'renews_at' => $subscription && !$subscription->isLifetime()
                 ? $subscription->current_period_end?->toIso8601String()
                 : null,
             'days_remaining' => $subscription?->daysRemaining(),
@@ -486,7 +498,7 @@ class SubscriptionService
             'plan_id' => $plan->id,
             'status' => $plan->isFounding() ? Subscription::STATUS_FOUNDING : Subscription::STATUS_ACTIVE,
             'current_period_start' => $periodStart,
-            'current_period_end' => $plan->isFounding() ? null : $periodEnd,
+            'current_period_end' => $plan->isLifetime() ? null : $periodEnd,
             'grace_ends_at' => null,
             'cancel_at_period_end' => false,
             'canceled_at' => null,

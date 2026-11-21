@@ -20,6 +20,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *   expired   grace ended; paid features locked
  *   canceled  cancelled, still running to current_period_end
  *   founding  legacy one-time GHS 350 member; never expires
+ *
+ * Internal roles (executive/staff) use `active` with a null period end, so they
+ * are permanent without inheriting founding's grandfathering rules.
  */
 class Subscription extends Model
 {
@@ -91,6 +94,18 @@ class Subscription extends Model
     public function isFounding(): bool
     {
         return $this->status === self::STATUS_FOUNDING;
+    }
+
+    /** True for admin-assigned executive/staff roles. */
+    public function isInternal(): bool
+    {
+        return $this->plan?->isInternal() === true;
+    }
+
+    /** Founding and internal roles have no end date and no renewal. */
+    public function isLifetime(): bool
+    {
+        return $this->isFounding() || $this->isInternal() || !$this->current_period_end;
     }
 
     public function onGrace(): bool

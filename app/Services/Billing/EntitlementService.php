@@ -3,6 +3,7 @@
 namespace App\Services\Billing;
 
 use App\Models\Plan;
+use App\Models\Subscription;
 use App\Models\User;
 
 /**
@@ -18,6 +19,12 @@ class EntitlementService
 
     public function planFor(User $user): Plan
     {
+        // Admin accounts are internal staff. They get full access without a
+        // subscription row and must never inherit legacy founding rules.
+        if ($user->isAdmin()) {
+            return $this->catalog->find(Plan::STAFF);
+        }
+
         $subscription = $user->subscription;
 
         if ($subscription && $subscription->isActive()) {
@@ -65,13 +72,17 @@ class EntitlementService
         $plan = $this->planFor($user);
         $features = $plan->features ?? [];
         $legacyFounding = !$subscription && $plan->code === Plan::FOUNDING;
+        $virtualStaff = $user->isAdmin() && !$subscription;
 
         return [
             'plan' => $plan->code,
             'plan_name' => $plan->name,
-            'status' => $subscription?->status ?? ($legacyFounding ? Plan::FOUNDING : Plan::FREE),
-            'is_active' => $subscription ? $subscription->isActive() : $legacyFounding,
+            'status' => $virtualStaff
+                ? Subscription::STATUS_ACTIVE
+                : ($subscription?->status ?? ($legacyFounding ? Plan::FOUNDING : Plan::FREE)),
+            'is_active' => $virtualStaff || ($subscription ? $subscription->isActive() : $legacyFounding),
             'is_founding' => $plan->code === Plan::FOUNDING,
+            'is_internal' => $plan->isInternal(),
             'features' => $features,
             'limits' => [
                 'cv_entries' => $this->limit($user, 'cv_entries'),
