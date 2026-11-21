@@ -705,3 +705,38 @@ export async function revokeAdminSubscription(
   return data;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Growth Network: executive referral directory                               */
+/* -------------------------------------------------------------------------- */
+
+export interface AdminExecutiveUser {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
+
+export interface AdminExecutive {
+  id: number;
+  user_id: number;
+  user: AdminExecutiveUser | null;
+  code: string;
+  url: string;
+  qr_url: string;
+  created_at: string | null;
+}
+
+export async function getAdminExecutives(): Promise<{
+  executives: AdminExecutive[];
+}> {
+  const { data } = await apiClient.get("/admin/executives");
+  return data;
+}
+
+export async function getAdminExecutive(
+  id: number
+): Promise<{ executive: AdminExecutive }> {
+  const { data } = await apiClient.get(`/admin/executives/${id}`);
+  return data;
+}
+

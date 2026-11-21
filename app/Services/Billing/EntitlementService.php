@@ -19,13 +19,22 @@ class EntitlementService
 
     public function planFor(User $user): Plan
     {
+        $subscription = $user->subscription;
+
+        // An explicit Executive grant is the source of truth for Growth Network
+        // identity, even on an admin account. Virtual staff only applies when
+        // no such grant exists.
+        if ($subscription
+            && $subscription->isActive()
+            && $subscription->plan?->code === Plan::EXECUTIVE) {
+            return $subscription->plan;
+        }
+
         // Admin accounts are internal staff. They get full access without a
         // subscription row and must never inherit legacy founding rules.
         if ($user->isAdmin()) {
             return $this->catalog->find(Plan::STAFF);
         }
-
-        $subscription = $user->subscription;
 
         if ($subscription && $subscription->isActive()) {
             return $subscription->plan ?? $this->catalog->find(

@@ -21,3 +21,4 @@ export { AdminActivityFeed } from "@/components/admin/AdminActivityFeed";
 export { DiscountsManagementView } from "@/components/admin/DiscountsManagementView";
 export { MessagesManagementView } from "@/components/admin/MessagesManagementView";
 export { BillingManagementView } from "@/components/admin/BillingManagementView";
+export { ExecutivesManagementView } from "@/components/admin/ExecutivesManagementView";

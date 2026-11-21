@@ -8,6 +8,7 @@ use App\Models\Subscription;
 use App\Models\SubscriptionEvent;
 use App\Models\User;
 use App\Mail\MembershipLapsedMail;
+use App\Services\Growth\ExecutiveService;
 use App\Services\MemberAccountService;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -28,7 +29,8 @@ class SubscriptionService
     public function __construct(
         protected PlanCatalog $catalog,
         protected EntitlementService $entitlements,
-        protected MemberAccountService $accounts
+        protected MemberAccountService $accounts,
+        protected ExecutiveService $executives
     ) {}
 
     /**
@@ -191,6 +193,10 @@ class SubscriptionService
                 'source' => $source,
                 'period_end' => $periodEnd?->toIso8601String(),
             ]);
+
+            if ($plan->code === Plan::EXECUTIVE) {
+                $this->executives->ensureForUser($user);
+            }
 
             $this->accounts->activateMembership($user, $sendWelcome);
             $this->refreshAccess($user);

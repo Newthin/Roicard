@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AdminBillingController;
 use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\AdminExecutiveController;
 use App\Http\Controllers\Api\AdminMessageController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuthController;
@@ -9,6 +10,7 @@ use App\Http\Controllers\Api\BillingController;
 use App\Http\Controllers\Api\ConnectionController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DiscountCampaignController;
+use App\Http\Controllers\Api\ExecutiveController;
 use App\Http\Controllers\Api\GoogleAuthController;
 use App\Http\Controllers\Api\InterestOptionController;
 use App\Http\Controllers\Api\NotificationController;
@@ -18,6 +20,7 @@ use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ProfileEnrichmentController;
 use App\Http\Controllers\Api\PublicProfileController;
 use App\Http\Controllers\Api\QRController;
+use App\Http\Controllers\Api\ReferralController;
 use App\Http\Controllers\Api\SmartCardController;
 use App\Http\Controllers\Api\SocialAuthController;
 use Illuminate\Support\Facades\Route;
@@ -69,6 +72,9 @@ Route::post('/meetings/cancel/{token}', [\App\Http\Controllers\Api\MeetingBookin
 // recorded.
 Route::get('/qr/image/{slug}', [QRController::class, 'image'])->middleware('cache.get');
 Route::get('/qr/{slug}', [QRController::class, 'show']);
+
+// Executive referral QR asset (public — encodes the /r/CODE short link)
+Route::get('/referrals/{code}/qr', [ReferralController::class, 'qr'])->middleware('cache.get');
 
 // Payment webhook (no auth, signature-verified)
 Route::post('/payments/webhook/{provider}', [PaymentController::class, 'webhook']);
@@ -137,6 +143,9 @@ Route::middleware(['auth:sanctum', 'prevent_leak'])->group(function () {
     // Smart Cards
     Route::post('/smart-cards/delivery', [SmartCardController::class, 'storeDelivery']);
 
+    // Growth Network — executive referral assets (identity comes from the plan grant)
+    Route::get('/executive/referral', [ExecutiveController::class, 'referral']);
+
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);
 
@@ -191,6 +200,10 @@ Route::middleware(['auth:sanctum', 'prevent_leak'])->group(function () {
         Route::get('/subscriptions', [AdminBillingController::class, 'subscriptions']);
         Route::post('/users/{id}/subscription', [AdminBillingController::class, 'grantSubscription']);
         Route::delete('/users/{id}/subscription', [AdminBillingController::class, 'revokeSubscription']);
+
+        // Growth Network — executive referral directory
+        Route::get('/executives', [AdminExecutiveController::class, 'index']);
+        Route::get('/executives/{id}', [AdminExecutiveController::class, 'show'])->whereNumber('id');
 
         Route::get('/users', [AdminController::class, 'users']);
         Route::get('/users/{id}', [AdminController::class, 'showUser']);
