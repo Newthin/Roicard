@@ -12,10 +12,13 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import {
   approveAdminPayoutBatch,
+  downloadPayoutBatchCsv,
   generateAdminPayoutBatches,
   getAdminPayoutBatch,
   getAdminPayoutBatches,
   getAdminPayoutSettings,
+  markPayoutBatchPaid,
+  setPayoutTransferReference,
   updateAdminPayoutSettings,
   type AdminPayoutBatch,
   type AdminPayoutBatchItem,
@@ -53,6 +56,7 @@ export function PayoutsManagementView() {
   const [enabled, setEnabled] = useState(true);
   const [statusFilter, setStatusFilter] = useState("");
   const [detail, setDetail] = useState<AdminPayoutBatch | null>(null);
+  const [references, setReferences] = useState<Record<number, string>>({});
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -142,8 +146,77 @@ export function PayoutsManagementView() {
     try {
       const result = await getAdminPayoutBatch(batch.id);
       setDetail(result.batch);
+      setReferences(
+        Object.fromEntries(
+          (result.batch.items ?? []).map((item) => [
+            item.id,
+            item.transfer_reference ?? "",
+          ])
+        )
+      );
     } catch {
       setError("Unable to load this batch.");
+    }
+  };
+
+  const saveReference = async (item: AdminPayoutBatchItem) => {
+    if (!detail) return;
+    setIsSaving(true);
+    setNotice(null);
+    setError(null);
+    try {
+      const result = await setPayoutTransferReference(
+        detail.id,
+        item.id,
+        references[item.id] ?? ""
+      );
+      setNotice(result.message);
+      setDetail((current) =>
+        current
+          ? {
+              ...current,
+              items: (current.items ?? []).map((entry) =>
+                entry.id === item.id ? result.item : entry
+              ),
+            }
+          : current
+      );
+      setBatches((current) =>
+        current.map((entry) => (entry.id === detail.id ? { ...entry } : entry))
+      );
+    } catch {
+      setError("Unable to save this transfer reference.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const markPaid = async (batch: AdminPayoutBatch) => {
+    setIsSaving(true);
+    setNotice(null);
+    setError(null);
+    try {
+      const result = await markPayoutBatchPaid(batch.id);
+      setNotice(result.message);
+      setBatches((current) =>
+        current.map((entry) => (entry.id === batch.id ? result.batch : entry))
+      );
+      if (detail?.id === batch.id) setDetail(result.batch);
+    } catch {
+      setError("Unable to mark this batch as paid. Check every transfer reference first.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const downloadCsv = async (batch: AdminPayoutBatch) => {
+    setNotice(null);
+    setError(null);
+    try {
+      await downloadPayoutBatchCsv(batch.id);
+      setNotice(`CSV downloaded for batch #${batch.id}.`);
+    } catch {
+      setError("Unable to download this batch CSV.");
     }
   };
 
@@ -157,8 +230,8 @@ export function PayoutsManagementView() {
         <div>
           <h1 className="text-2xl font-semibold text-roicard-text">Payouts</h1>
           <p className="mt-1 text-sm text-roicard-text-muted">
-            Batch cleared Executive commissions, then approve them for payment.
-            Transfer references and CSV export follow in the next item.
+            Batch cleared Executive commissions, approve them, record transfer
+            references and export a reconciliation CSV.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -260,6 +333,7 @@ export function PayoutsManagementView() {
             <option value="">All statuses</option>
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
+            <option value="paid">Paid</option>
           </select>
         </div>
       </section>
@@ -299,9 +373,11 @@ export function PayoutsManagementView() {
                     <td className="py-3 pr-4">
                       <span
                         className={
-                          batch.status === "approved"
-                            ? "rounded-full bg-emerald-500/10 px-2 py-1 text-xs text-emerald-500"
-                            : "rounded-full bg-amber-500/10 px-2 py-1 text-xs text-amber-500"
+                          batch.status === "paid"
+                            ? "rounded-full bg-sky-500/10 px-2 py-1 text-xs text-sky-400"
+                            : batch.status === "approved"
+                              ? "rounded-full bg-emerald-500/10 px-2 py-1 text-xs text-emerald-500"
+                              : "rounded-full bg-amber-500/10 px-2 py-1 text-xs text-amber-500"
                         }
                       >
                         {batch.status}
@@ -318,6 +394,20 @@ export function PayoutsManagementView() {
                         {batch.status === "pending" && (
                           <Button size="sm" onClick={() => approve(batch)} isLoading={isSaving}>
                             Approve
+                          </Button>
+                        )}
+                        {batch.status === "approved" && (
+                          <Button size="sm" onClick={() => markPaid(batch)} isLoading={isSaving}>
+                            Mark paid
+                          </Button>
+                        )}
+                        {(batch.status === "approved" || batch.status === "paid") && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => downloadCsv(batch)}
+                          >
+                            CSV
                           </Button>
                         )}
                       </div>
@@ -352,7 +442,9 @@ export function PayoutsManagementView() {
                     <th className="py-2 pr-4 font-medium">Executive</th>
                     <th className="py-2 pr-4 font-medium">Type</th>
                     <th className="py-2 pr-4 font-medium">Amount</th>
-                    <th className="py-2 font-medium">Status</th>
+                    <th className="py-2 pr-4 font-medium">Status</th>
+                    <th className="py-2 pr-4 font-medium">Transfer reference</th>
+                    <th className="py-2 font-medium">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-roicard-border">
@@ -370,7 +462,39 @@ export function PayoutsManagementView() {
                       <td className="py-2 pr-4 text-roicard-text">
                         {money(item.amount, item.currency)}
                       </td>
-                      <td className="py-2 text-roicard-text-muted">{item.status}</td>
+                      <td className="py-2 pr-4 text-roicard-text-muted">{item.status}</td>
+                      <td className="py-2 pr-4">
+                        {detail.status === "approved" ? (
+                          <input
+                            aria-label={`Transfer reference for ${fullName(item.executive)}`}
+                            value={references[item.id] ?? ""}
+                            onChange={(event) =>
+                              setReferences((current) => ({
+                                ...current,
+                                [item.id]: event.target.value,
+                              }))
+                            }
+                            placeholder="Bank / MoMo reference"
+                            className="w-full min-w-40 rounded-lg border border-roicard-border bg-roicard-bg-muted px-2 py-1 text-sm text-roicard-text"
+                          />
+                        ) : (
+                          <span className="text-roicard-text-muted">
+                            {item.transfer_reference || "—"}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2">
+                        {detail.status === "approved" && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => saveReference(item)}
+                            isLoading={isSaving}
+                          >
+                            Save
+                          </Button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

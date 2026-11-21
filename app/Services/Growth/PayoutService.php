@@ -12,12 +12,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Growth Network item 4 — payout batching and finance approval.
+ * Growth Network payout batching, finance approval and reconciliation.
  *
  * Cleared commissions are grouped per Executive. Only executives reaching the
  * configured minimum are batched; smaller balances roll over to the next run.
- * Batches start as `pending` and are approved by an admin. Transfer references
- * and CSV export belong to the next item and are deliberately absent here.
+ * Batches start as `pending`, are approved by an admin, then carry per-Executive
+ * transfer references before finance marks them as paid.
  */
 class PayoutService
 {
@@ -173,5 +173,125 @@ class PayoutService
 
             $batch->update(['total_amount' => round((float) $batch->items()->sum('amount'), 2)]);
         });
+    }
+
+    /** Store the bank/MoMo transfer reference for one Executive in a batch. */
+    public function setTransferReference(
+        PayoutBatch $batch,
+        PayoutBatchItem $item,
+        string $reference
+    ): PayoutBatchItem {
+        if ($item->payout_batch_id !== $batch->id) {
+            throw ValidationException::withMessages([
+                'item' => 'This commission does not belong to the selected batch.',
+            ]);
+        }
+
+        if ($batch->status !== PayoutBatch::STATUS_APPROVED) {
+            throw ValidationException::withMessages([
+                'batch' => 'Transfer references can only be set on an approved, unpaid batch.',
+            ]);
+        }
+
+        $reference = trim($reference);
+
+        if ($reference === '') {
+            throw ValidationException::withMessages([
+                'transfer_reference' => 'A transfer reference is required.',
+            ]);
+        }
+
+        $item->forceFill(['transfer_reference' => $reference])->save();
+
+        return $item->fresh();
+    }
+
+    /**
+     * Finance confirmation that a batch was paid. Every item must carry a
+     * transfer reference first, so the payout is always traceable.
+     */
+    public function markBatchPaid(PayoutBatch $batch, User $admin): PayoutBatch
+    {
+        if ($batch->status !== PayoutBatch::STATUS_APPROVED) {
+            throw ValidationException::withMessages([
+                'batch' => 'Only approved batches can be marked as paid.',
+            ]);
+        }
+
+        $batch->loadMissing('items');
+
+        if ($batch->items->isEmpty()
+            || $batch->items->contains(fn (PayoutBatchItem $item) => empty(trim((string) $item->transfer_reference)))) {
+            throw ValidationException::withMessages([
+                'batch' => 'Add a transfer reference for every Executive before marking this batch paid.',
+            ]);
+        }
+
+        DB::transaction(function () use ($batch, $admin) {
+            $paidAt = now();
+
+            $batch->forceFill([
+                'status' => PayoutBatch::STATUS_PAID,
+                'paid_by_user_id' => $admin->id,
+                'paid_at' => $paidAt,
+            ])->save();
+
+            $batch->items()->update([
+                'status' => PayoutBatchItem::STATUS_PAID,
+                'paid_at' => $paidAt,
+            ]);
+        });
+
+        return $batch->fresh('items');
+    }
+
+    /**
+     * A single-batch CSV for finance reconciliation. Names and references are
+     * included so the file can be filed against a bank or MoMo transfer.
+     *
+     * @return string CSV bytes
+     */
+    public function batchCsv(PayoutBatch $batch): string
+    {
+        if (!in_array($batch->status, [PayoutBatch::STATUS_APPROVED, PayoutBatch::STATUS_PAID], true)) {
+            throw ValidationException::withMessages([
+                'batch' => 'CSV export is available for approved and paid batches only.',
+            ]);
+        }
+
+        $batch->loadMissing('items.executive', 'items.commission');
+        $handle = fopen('php://temp', 'w+');
+
+        fputcsv($handle, [
+            'batch_id', 'executive_id', 'executive_name', 'email', 'commission_id',
+            'commission_type', 'amount', 'currency', 'transfer_reference', 'paid_at', 'status',
+        ]);
+
+        foreach ($batch->items as $item) {
+            $executive = $item->executive;
+            $name = $executive
+                ? trim(($executive->first_name ?? '').' '.($executive->last_name ?? ''))
+                : '';
+
+            fputcsv($handle, [
+                $batch->id,
+                $item->executive_user_id,
+                $name !== '' ? $name : ($executive->email ?? ''),
+                $executive->email ?? '',
+                $item->commission_id,
+                $item->commission?->type ?? '',
+                (string) $item->amount,
+                $item->currency,
+                (string) ($item->transfer_reference ?? ''),
+                $item->paid_at?->toIso8601String() ?? '',
+                $item->status,
+            ]);
+        }
+
+        rewind($handle);
+        $csv = stream_get_contents($handle);
+        fclose($handle);
+
+        return $csv !== false ? $csv : '';
     }
 }

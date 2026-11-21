@@ -4,13 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\PayoutBatch;
+use App\Models\PayoutBatchItem;
 use App\Services\Growth\PayoutService;
 use App\Traits\LogsAdminActions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
-/** Admin payout policy, batch generation and finance approval. */
+/** Admin payout policy, batch generation, finance approval and reconciliation. */
 class AdminPayoutController extends Controller
 {
     use LogsAdminActions;
@@ -50,13 +51,18 @@ class AdminPayoutController extends Controller
             'status' => ['sometimes', Rule::in([
                 PayoutBatch::STATUS_PENDING,
                 PayoutBatch::STATUS_APPROVED,
+                PayoutBatch::STATUS_PAID,
             ])],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
 
         $batches = PayoutBatch::query()
             ->withCount('items')
-            ->with(['creator:id,first_name,last_name,email', 'approver:id,first_name,last_name,email'])
+            ->with([
+                'creator:id,first_name,last_name,email',
+                'approver:id,first_name,last_name,email',
+                'payer:id,first_name,last_name,email',
+            ])
             ->when(!empty($validated['status']), fn ($query) => $query->where('status', $validated['status']))
             ->latest()
             ->paginate($validated['per_page'] ?? 25);
@@ -71,6 +77,7 @@ class AdminPayoutController extends Controller
             'items.commission:id,type,amount,cleared_at',
             'creator:id,first_name,last_name,email',
             'approver:id,first_name,last_name,email',
+            'payer:id,first_name,last_name,email',
         ]);
 
         return response()->json(['batch' => $batch]);
@@ -112,6 +119,64 @@ class AdminPayoutController extends Controller
         return response()->json([
             'batch' => $approved->load('items'),
             'message' => 'Batch approved for payment.',
+        ]);
+    }
+
+    public function setTransferReference(
+        PayoutBatch $batch,
+        PayoutBatchItem $item,
+        Request $request
+    ): JsonResponse {
+        $validated = $request->validate([
+            'transfer_reference' => ['required', 'string', 'max:64'],
+        ]);
+
+        $saved = $this->payouts->setTransferReference(
+            $batch,
+            $item,
+            $validated['transfer_reference']
+        );
+
+        $this->logAdminAction('payout_transfer_reference_set', $saved->executive_user_id, [
+            'batch_id' => $batch->id,
+            'item_id' => $saved->id,
+        ]);
+
+        return response()->json([
+            'item' => $saved,
+            'message' => 'Transfer reference saved.',
+        ]);
+    }
+
+    public function markPaid(PayoutBatch $batch): JsonResponse
+    {
+        $paid = $this->payouts->markBatchPaid($batch, auth()->user());
+
+        $this->logAdminAction('payout_batch_marked_paid', null, [
+            'batch_id' => $batch->id,
+            'total_amount' => $paid->total_amount,
+            'items' => $paid->items->count(),
+        ]);
+
+        return response()->json([
+            'batch' => $paid->load('items'),
+            'message' => 'Batch marked as paid.',
+        ]);
+    }
+
+    public function csv(PayoutBatch $batch)
+    {
+        $csv = $this->payouts->batchCsv($batch);
+
+        $this->logAdminAction('payout_batch_csv_exported', null, [
+            'batch_id' => $batch->id,
+            'status' => $batch->status,
+        ]);
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="payout-batch-'.$batch->id.'.csv"',
+            'Cache-Control' => 'no-store',
         ]);
     }
 }

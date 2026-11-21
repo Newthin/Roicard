@@ -14,6 +14,8 @@ class PayoutBatch extends Model
 
     public const STATUS_APPROVED = 'approved';
 
+    public const STATUS_PAID = 'paid';
+
     protected $fillable = [
         'period_start',
         'period_end',
@@ -24,6 +26,8 @@ class PayoutBatch extends Model
         'created_by_user_id',
         'approved_by_user_id',
         'approved_at',
+        'paid_by_user_id',
+        'paid_at',
     ];
 
     protected function casts(): array
@@ -33,6 +37,7 @@ class PayoutBatch extends Model
             'period_end' => 'datetime',
             'total_amount' => 'decimal:2',
             'approved_at' => 'datetime',
+            'paid_at' => 'datetime',
         ];
     }
 
@@ -50,6 +55,11 @@ class PayoutBatch extends Model
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by_user_id');
+    }
+
+    public function payer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'paid_by_user_id');
     }
 
     public function isPending(): bool

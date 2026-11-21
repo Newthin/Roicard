@@ -12,6 +12,8 @@ class PayoutBatchItem extends Model
 
     public const STATUS_APPROVED = 'approved';
 
+    public const STATUS_PAID = 'paid';
+
     protected $fillable = [
         'payout_batch_id',
         'commission_id',
@@ -19,12 +21,15 @@ class PayoutBatchItem extends Model
         'amount',
         'currency',
         'status',
+        'transfer_reference',
+        'paid_at',
     ];
 
     protected function casts(): array
     {
         return [
             'amount' => 'decimal:2',
+            'paid_at' => 'datetime',
         ];
     }
 

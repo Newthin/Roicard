@@ -814,7 +814,9 @@ export interface AdminPayoutBatchItem {
   commission: { id: number; type: string; amount: string; cleared_at: string | null } | null;
   amount: string;
   currency: string;
-  status: "pending" | "approved";
+  status: "pending" | "approved" | "paid";
+  transfer_reference: string | null;
+  paid_at: string | null;
 }
 
 export interface AdminPayoutBatch {
@@ -823,11 +825,13 @@ export interface AdminPayoutBatch {
   period_end: string;
   total_amount: string;
   currency: string;
-  status: "pending" | "approved";
+  status: "pending" | "approved" | "paid";
   notes: string | null;
   created_by: AdminPayoutBatchUser | null;
   approved_by: AdminPayoutBatchUser | null;
   approved_at: string | null;
+  paid_by: AdminPayoutBatchUser | null;
+  paid_at: string | null;
   created_at: string | null;
   items_count?: number;
   items?: AdminPayoutBatchItem[];
@@ -880,5 +884,41 @@ export async function approveAdminPayoutBatch(id: number): Promise<{
 }> {
   const { data } = await apiClient.post(`/admin/payout/batches/${id}/approve`);
   return data;
+}
+
+export async function setPayoutTransferReference(
+  batchId: number,
+  itemId: number,
+  transferReference: string
+): Promise<{ item: AdminPayoutBatchItem; message: string }> {
+  const { data } = await apiClient.patch(
+    `/admin/payout/batches/${batchId}/items/${itemId}/transfer-reference`,
+    { transfer_reference: transferReference }
+  );
+  return data;
+}
+
+export async function markPayoutBatchPaid(id: number): Promise<{
+  batch: AdminPayoutBatch;
+  message: string;
+}> {
+  const { data } = await apiClient.post(`/admin/payout/batches/${id}/mark-paid`);
+  return data;
+}
+
+export async function downloadPayoutBatchCsv(id: number): Promise<void> {
+  const response = await apiClient.get(`/admin/payout/batches/${id}/csv`, {
+    responseType: "blob",
+  });
+  const url = window.URL.createObjectURL(
+    new Blob([response.data], { type: "text/csv;charset=utf-8" })
+  );
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", `payout-batch-${id}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
 }
 

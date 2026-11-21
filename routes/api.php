@@ -217,6 +217,10 @@ Route::middleware(['auth:sanctum', 'prevent_leak'])->group(function () {
         Route::post('/payout/batches/generate', [AdminPayoutController::class, 'generate']);
         Route::get('/payout/batches/{batch}', [AdminPayoutController::class, 'batch'])->whereNumber('batch');
         Route::post('/payout/batches/{batch}/approve', [AdminPayoutController::class, 'approve'])->whereNumber('batch');
+        Route::patch('/payout/batches/{batch}/items/{item}/transfer-reference', [AdminPayoutController::class, 'setTransferReference'])
+            ->whereNumber(['batch', 'item']);
+        Route::post('/payout/batches/{batch}/mark-paid', [AdminPayoutController::class, 'markPaid'])->whereNumber('batch');
+        Route::get('/payout/batches/{batch}/csv', [AdminPayoutController::class, 'csv'])->whereNumber('batch');
 
         Route::get('/users', [AdminController::class, 'users']);
         Route::get('/users/{id}', [AdminController::class, 'showUser']);
