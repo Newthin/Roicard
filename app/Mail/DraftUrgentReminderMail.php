@@ -11,9 +11,8 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Day 6 of the draft expiration sequence — urgency. Promises that the draft
- * profile and reserved Smart Card will be released after tomorrow; the
- * closure job makes that true by returning unclaimed cards to inventory.
+ * Day 6 of the draft expiration sequence — urgency. The unfinished profile
+ * and its reserved link are released after tomorrow by the closure job.
  */
 class DraftUrgentReminderMail extends Mailable implements ShouldQueue
 {
@@ -24,7 +23,7 @@ class DraftUrgentReminderMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '1 day left to activate your Roicard.',
+            subject: '1 day left to keep your Roicard link',
         );
     }
 

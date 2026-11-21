@@ -1,10 +1,10 @@
 <x-mail::message>
-# Today's your last day.
+# Today's your last day to keep your Roicard link
 
-Your Roicard reservation expires today. After midnight, your account will be closed, and this profile link will no longer be yours. Activate now to keep it.
+Your unfinished Roicard profile expires today. After midnight, the account will be closed and this profile link will no longer be yours. Complete setup to keep your link.
 
 <x-mail::button :url="config('app.frontend_url') . '/dashboard'">
-Activate Membership
+Finish Setup
 </x-mail::button>
 
 Thanks,<br>

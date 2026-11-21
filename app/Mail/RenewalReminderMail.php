@@ -42,6 +42,10 @@ class RenewalReminderMail extends Mailable implements ShouldQueue
                 'user' => $this->user,
                 'subscription' => $this->subscription,
                 'plan' => $this->subscription->plan,
+                'amount' => $this->subscription->plan
+                    ? number_format((float) $this->subscription->plan->price, 2)
+                    : null,
+                'currency' => $this->subscription->plan?->currency ?? 'GHS',
                 'daysBefore' => $this->daysBefore,
                 'renewsOn' => $this->subscription->current_period_end,
                 'billingUrl' => rtrim(config('app.frontend_url', 'http://localhost:3000'), '/')

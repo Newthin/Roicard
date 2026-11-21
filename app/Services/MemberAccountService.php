@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Mail\WelcomeMemberMail;
+use App\Models\Plan;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -161,8 +162,16 @@ class MemberAccountService
     protected function sendWelcomeEmail(User $user): void
     {
         try {
+            // Variant follows actual membership state, not the account-status
+            // column. A free member has a published profile but no subscription.
+            $isPaid = $user->planCode() !== Plan::FREE;
+
             Mail::to($user)->queue(
-                new WelcomeMemberMail($user, $user->status === 'active' ? 'member' : 'draft')
+                new WelcomeMemberMail(
+                    $user,
+                    $isPaid ? 'paid' : 'free',
+                    $isPaid ? $user->subscription?->plan?->name : null
+                )
             );
         } catch (\Throwable $e) {
             Log::warning('Failed to queue welcome email', [

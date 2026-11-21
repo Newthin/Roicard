@@ -1,10 +1,10 @@
 <x-mail::message>
-# 1 day left to activate your Roicard.
+# 1 day left to keep your Roicard link
 
-Your draft profile and reserved Smart Card are held for 7 days. After tomorrow, they'll be released. Activate now to keep your identity, your link, and your card.
+Your unfinished profile and reserved link are held for 7 days. After tomorrow they'll be released. Complete setup to keep your identity and your link.
 
 <x-mail::button :url="config('app.frontend_url') . '/dashboard'">
-Activate Membership
+Finish Setup
 </x-mail::button>
 
 Thanks,<br>

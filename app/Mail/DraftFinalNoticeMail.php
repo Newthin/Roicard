@@ -22,7 +22,7 @@ class DraftFinalNoticeMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "Today's your last day.",
+            subject: "Today's your last day to keep your Roicard link",
         );
     }
 

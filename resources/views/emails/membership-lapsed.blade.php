@@ -3,15 +3,13 @@
 
 Hi {{ $user->first_name }},
 
-Your paid Roicard membership has ended, so your account is now on the free plan. Nothing has been deleted: your public profile, connections and content are all still there.
+Your paid membership has ended and your account is now on the free plan. Your public profile, personal link, QR code and connections are all still there — nothing was deleted.
 
-Paid features such as meeting booking, full analytics and contact export are paused until you renew.
+Paid features such as the physical card, meeting booking, full analytics, contact export and unlimited sections are paused.
 
-<x-mail::button :url="$billingUrl">
-Renew Membership
+<x-mail::button :url="$plansUrl">
+Compare plans
 </x-mail::button>
-
-You can compare plans any time at [{{ $plansUrl }}]({{ $plansUrl }}).
 
 Thanks,<br>
 The Roicard Team

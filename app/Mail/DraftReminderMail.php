@@ -22,7 +22,7 @@ class DraftReminderMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Roicard is still waiting.',
+            subject: 'Finish setting up your Roicard profile',
         );
     }
 

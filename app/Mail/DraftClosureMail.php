@@ -26,7 +26,7 @@ class DraftClosureMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Roicard account has been closed.',
+            subject: 'Your unfinished Roicard profile was closed',
         );
     }
 
