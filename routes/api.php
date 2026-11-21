@@ -146,8 +146,9 @@ Route::middleware(['auth:sanctum', 'prevent_leak'])->group(function () {
     // Smart Cards
     Route::post('/smart-cards/delivery', [SmartCardController::class, 'storeDelivery']);
 
-    // Growth Network — executive referral assets (identity comes from the plan grant)
+    // Growth Network — executive referral assets and dashboard (plan-based identity)
     Route::get('/executive/referral', [ExecutiveController::class, 'referral']);
+    Route::get('/executive/dashboard', [ExecutiveController::class, 'dashboard']);
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);

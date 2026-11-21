@@ -1,6 +1,7 @@
 "use client";
 
 import { AdminDashboardNavLink } from "@/components/layout/AdminDashboardNavLink";
+import { ExecutiveDashboardNavLink } from "@/components/layout/ExecutiveDashboardNavLink";
 import { PublicProfileNavLink } from "@/components/layout/PublicProfileNavLink";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { cn } from "@/lib/cn";
@@ -58,6 +59,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       </nav>
 
       <PublicProfileNavLink onNavigate={onClose} />
+      <ExecutiveDashboardNavLink onNavigate={onClose} />
       <AdminDashboardNavLink onNavigate={onClose} />
     </>
   );

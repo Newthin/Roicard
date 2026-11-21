@@ -14,7 +14,8 @@ use App\Services\Billing\EntitlementService;
  * plan grant resolved by EntitlementService. This service only owns the stable
  * code, shareable link and QR URL attached to that identity.
  *
- * Click tracking and attribution are deliberately NOT part of this item.
+ * Click tracking, attribution, commissions and payouts are consumed by the
+ * Executive dashboard, but remain owned by their own Growth Network services.
  */
 class ExecutiveService
 {
