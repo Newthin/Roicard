@@ -293,11 +293,14 @@ export function PricingView() {
             </ul>
 
             <a
-              href="mailto:hello@roicard.com?subject=Growth%20Network"
+              href="mailto:admin@myroicard.com?subject=Growth%20Network"
               className="mt-8 block rounded-xl border border-roicard-border px-4 py-3 text-center text-sm font-semibold text-roicard-text transition-colors hover:border-roicard-accent"
             >
               Contact sales
             </a>
+            <p className="mt-2 text-center text-[11px] text-roicard-text-muted">
+              admin@myroicard.com
+            </p>
           </div>
         </section>
 
