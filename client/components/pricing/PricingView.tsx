@@ -298,9 +298,6 @@ export function PricingView() {
             >
               Contact sales
             </a>
-            <p className="mt-2 text-center text-[11px] text-roicard-text-muted">
-              admin@myroicard.com
-            </p>
           </div>
         </section>
 
