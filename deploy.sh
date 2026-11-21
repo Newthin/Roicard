@@ -90,6 +90,9 @@ sudo systemctl restart roicard-worker
 echo "==> Deploying frontend"
 cd "$FRONTEND_DIR"
 sudo git pull origin main
+# Reinstall from package-lock.json so dependency bumps in a commit actually
+# reach the running build. Without this, next build keeps using stale packages.
+sudo npm ci
 
 if ! npm audit --omit=dev --audit-level=critical; then
     echo "ERROR: npm audit found CRITICAL advisories in production dependencies. Not deploying." >&2
