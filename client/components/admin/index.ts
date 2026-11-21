@@ -23,3 +23,4 @@ export { MessagesManagementView } from "@/components/admin/MessagesManagementVie
 export { BillingManagementView } from "@/components/admin/BillingManagementView";
 export { ExecutivesManagementView } from "@/components/admin/ExecutivesManagementView";
 export { CommissionsManagementView } from "@/components/admin/CommissionsManagementView";
+export { PayoutsManagementView } from "@/components/admin/PayoutsManagementView";

@@ -6,12 +6,13 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * A cash commission earned by an Executive from an attributed member payment.
  *
- * Rows are append-only except for the reversal fields. Payout batch and
- * approval columns are deliberately absent — those arrive in item 4.
+ * Rows are append-only except for the reversal fields. Batch inclusion is
+ * tracked by PayoutBatchItem, so a commission can never be paid twice.
  */
 class Commission extends Model
 {
@@ -84,6 +85,12 @@ class Commission extends Model
     public function subscription(): BelongsTo
     {
         return $this->belongsTo(Subscription::class);
+    }
+
+    /** @return HasOne<PayoutBatchItem> */
+    public function payoutBatchItem(): HasOne
+    {
+        return $this->hasOne(PayoutBatchItem::class);
     }
 
     public function scopeCleared(Builder $query): Builder

@@ -19,14 +19,15 @@ use App\Services\Billing\EntitlementService;
  * upgrade) can earn. Renewals, monthly sales, admin grants and legacy payments
  * never do. A discounted sale is capped at a share of the collected revenue.
  *
- * Payout batches, approval and CSV export are deliberately not part of this
- * item.
+ * Reversals also detach the commission from a still-pending payout batch.
+ * Transfer references and CSV export belong to a later item.
  */
 class CommissionService
 {
     public function __construct(
         protected ExecutiveService $executives,
-        protected EntitlementService $entitlements
+        protected EntitlementService $entitlements,
+        protected PayoutService $payouts
     ) {}
 
     /**
@@ -131,11 +132,20 @@ class CommissionService
     /** @param \Illuminate\Database\Eloquent\Builder<Commission> $query */
     private function reverse($query, string $reason): int
     {
-        return $query->where('status', Commission::STATUS_CLEARED)->update([
-            'status' => Commission::STATUS_CANCELLED,
-            'cancelled_at' => now(),
-            'cancellation_reason' => $reason,
-        ]);
+        $commissions = $query->where('status', Commission::STATUS_CLEARED)->get();
+
+        foreach ($commissions as $commission) {
+            // A reversal must not leave a pending payout batch overstated.
+            $this->payouts->detachReversedCommission($commission);
+
+            $commission->forceFill([
+                'status' => Commission::STATUS_CANCELLED,
+                'cancelled_at' => now(),
+                'cancellation_reason' => $reason,
+            ])->save();
+        }
+
+        return $commissions->count();
     }
 
     private function typeFor(Payment $payment): ?string

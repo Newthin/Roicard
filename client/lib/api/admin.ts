@@ -786,3 +786,99 @@ export async function getAdminCommissions(params?: {
   return data;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Growth Network: payout settings, batches and finance approval              */
+/* -------------------------------------------------------------------------- */
+
+export interface AdminPayoutSettings {
+  id: number;
+  minimum_amount: string;
+  cadence_days: number;
+  is_enabled: boolean;
+  last_generated_at: string | null;
+  updated_at: string | null;
+}
+
+export interface AdminPayoutBatchUser {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
+
+export interface AdminPayoutBatchItem {
+  id: number;
+  commission_id: number;
+  executive_user_id: number;
+  executive: AdminPayoutBatchUser | null;
+  commission: { id: number; type: string; amount: string; cleared_at: string | null } | null;
+  amount: string;
+  currency: string;
+  status: "pending" | "approved";
+}
+
+export interface AdminPayoutBatch {
+  id: number;
+  period_start: string;
+  period_end: string;
+  total_amount: string;
+  currency: string;
+  status: "pending" | "approved";
+  notes: string | null;
+  created_by: AdminPayoutBatchUser | null;
+  approved_by: AdminPayoutBatchUser | null;
+  approved_at: string | null;
+  created_at: string | null;
+  items_count?: number;
+  items?: AdminPayoutBatchItem[];
+}
+
+export async function getAdminPayoutSettings(): Promise<{
+  settings: AdminPayoutSettings;
+}> {
+  const { data } = await apiClient.get("/admin/payout/settings");
+  return data;
+}
+
+export async function updateAdminPayoutSettings(payload: {
+  minimum_amount?: number;
+  cadence_days?: number;
+  is_enabled?: boolean;
+}): Promise<{ settings: AdminPayoutSettings; message: string }> {
+  const { data } = await apiClient.patch("/admin/payout/settings", payload);
+  return data;
+}
+
+export async function getAdminPayoutBatches(params?: {
+  status?: string;
+  per_page?: number;
+}): Promise<PaginatedResponse<AdminPayoutBatch>> {
+  const { data } = await apiClient.get("/admin/payout/batches", { params });
+  return data;
+}
+
+export async function getAdminPayoutBatch(
+  id: number
+): Promise<{ batch: AdminPayoutBatch }> {
+  const { data } = await apiClient.get(`/admin/payout/batches/${id}`);
+  return data;
+}
+
+export async function generateAdminPayoutBatches(force = false): Promise<{
+  batches: AdminPayoutBatch[];
+  message: string;
+}> {
+  const { data } = await apiClient.post("/admin/payout/batches/generate", {
+    force,
+  });
+  return data;
+}
+
+export async function approveAdminPayoutBatch(id: number): Promise<{
+  batch: AdminPayoutBatch;
+  message: string;
+}> {
+  const { data } = await apiClient.post(`/admin/payout/batches/${id}/approve`);
+  return data;
+}
+

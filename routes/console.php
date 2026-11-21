@@ -23,3 +23,8 @@ Schedule::command('billing:sync-lifecycle')->hourly();
 // Renewal reminders at 14/7/3/1 days before the paid period ends. The command
 // dedupes per subscription period, so daily execution is safe.
 Schedule::command('billing:renewals')->dailyAt('08:00');
+
+// Growth Network payouts — the service enforces the configured 14-day cadence
+// from the last generation run, so a daily check stays truly biweekly and
+// recovers cleanly from a missed day.
+Schedule::command('payouts:generate-batches')->dailyAt('09:00');

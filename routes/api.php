@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AdminCommissionController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AdminExecutiveController;
 use App\Http\Controllers\Api\AdminMessageController;
+use App\Http\Controllers\Api\AdminPayoutController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BillingController;
@@ -208,6 +209,14 @@ Route::middleware(['auth:sanctum', 'prevent_leak'])->group(function () {
         Route::get('/executives/{id}', [AdminExecutiveController::class, 'show'])->whereNumber('id');
         Route::get('/referral-clicks', [AdminExecutiveController::class, 'clicks']);
         Route::get('/commissions', [AdminCommissionController::class, 'index']);
+
+        // Growth Network — payout settings, batches and finance approval
+        Route::get('/payout/settings', [AdminPayoutController::class, 'settings']);
+        Route::patch('/payout/settings', [AdminPayoutController::class, 'updateSettings']);
+        Route::get('/payout/batches', [AdminPayoutController::class, 'batches']);
+        Route::post('/payout/batches/generate', [AdminPayoutController::class, 'generate']);
+        Route::get('/payout/batches/{batch}', [AdminPayoutController::class, 'batch'])->whereNumber('batch');
+        Route::post('/payout/batches/{batch}/approve', [AdminPayoutController::class, 'approve'])->whereNumber('batch');
 
         Route::get('/users', [AdminController::class, 'users']);
         Route::get('/users/{id}', [AdminController::class, 'showUser']);
