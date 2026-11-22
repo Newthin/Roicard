@@ -30,9 +30,8 @@ export function AdminMetricCard({
     <Card
       variant="default"
       className={cn(
-        "border-roicard-border bg-roicard-bg-elevated",
-        href &&
-          "theme-transition hover:border-roicard-accent/60 hover:bg-roicard-bg-muted",
+        "border-roicard-border bg-roicard-bg-elevated theme-transition",
+        "hover:border-roicard-accent/60 hover:bg-roicard-bg-muted",
         className
       )}
     >
