@@ -40,6 +40,7 @@ export function AdminOverviewView() {
           label="Total Users"
           value={overview.totalUsers}
           icon={Users}
+          href="/admin/users"
         />
         <AdminMetricCard
           label="Total Connections"
@@ -50,6 +51,7 @@ export function AdminOverviewView() {
           label="Roicard Assignments"
           value={overview.totalNfcAssignments}
           icon={Nfc}
+          href="/admin/nfc"
         />
         <AdminMetricCard
           label="Profile Views"
