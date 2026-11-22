@@ -5,6 +5,7 @@ import { ExecutiveDashboardNavLink } from "@/components/layout/ExecutiveDashboar
 import { MemberReferralNavLink } from "@/components/layout/MemberReferralNavLink";
 import { PublicProfileNavLink } from "@/components/layout/PublicProfileNavLink";
 import { BrandLogo } from "@/components/ui/BrandLogo";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/cn";
 import { DASHBOARD_NAV } from "@/lib/constants";
 import { Menu, X } from "lucide-react";
@@ -18,6 +19,15 @@ type SidebarProps = {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const { user } = useAuth();
+
+  const canManageMeetings =
+    user?.meetings_access === true ||
+    user?.subscription?.features?.meetings === true;
+
+  const navItems = DASHBOARD_NAV.filter(
+    (item) => item.href !== "/dashboard/meetings" || canManageMeetings
+  );
 
   const navContent = (
     <>
@@ -30,7 +40,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       </Link>
 
       <nav className="space-y-1">
-        {DASHBOARD_NAV.map(({ label, href, icon: Icon, exact }) => {
+        {navItems.map(({ label, href, icon: Icon, exact }) => {
           const isActive = exact
             ? pathname === href
             : pathname === href || pathname.startsWith(`${href}/`);

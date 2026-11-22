@@ -6,6 +6,8 @@ use App\Models\MeetingBooking;
 use App\Models\MeetingType;
 use App\Models\MeetingTypeAvailability;
 use App\Models\MeetingTypeCustomQuestion;
+use App\Models\Plan;
+use App\Models\Subscription;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -25,6 +27,17 @@ class MeetingTypeCrudTest extends TestCase
         $this->host = User::factory()->create([
             'status' => 'active',
             'timezone' => 'America/New_York',
+        ]);
+
+        // Explicit paid plan so tests never rely on the legacy-active fallback.
+        $plan = Plan::where('code', Plan::MONTHLY)->firstOrFail();
+        Subscription::create([
+            'user_id' => $this->host->id,
+            'plan_id' => $plan->id,
+            'status' => Subscription::STATUS_ACTIVE,
+            'started_at' => now(),
+            'current_period_start' => now(),
+            'current_period_end' => now()->addMonth(),
         ]);
     }
 

@@ -21,6 +21,7 @@ export interface AuthUser {
   membership_status?: string;
   is_founding_member?: boolean;
   has_active_subscription?: boolean;
+  meetings_access?: boolean;
   subscription?: import("./plans").MembershipSummary;
 }
 

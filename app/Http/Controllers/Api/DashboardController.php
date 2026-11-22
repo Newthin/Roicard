@@ -39,7 +39,9 @@ class DashboardController extends Controller
 
         $unreadNotifications = $user->unreadNotifications()->count();
 
-        // Meeting stats
+        // Meeting management is a paid feature. Legacy bookings are still
+        // counted so a downgraded member can find and cancel them.
+        $canManageMeetings = $user->hasFeature('meetings');
         $meetingTypeCount = MeetingType::where('user_id', $userId)->count();
         $upcomingBookings = MeetingBooking::where('host_user_id', $userId)
             ->whereIn('status', ['pending', 'confirmed'])
@@ -70,7 +72,7 @@ class DashboardController extends Controller
                 'connections' => $connectionCount,
                 'pending_connections' => $pendingConnections,
                 'unread_notifications' => $unreadNotifications,
-                'meeting_types' => $meetingTypeCount,
+                'meeting_types' => $canManageMeetings ? $meetingTypeCount : 0,
                 'upcoming_bookings' => $upcomingBookings,
                 'pending_bookings' => $pendingBookings,
             ],

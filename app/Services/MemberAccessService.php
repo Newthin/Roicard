@@ -75,6 +75,7 @@ class MemberAccessService
                 'membership_status' => $membership['status'],
                 'is_founding_member' => $membership['is_founding'],
                 'has_active_subscription' => $membership['is_active'],
+                'meetings_access' => (bool) ($membership['features']['meetings'] ?? false),
                 'subscription' => $membership,
             ];
     }

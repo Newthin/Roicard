@@ -170,29 +170,33 @@ Route::middleware(['auth:sanctum', 'prevent_leak'])->group(function () {
     Route::get('/analytics/summary', [AnalyticsController::class, 'summary']);
     Route::post('/analytics/events', [AnalyticsController::class, 'store']);
 
-    // Meetings - Owner
-    Route::get('/meeting-types', [\App\Http\Controllers\Api\MeetingTypeController::class, 'index']);
-    Route::post('/meeting-types', [\App\Http\Controllers\Api\MeetingTypeController::class, 'store']);
-    Route::get('/meeting-types/{meetingType}', [\App\Http\Controllers\Api\MeetingTypeController::class, 'show'])->middleware('owns');
-    Route::patch('/meeting-types/{meetingType}', [\App\Http\Controllers\Api\MeetingTypeController::class, 'update'])->middleware('owns');
-    Route::delete('/meeting-types/{meetingType}', [\App\Http\Controllers\Api\MeetingTypeController::class, 'destroy'])->middleware('owns');
-    Route::get('/meeting-types/{meetingType}/slots', [\App\Http\Controllers\Api\MeetingTypeController::class, 'slots'])->middleware('owns');
+    // Meetings - Owner. Creating and managing meeting types, availability and
+    // booking decisions is a paid feature. Viewing and cancelling bookings that
+    // were created while the member was paid stays available so a downgrade
+    // never strands an existing meeting.
+    Route::get('/meeting-types', [\App\Http\Controllers\Api\MeetingTypeController::class, 'index'])->middleware('feature:meetings');
+    Route::post('/meeting-types', [\App\Http\Controllers\Api\MeetingTypeController::class, 'store'])->middleware('feature:meetings');
+    Route::get('/meeting-types/{meetingType}', [\App\Http\Controllers\Api\MeetingTypeController::class, 'show'])->middleware(['feature:meetings', 'owns']);
+    Route::patch('/meeting-types/{meetingType}', [\App\Http\Controllers\Api\MeetingTypeController::class, 'update'])->middleware(['feature:meetings', 'owns']);
+    Route::delete('/meeting-types/{meetingType}', [\App\Http\Controllers\Api\MeetingTypeController::class, 'destroy'])->middleware(['feature:meetings', 'owns']);
+    Route::get('/meeting-types/{meetingType}/slots', [\App\Http\Controllers\Api\MeetingTypeController::class, 'slots'])->middleware(['feature:meetings', 'owns']);
 
-    // Meetings - Bookings (owner)
+    // Meetings - Bookings (owner). Read/cancel/ICS are intentionally ungated;
+    // confirm, decline and reschedule require the paid entitlement.
     Route::get('/meetings', [\App\Http\Controllers\Api\MeetingBookingController::class, 'index']);
     Route::get('/meetings/{meetingBooking}', [\App\Http\Controllers\Api\MeetingBookingController::class, 'show'])->middleware('owns');
-    Route::patch('/meetings/{meetingBooking}/confirm', [\App\Http\Controllers\Api\MeetingBookingController::class, 'confirm'])->middleware('owns');
-    Route::patch('/meetings/{meetingBooking}/decline', [\App\Http\Controllers\Api\MeetingBookingController::class, 'decline'])->middleware('owns');
+    Route::patch('/meetings/{meetingBooking}/confirm', [\App\Http\Controllers\Api\MeetingBookingController::class, 'confirm'])->middleware(['feature:meetings', 'owns']);
+    Route::patch('/meetings/{meetingBooking}/decline', [\App\Http\Controllers\Api\MeetingBookingController::class, 'decline'])->middleware(['feature:meetings', 'owns']);
     Route::patch('/meetings/{meetingBooking}/cancel', [\App\Http\Controllers\Api\MeetingBookingController::class, 'cancel'])->middleware('owns');
-    Route::post('/meetings/{meetingBooking}/reschedule', [\App\Http\Controllers\Api\MeetingBookingController::class, 'proposeReschedule'])->middleware('owns');
-    Route::patch('/meetings/{meetingBooking}/reschedule/{rescheduleRequest}/accept', [\App\Http\Controllers\Api\MeetingBookingController::class, 'acceptReschedule'])->middleware('owns');
-    Route::patch('/meetings/{meetingBooking}/reschedule/{rescheduleRequest}/decline', [\App\Http\Controllers\Api\MeetingBookingController::class, 'declineReschedule'])->middleware('owns');
+    Route::post('/meetings/{meetingBooking}/reschedule', [\App\Http\Controllers\Api\MeetingBookingController::class, 'proposeReschedule'])->middleware(['feature:meetings', 'owns']);
+    Route::patch('/meetings/{meetingBooking}/reschedule/{rescheduleRequest}/accept', [\App\Http\Controllers\Api\MeetingBookingController::class, 'acceptReschedule'])->middleware(['feature:meetings', 'owns']);
+    Route::patch('/meetings/{meetingBooking}/reschedule/{rescheduleRequest}/decline', [\App\Http\Controllers\Api\MeetingBookingController::class, 'declineReschedule'])->middleware(['feature:meetings', 'owns']);
     Route::get('/meetings/{meetingBooking}/ics', [\App\Http\Controllers\Api\MeetingBookingController::class, 'downloadIcs'])->middleware('owns');
 
     // Meetings - Blocked dates (owner)
-    Route::get('/blocked-dates', [\App\Http\Controllers\Api\MeetingBlockedDateController::class, 'index']);
-    Route::post('/blocked-dates', [\App\Http\Controllers\Api\MeetingBlockedDateController::class, 'store']);
-    Route::delete('/blocked-dates/{meetingBlockedDate}', [\App\Http\Controllers\Api\MeetingBlockedDateController::class, 'destroy'])->middleware('owns');
+    Route::get('/blocked-dates', [\App\Http\Controllers\Api\MeetingBlockedDateController::class, 'index'])->middleware('feature:meetings');
+    Route::post('/blocked-dates', [\App\Http\Controllers\Api\MeetingBlockedDateController::class, 'store'])->middleware('feature:meetings');
+    Route::delete('/blocked-dates/{meetingBlockedDate}', [\App\Http\Controllers\Api\MeetingBlockedDateController::class, 'destroy'])->middleware(['feature:meetings', 'owns']);
 
     /*
     |--------------------------------------------------------------------------

@@ -35,6 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'is_admin' => \App\Http\Middleware\IsAdmin::class,
+            'feature' => \App\Http\Middleware\RequiresFeature::class,
             'owns' => \App\Http\Middleware\EnsureResourceOwnership::class,
             'prevent_leak' => \App\Http\Middleware\PreventCrossUserLeak::class,
             'idempotency' => \App\Http\Middleware\IdempotencyMiddleware::class,

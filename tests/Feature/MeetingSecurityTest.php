@@ -6,7 +6,9 @@ use App\Models\MeetingBooking;
 use App\Models\MeetingBlockedDate;
 use App\Models\MeetingType;
 use App\Models\MeetingTypeAvailability;
+use App\Models\Plan;
 use App\Models\Profile;
+use App\Models\Subscription;
 use App\Models\User;
 use App\Services\BookingEngine;
 use Carbon\Carbon;
@@ -32,11 +34,13 @@ class MeetingSecurityTest extends TestCase
             'status' => 'active',
             'timezone' => 'America/New_York',
         ]);
+        $this->grantPaidPlan($this->host);
 
         $this->otherUser = User::factory()->create([
             'status' => 'active',
             'timezone' => 'America/Chicago',
         ]);
+        $this->grantPaidPlan($this->otherUser);
 
         $this->admin = User::factory()->create([
             'status' => 'active',
@@ -72,6 +76,21 @@ class MeetingSecurityTest extends TestCase
                 'end_time' => '17:00',
             ]);
         }
+    }
+
+    /** Explicit paid plan so tests never rely on the legacy-active fallback. */
+    protected function grantPaidPlan(User $user): void
+    {
+        $plan = Plan::where('code', Plan::MONTHLY)->firstOrFail();
+
+        Subscription::create([
+            'user_id' => $user->id,
+            'plan_id' => $plan->id,
+            'status' => Subscription::STATUS_ACTIVE,
+            'started_at' => now(),
+            'current_period_start' => now(),
+            'current_period_end' => now()->addMonth(),
+        ]);
     }
 
     // ═══════════════════════════════════════════════════════════════════

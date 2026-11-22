@@ -32,6 +32,7 @@ interface User {
   membership_status?: string;
   is_founding_member?: boolean;
   has_active_subscription?: boolean;
+  meetings_access?: boolean;
   subscription?: import("@/lib/api/plans").MembershipSummary;
 }
 
@@ -157,7 +158,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           server.email_verified !== session.user.email_verified ||
           server.onboarding_completed !== session.user.onboarding_completed ||
           server.next_step !== session.user.next_step ||
-          server.is_deactivated !== session.user.is_deactivated
+          server.is_deactivated !== session.user.is_deactivated ||
+          server.plan !== session.user.plan ||
+          server.membership_status !== session.user.membership_status ||
+          server.meetings_access !== session.user.meetings_access
         ) {
           // Same identity, but status/role/etc changed server-side — refresh.
           // Spread the cached user first so all server-provided fields,

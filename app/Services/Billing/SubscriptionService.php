@@ -614,9 +614,14 @@ class SubscriptionService
         ]);
     }
 
-    /** Drop cached relations so the caller sees the new state immediately. */
+    /** Drop cached relations and bust cached payloads after a plan change. */
     protected function refreshAccess(User $user): void
     {
+        // The public profile payload contains meeting types, which are only
+        // exposed to paid hosts. A downgrade must take effect immediately
+        // instead of leaving stale bookable types in the 1-hour page cache.
+        $user->profile?->bustPublicCache();
+
         $user->unsetRelation('subscription');
         $user->unsetRelation('profile');
     }
