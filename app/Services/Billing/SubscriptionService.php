@@ -8,6 +8,7 @@ use App\Models\Subscription;
 use App\Models\SubscriptionEvent;
 use App\Models\User;
 use App\Mail\MembershipLapsedMail;
+use App\Mail\PaymentReceiptMail;
 use App\Services\Growth\CommissionService;
 use App\Services\Growth\ExecutiveService;
 use App\Services\Growth\MemberReferralCreditService;
@@ -107,6 +108,23 @@ class SubscriptionService
             // on the same successful, already-applied payment.
             $this->memberCredits->earnForPayment($payment);
             $this->memberCredits->markUsedForPayment($payment);
+
+            // Receipts confirm money that actually moved. Free/zero-priced
+            // plans and admin grants never create a payable Payment row, and
+            // legacy backfills carry no charge in this system. The isApplied()
+            // guard above makes this once-only even if a webhook is replayed.
+            if ((float) $payment->amount > 0 && $payment->purpose !== Payment::PURPOSE_LEGACY) {
+                try {
+                    Mail::to($user)->queue(new PaymentReceiptMail($user, $payment));
+                } catch (\Throwable $e) {
+                    // Mail must never block a successful payment or activation.
+                    Log::warning('Failed to queue payment receipt email', [
+                        'payment_id' => $payment->id,
+                        'user_id' => $user->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
 
             $this->refreshAccess($user);
         });
