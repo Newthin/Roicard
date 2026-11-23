@@ -122,7 +122,7 @@ class MemberReferralService
         }
 
         $amount = round(max(0, (float) ($quote['amount'] ?? 0)), 2);
-        $rate = (float) config('roicard.growth.member_referral.discount_rate', 0.10);
+        $rate = (float) config('roicard.growth.member_referral.discount_rate', 0.03);
         $cap = (float) config('roicard.growth.member_referral.discount_cap', 50);
         $discount = round(min($amount * $rate, $cap), 2);
 

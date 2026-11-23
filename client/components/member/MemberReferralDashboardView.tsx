@@ -233,7 +233,7 @@ export function MemberReferralDashboardView() {
           </CardDescription>
         </CardHeader>
         <ul className="list-disc space-y-2 pl-5 text-sm text-roicard-text-muted">
-          <li>10% of a referred member&apos;s first membership payment, capped at GHS 50.</li>
+          <li>3% of a referred member&apos;s first membership payment, capped at GHS 50.</li>
           <li>The referred member pays the discounted price; you get equal credit after payment clears.</li>
           <li>Credit applies automatically to your next membership payment and expires after 12 months.</li>
           <li>No cash payout, no stacking with campaign discounts, and no repeat reward for renewals.</li>

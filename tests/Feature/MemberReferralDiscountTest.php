@@ -149,48 +149,50 @@ class MemberReferralDiscountTest extends TestCase
         $this->assertArrayNotHasKey('ip_hash', $dashboard['recent_clicks'][0] ?? []);
     }
 
-    public function test_first_purchase_gets_ten_percent_discount_and_earns_equal_credit(): void
+    public function test_first_purchase_gets_three_percent_discount_and_earns_equal_credit(): void
     {
         $referrer = $this->referrer();
         $code = $this->codeFor($referrer);
         $member = $this->registerReferred($code, 'discount@example.com');
 
         $quote = $this->quote($member);
-        $this->assertSame('315.00', number_format((float) $quote['amount'], 2, '.', ''));
-        $this->assertSame('35.00', number_format((float) $quote['discount_amount'], 2, '.', ''));
+        $this->assertSame('339.50', number_format((float) $quote['amount'], 2, '.', ''));
+        $this->assertSame('10.50', number_format((float) $quote['discount_amount'], 2, '.', ''));
         $this->assertSame($referrer->id, $quote['referral_discount']['user_id']);
-        $this->assertSame('35.00', number_format((float) $quote['referral_discount']['amount'], 2, '.', ''));
+        $this->assertSame('10.50', number_format((float) $quote['referral_discount']['amount'], 2, '.', ''));
 
         $payment = $this->purchase($member);
-        $this->assertSame('315.00', number_format((float) $payment->amount, 2, '.', ''));
-        $this->assertSame('35.00', number_format((float) $payment->referral_discount_amount, 2, '.', ''));
+        $this->assertSame('339.50', number_format((float) $payment->amount, 2, '.', ''));
+        $this->assertSame('10.50', number_format((float) $payment->referral_discount_amount, 2, '.', ''));
         $this->assertSame($referrer->id, $payment->referral_user_id);
 
         $dashboard = $this->dashboard($referrer);
-        $this->assertSame('35.00', $dashboard['summary']['credits_earned']);
-        $this->assertSame('35.00', $dashboard['summary']['available_balance']);
+        $this->assertSame('10.50', $dashboard['summary']['credits_earned']);
+        $this->assertSame('10.50', $dashboard['summary']['available_balance']);
         $this->assertSame('0.00', $dashboard['summary']['credits_used']);
         $this->assertCount(1, $dashboard['credits']);
-        $this->assertSame('35.00', $dashboard['credits'][0]['amount']);
+        $this->assertSame('10.50', $dashboard['credits'][0]['amount']);
 
         // Renewals are never discounted and never earn a second credit.
         $renewal = $this->quote($member);
         $this->assertNull($renewal['referral_discount']);
         $this->assertSame('250.00', number_format((float) $renewal['amount'], 2, '.', ''));
         $this->purchase($member);
-        $this->assertSame('35.00', $this->dashboard($referrer)['summary']['credits_earned']);
+        $this->assertSame('10.50', $this->dashboard($referrer)['summary']['credits_earned']);
     }
 
     public function test_discount_is_capped_at_ghs_fifty(): void
     {
-        Plan::where('code', Plan::ANNUAL)->update(['initial_price' => 900]);
+        // At 3% the GHS 50 cap only binds above GHS 1,666.67, so use a high
+        // test price to keep the cap itself covered.
+        Plan::where('code', Plan::ANNUAL)->update(['initial_price' => 2000]);
 
         $referrer = $this->referrer();
         $member = $this->registerReferred($this->codeFor($referrer), 'capped@example.com');
 
         $quote = $this->quote($member);
         $this->assertSame('50.00', number_format((float) $quote['referral_discount']['amount'], 2, '.', ''));
-        $this->assertSame('850.00', number_format((float) $quote['amount'], 2, '.', ''));
+        $this->assertSame('1950.00', number_format((float) $quote['amount'], 2, '.', ''));
 
         $payment = $this->purchase($member);
         $this->assertSame('50.00', number_format((float) $payment->referral_discount_amount, 2, '.', ''));
@@ -232,15 +234,15 @@ class MemberReferralDiscountTest extends TestCase
         $this->purchase($member);
 
         $quote = $this->quote($referrer, Plan::MONTHLY);
-        $this->assertSame('35.00', number_format((float) $quote['referral_credit_applied'], 2, '.', ''));
-        $this->assertSame('45.00', number_format((float) $quote['amount'], 2, '.', ''));
+        $this->assertSame('10.50', number_format((float) $quote['referral_credit_applied'], 2, '.', ''));
+        $this->assertSame('69.50', number_format((float) $quote['amount'], 2, '.', ''));
 
         $payment = $this->purchase($referrer, Plan::MONTHLY);
-        $this->assertSame('35.00', number_format((float) $payment->referral_credit_applied, 2, '.', ''));
-        $this->assertSame('45.00', number_format((float) $payment->amount, 2, '.', ''));
+        $this->assertSame('10.50', number_format((float) $payment->referral_credit_applied, 2, '.', ''));
+        $this->assertSame('69.50', number_format((float) $payment->amount, 2, '.', ''));
 
         $dashboard = $this->dashboard($referrer);
-        $this->assertSame('35.00', $dashboard['summary']['credits_used']);
+        $this->assertSame('10.50', $dashboard['summary']['credits_used']);
         $this->assertSame('0.00', $dashboard['summary']['available_balance']);
 
         $credit = MemberReferralCredit::where('earned_from_payment_id', $payment->id)->first();
@@ -281,7 +283,7 @@ class MemberReferralDiscountTest extends TestCase
         $this->assertSame(MemberReferralCredit::STATUS_CANCELLED, $secondCredit->fresh()->status);
         $this->assertTrue(MemberReferralCredit::where('user_id', $secondReferrer->id)
             ->where('status', MemberReferralCredit::STATUS_ADJUSTMENT)
-            ->where('amount', -35)
+            ->where('amount', -10.5)
             ->exists());
     }
 
@@ -297,7 +299,7 @@ class MemberReferralDiscountTest extends TestCase
             'data' => ['reference' => $spendingPayment->provider_reference],
         ])->assertOk();
 
-        $this->assertSame('35.00', $this->dashboard($referrer)['summary']['available_balance']);
+        $this->assertSame('10.50', $this->dashboard($referrer)['summary']['available_balance']);
     }
 
     public function test_executive_link_keeps_cash_commission_and_never_creates_member_discount(): void
